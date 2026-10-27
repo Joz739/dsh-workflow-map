@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "dsh-workflow-map",
   "version": "0.3.0",
-  "description": "工作流地图插件（DeepSeek Harness bundle）：在会话标签栏、左栏菜单与主内容区以同一份面板展示当前会话的分步总览、每步的工具/文件类型明细、唯一彩色流光进度条，并支持热注入（steer）与「需确认」标注。宿主半折叠会话事件并读取 PAE 计划，经本地 HTTP 视图供数据；浏览器半渲染面板。",
+  "description": "宸ヤ綔娴佸湴鍥炬彃浠讹紙DeepSeek Harness bundle锛夛細鍦ㄤ細璇濇爣绛炬爮銆佸乏鏍忚彍鍗曚笌涓诲唴瀹瑰尯浠ュ悓涓€浠介潰鏉垮睍绀哄綋鍓嶄細璇濈殑鍒嗘鎬昏銆佹瘡姝ョ殑宸ュ叿/鏂囦欢绫诲瀷鏄庣粏銆佸敮涓€褰╄壊娴佸厜杩涘害鏉★紝骞舵敮鎸佺儹娉ㄥ叆锛坰teer锛変笌銆岄渶纭銆嶆爣娉ㄣ€傚涓诲崐鎶樺彔浼氳瘽浜嬩欢骞惰鍙?PAE 璁″垝锛岀粡鏈湴 HTTP 瑙嗗浘渚涙暟鎹紱娴忚鍣ㄥ崐娓叉煋闈㈡澘銆?,
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -17,11 +17,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_GITHUB_USERNAME/dsh-workflow-map.git"
+    "url": "git+https://github.com/73427389729/dsh-workflow-map.git"
   },
-  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/dsh-workflow-map#readme",
+  "homepage": "https://github.com/73427389729/dsh-workflow-map#readme",
   "bugs": {
-    "url": "https://github.com/YOUR_GITHUB_USERNAME/dsh-workflow-map/issues"
+    "url": "https://github.com/73427389729/dsh-workflow-map/issues"
   },
   "engines": {
     "node": ">=20"
