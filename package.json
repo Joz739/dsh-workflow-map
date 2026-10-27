@@ -17,11 +17,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/73427389729/dsh-workflow-map.git"
+    "url": "git+https://github.com/Joz739/dsh-workflow-map.git"
   },
-  "homepage": "https://github.com/73427389729/dsh-workflow-map#readme",
+  "homepage": "https://github.com/Joz739/dsh-workflow-map#readme",
   "bugs": {
-    "url": "https://github.com/73427389729/dsh-workflow-map/issues"
+    "url": "https://github.com/Joz739/dsh-workflow-map/issues"
   },
   "engines": {
     "node": ">=20"
