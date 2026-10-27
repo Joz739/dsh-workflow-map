@@ -98,7 +98,7 @@ const T = loaded.definition
   })
   .__test;
 
-const live = JSON.parse(fs.readFileSync(path.join(ROOT, 'evidence/state-live.json'), 'utf8'));
+const live = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/fixtures/state-live.json'), 'utf8'));
 const view = live.view;
 const rev = live.rev;
 const prefs = T.defaultPrefs();

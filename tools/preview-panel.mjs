@@ -166,7 +166,7 @@ function mountPage(tokens, hostId, title, script) {
 }
 
 /* --- the three states ----------------------------------------------------- */
-const view = JSON.parse(fs.readFileSync(path.join(ROOT, 'evidence/state-live.json'), 'utf8')).view;
+const view = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/fixtures/state-live.json'), 'utf8')).view;
 const prefs = T.defaultPrefs();
 const say = T.makeSay(undefined);
 const noop = () => {};
@@ -227,6 +227,8 @@ window.addEventListener('load', function () {
         overlap: l ? d.bottom > l.top + 0.01 : false,
         label: label ? label.textContent : null,
         dockH: Math.round(d.height * 100) / 100,
+          trackH: track ? Math.round(parseFloat(window.getComputedStyle(track).height) * 100) / 100 : null,
+          trackBoxH: track ? Math.round(track.getBoundingClientRect().height * 100) / 100 : null,
         subH: sub ? Math.round(sub.getBoundingClientRect().height * 100) / 100 : null,
         subRight: sub ? Math.round(sub.getBoundingClientRect().right * 100) / 100 : null,
         subLeft: sub ? Math.round(sub.getBoundingClientRect().left * 100) / 100 : null,
@@ -278,6 +280,7 @@ window.addEventListener('load', function () {
       }),
       connectors: document.querySelectorAll('.wf-unit-link').length,
       railHeight: rows.length > 0 ? rows[0].dockH : null,
+        railTrackHeight: rows.length > 0 ? rows[0].trackH : null,
       gapValues: gaps,
       minDockToLinkPx: links.reduce(function (min, row) { return Math.min(min, row.dockToLinkPx); }, 999),
       overlapped: rows.some(function (row) { return row.overlap; }),
@@ -364,22 +367,24 @@ window.addEventListener('load', function () {
 `;
 
 /* --- the three flow states ------------------------------------------------- */
-const capModel = T.buildModel(view, { ...prefs, selectedStep: 2 });
+const CAP_INDEX = view.steps.reduce((best, s, i) => (s.nodeCount || 0) - (s.nodeIds || []).length > (view.steps[best].nodeCount || 0) - (view.steps[best].nodeIds || []).length ? i : best, 0);
+const capModel = T.buildModel(view, { ...prefs, selectedStep: CAP_INDEX });
 const capGroups = T.flowGroups(capModel.flow.nodes, capModel.flow.groups);
 const capItems = T.flowItems(capModel.flow.nodes, capGroups);
 const capWindow = T.flowWindow(capItems, T.constants().flowCap, false);
 const capWindowNodes = T.flowNodeCount(capWindow.items);
 const capFirstId = capWindow.items[0] && capWindow.items[0].type === 'node' ? capWindow.items[0].node.id : capModel.flow.nodes[capWindow.hiddenNodes].id;
 
-const groupModel = T.buildModel(view, { ...prefs, selectedStep: 1 });
+const GROUP_INDEX = view.steps.findIndex((s, i) => { const m = T.buildModel(view, { ...prefs, selectedStep: i }); return m && T.flowGroups(m.flow.nodes, m.flow.groups).length > 0; });
+const groupModel = T.buildModel(view, { ...prefs, selectedStep: GROUP_INDEX >= 0 ? GROUP_INDEX : 0 });
 const groupRanges = T.flowGroups(groupModel.flow.nodes, groupModel.flow.groups);
-const openGroupUi = T.flowExpandAll(T.flowToggleGroup(T.flowUiFor(null, 1), 1, groupRanges[0].key), 1);
+const openGroupUi = T.flowExpandAll(T.flowToggleGroup(T.flowUiFor(null, GROUP_INDEX), GROUP_INDEX, groupRanges[0].key), GROUP_INDEX);
 const groupMemberId = groupModel.flow.nodes[groupRanges[0].from].id;
 const selectedGroupUi = T.flowSelectNode(openGroupUi, 1, groupMemberId);
 
-const capFlowTree = T.renderPanel(capModel, prefs, say, actions, { ...ui, flow: T.flowUiFor(null, 2) });
+const capFlowTree = T.renderPanel(capModel, prefs, say, actions, { ...ui, flow: T.flowUiFor(null, CAP_INDEX) });
 const groupFlowTree = T.renderPanel(groupModel, prefs, say, actions, { ...ui, flow: selectedGroupUi });
-const allFlowTree = T.renderPanel(capModel, prefs, say, actions, { ...ui, flow: T.flowExpandAll(T.flowUiFor(null, 2), 2) });
+const allFlowTree = T.renderPanel(capModel, prefs, say, actions, { ...ui, flow: T.flowExpandAll(T.flowUiFor(null, CAP_INDEX), CAP_INDEX) });
 
 const flowExpect = {
   cap: {
