@@ -74,9 +74,9 @@ const mockApp = `
 const T0 = 1792243000000;
 const SECRET = 'WF_READ_BODY_SECRET_7f3a9d_should_never_render';
 const LONG_COMMAND = (
-  'pwsh -NoProfile -Command "Get-Content C:\\Users\\Administrator\\Documents\\dsh-plugins\\dsh-workflow-map\\src\\client\\NodeDetail.js | Select-Object -First 200 | ForEach-Object { $_ }"' +
+  'pwsh -NoProfile -Command "Get-Content D:\\proj\\src\\client\\NodeDetail.js | Select-Object -First 200 | ForEach-Object { $_ }"' +
   ' # ' +
-  'x'.repeat(60)
+  'x'.repeat(120)
 ).slice(0, 200);
 
 const NODE_DETAIL_PATH = 'D:\\proj\\src\\client\\NodeDetail.js';
@@ -126,7 +126,7 @@ const steps = [
 ];
 
 const plan = {
-  ver: 1, phase: 'executing', task: 'step-11 节点详情与分步详情', taskTitle: 'step-11 节点详情与分步详情',
+ ver: 1, phase: 'executing', task: '节点详情与分步详情', taskTitle: '节点详情与分步详情',
   summary: '', planDir: 'C:\\pae', pausedReason: '', stepIndex: 2, steps: [],
   stepReports: [
     { stepIndex: 1, status: 'success', summary: '点节点能看到工具、参数、文件、耗时与结果；路径一键复制。', artifacts: [ARTIFACT_A, ARTIFACT_B], exitCode: 0 },

@@ -1569,7 +1569,7 @@ const cssNow = T.css();
 check(
   'inject.css.column',
   cssNow.includes('.wf-right .wf-inject{flex:1 1 auto') && !cssNow.includes('.wf-inject{flex:0 0 320px'),
-  '会话4: the 320 px split column is gone; the composer fills the right page (asserted below)'
+  'the 320 px split column is gone; the composer fills the right page (asserted below)'
 );
 check('inject.css.pageFill', cssNow.includes('.wf-right .wf-inject{flex:1 1 auto;min-height:0'), 'inside the right page it fills the column');
 // The narrow rule is a CONTAINER query: the panel's own width decides, not the window's.

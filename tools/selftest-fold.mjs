@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// dsh-workflow-map — step-02 self-test for src/fold.mjs.
+// dsh-workflow-map — self-test for src/fold.mjs.
 //
 // node tools\selftest-fold.mjs
 //
@@ -657,7 +657,7 @@ function foldAll(events) {
 }
 
 // ---------------------------------------------------------------------------
-// (l) step-10: is the session working right now (`view.running`)
+// (l) is the session working right now (`view.running`)
 // ---------------------------------------------------------------------------
 
 {
@@ -803,10 +803,10 @@ function foldAll(events) {
 // ---------------------------------------------------------------------------
 
 {
- // step-03 added the session identity to the state (`sessionId` / `cwd`) so the plan reader
+ // added the session identity to the state (`sessionId` / `cwd`) so the plan reader
  // can name `.pae/<sessionId>/orchestrator.json` from a wire view; a checkpoint written at
  // version 1 cannot carry it, hence the bump.
- // step-03-unsteer bumps it again for the inbox LEDGER (`inboxIds`): a version-2 checkpoint
+ // bumps it again for the inbox LEDGER (`inboxIds`): a version-2 checkpoint
  // carries no ledger, and answering a later cancellation from a missing ledger would be a
  // wrong answer, so the registry must rebuild rather than hydrate.
   equal("stateVersion is 3", STATE_VERSION, 3);
@@ -877,7 +877,7 @@ function foldAll(events) {
     "workflow/end",
     "user-questions/request",
     "approval/request",
- // step-09: the branch vocabulary of a recorded log and of the plugin bus.
+ // the branch vocabulary of a recorded log and of the plugin bus.
     "job/registered",
     "job/settled",
     "tool-workflow/run-start",

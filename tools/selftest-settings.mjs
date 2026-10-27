@@ -64,7 +64,7 @@ check(
     typeof T.snapshotDownload === 'function' &&
     typeof T.copySnapshot === 'function' &&
     typeof T.releaseSnapshotUrls === 'function',
-  'every step-12 seam is exported'
+ 'every seam is exported'
 );
 check(
   'constants.allowLists',
@@ -127,7 +127,7 @@ const step0Ids = nodes.slice(0, 70).map((node) => node.id);
 const step1Ids = nodes.slice(70).map((node) => node.id);
 const view = {
   asOf: T0 + 2000,
-  task: 'step-12 面板设置与工作流快照导出',
+ task: '面板设置与工作流快照导出',
   steps: [
     {
       index: 0,
@@ -160,8 +160,8 @@ const view = {
   plan: {
     ver: 1,
     phase: 'executing',
-    task: 'step-12 面板设置与工作流快照导出',
-    taskTitle: 'step-12 面板设置与工作流快照导出',
+ task: '面板设置与工作流快照导出',
+ taskTitle: '面板设置与工作流快照导出',
     stepIndex: 1,
     steps: [],
     statuses: { '1': 'in_progress', '2': 'completed' },

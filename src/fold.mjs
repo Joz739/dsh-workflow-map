@@ -1,4 +1,4 @@
-// dsh-workflow-map — src/fold.mjs (step-02). PURE FUNCTION. No clock, no fs, no net.
+// dsh-workflow-map — src/fold.mjs . PURE FUNCTION. No clock, no fs, no net.
 //
 // The single source of truth for the workflow view: "step list + each step's flow nodes +
 // currently running step/node + per-step percentage". Three consumers, one implementation:
@@ -24,13 +24,13 @@
 //     type, appended by the dsh-session-progress tool `report_step_progress`).
 //   * PAE writes `user/message` events with source.kind === "plugin:dsh-plan-and-execute":
 //     the kickoff/summary/step instructions AND the "[plan-and-execute previous result: ...]"
-//     reports. `orchestrator.json` (read by step-03, NOT here) carries anchorSeqs
+// reports. `orchestrator.json` (read by NOT here) carries anchorSeqs
 //     { stepIndex: seq } — the seq of the context message that opens each plan step.
 //   * Unrelated types seen in a live log: job/*, llm/*, compaction/*, request/*,
 //     command/run, command/done, workspace/changes, assistant/attempt, system/message,
 //     session-log-deepseek/*. They return the SAME state reference.
 //
-// BRANCH VOCABULARY (step-09) — read out of the harness's own SessionEventMap (the type
+// BRANCH VOCABULARY  — read out of the harness's own SessionEventMap (the type
 // list and the per-type payload validators inside app.asar), NOT guessed:
 //   * the session log carries `job/registered` { jobId, owner, kind, label, startedAt,
 //     toolCall? } and `job/settled` { …the same fields, outcome: { status:
@@ -54,7 +54,7 @@
 // append is guarded by the event's `seq` (the first event of a log has no seq — it is a
 // `session` header, which this fold ignores anyway).
 
-// STATE_VERSION 3 (step-03-unsteer): the state carries the INBOX LEDGER (`inboxIds`), because
+// STATE_VERSION 3 : the state carries the INBOX LEDGER (`inboxIds`), because
 // the durable record of a revocation is positional — `agent/inbox/spliced { target, start,
 // removedCount, inserted, outcome: 'canceled' }` names an INDEX, never the message that left
 // (measured 2026-10-26 on the host's own `ReactLoopInbox.mutate`, and on 145 real session logs:
@@ -325,7 +325,7 @@ export function createInitialState() {
     durations: [],
     truncated: { stepNodes: 0, totalNodes: 0 },
     nextNodeId: 1,
-    // Branch lanes (step-09): parallel work (subagent / workflow / background job) that
+    // Branch lanes : parallel work (subagent / workflow / background job) that
     // must NOT enter the main flow's node list. See the branch section below.
     branches: [],
     nextBranchId: 1,
@@ -336,7 +336,7 @@ export function createInitialState() {
     // `{ planIndex, seq }` parked by foldPaeReport: the seq PAE itself will record as the
     // anchor of the NEXT plan step (orchestrator.json anchorSeqs[planIndex]).
     pendingAnchor: null,
-    // Is a turn open? (step-10) `turn/start` → true, `turn/end` → false. This is the ONE honest
+    // Is a turn open?  `turn/start` → true, `turn/end` → false. This is the ONE honest
     // "is the session working right now" signal the log carries: the step rows stay 'running'
     // until PAE rewrites them, so they cannot answer it, and a long model answer can go minutes
     // without a tool call (its events arrive at the end). Exposed as `view.running`; the browser
@@ -348,7 +348,7 @@ export function createInitialState() {
     // MEASURED proof the loop admitted it (measured 2026-10-18, session-f1b5bf9d), so the
     // panel can say "injected, session picked it up" instead of guessing from the HTTP 200 alone.
     injects: [],
-    // step-03-unsteer · the inbox LEDGER: the pending message ids of each loop-owned list, in
+    // the inbox LEDGER: the pending message ids of each loop-owned list, in
     // order, replayed from the same `agent/inbox/spliced` coordinates the loop writes. It exists
     // for exactly one question the durable log alone cannot answer — "the splice removed the
     // message at index i; WHICH id was that?" — because a cancellation records an index, not an
@@ -401,7 +401,7 @@ function newStep(index, title, at, source) {
     // The model step currently running inside this plan step (step/start, step/end).
     modelStep: null,
     lastActivityAt: 0,
-    // step-03: the event time of the LAST progress estimate this step received — a
+    // the event time of the LAST progress estimate this step received — a
     // `stepProgress/report` or the `step/start` that began its first model step. 0 means
     // "this step never carried a number", which the rail renders as no `ago` segment at all
     // (a 0 there would be the fake number the plugin forbids). Pure data: the fold never
@@ -474,7 +474,7 @@ function soleRunning(state, time) {
  * The plan step a node belongs to. Three sources, in priority order:
  *   1. the PAE anchor range — the last anchored step whose anchorSeq <= this event's seq
  *      (orchestrator.json's `anchorSeqs` maps step index -> the seq of the context message
- *      that OPENS that step; step-03 feeds it in, and until then the PAE `user/message`
+ *      that OPENS that step; feeds it in, and until then the PAE `user/message`
  *      events open the steps themselves);
  *   2. the in_progress todo row, when the caller knows one;
  *   3. the running step, else the last step.
@@ -499,7 +499,7 @@ function stepForNode(state, seq, inProgressIndex) {
  * Per-step percent. Four routes, in priority order:
  *   1. a CLOSED step is pinned — its number is finished work, not a time estimate, so a
  *      later (slower) sibling must not be able to pull its bar back down;
- *   2. a model self-report, BLENDED with the todo table's own completion ratio (step-02): the todo
+ *   2. a model self-report, BLENDED with the todo table's own completion ratio : the todo
  *      table is a measurement, so it decides the number whenever it has rows to speak for — an
  *      inflated report can no longer pin the bar above the work actually done, and a stale low one
  *      can no longer hide it. With no rows to measure, the report (high water) stands alone;
@@ -1020,7 +1020,7 @@ function foldUser(state, event, time, seq) {
     //   "plan-and-execute: executing step i/N (...)"  — the step instruction, opens step i
     //   "plan-and-execute: step i/N result"      — step i's report: closes it, records the summary
     // These are the ONLY reliable plan-step boundaries: they are what PAE's own
-    // orchestrator.json anchorSeqs point at, so step-03 can confirm them later.
+    // orchestrator.json anchorSeqs point at, so can confirm them later.
     const summary = typeof source.summary === "string" ? source.summary : "";
     const instruction = parseStepInstruction(block.text, summary);
     if (instruction) {
@@ -1227,7 +1227,7 @@ function foldPaeReport(state, time, seq, report, blockText) {
   }
   // PAE's own anchor for step i+1 IS this report message (orchestrator.json anchorSeqs[i+1]
   // is exactly its seq), so remember it: when the next instruction opens that step it can
-  // anchor on the same event PAE did, and step-03's orchestrator read confirms it instead of
+ // anchor on the same event PAE did, and orchestrator read confirms it instead of
   // correcting it.
   const pendingAnchor = { planIndex: report.planIndex + 1, seq: seq === null ? null : seq };
   return withActive({ ...state, asOf: time, steps: reindex(steps), durations, pendingAnchor }, null, time);
@@ -1256,7 +1256,7 @@ function closeStep(step, time) {
 function foldTurnStart(state, _event, time) {
   // A new turn does not close the current step (PAE re-sends the todo table each turn),
   // but it does clear the "current node" highlight: the next node opens it again.
-  // step-10: and it opens the turn, which is what `view.running` reports.
+  // and it opens the turn, which is what `view.running` reports.
   return withActive({ ...state, asOf: time, turnActive: true }, null, time);
 }
 
@@ -1283,7 +1283,7 @@ function foldReport(state, event, time) {
   const value = clamp(raw, 0, 100);
   const reports = [...state.reports.filter((entry) => entry.stepIndex !== step.index), { stepIndex: step.index, percent: value }]
     .slice(-REPORTS_PER_STEP);
-  // step-03: a report IS the moment a progress number came into being, so it is the
+  // a report IS the moment a progress number came into being, so it is the
   // `lastEstimateAt` stamp the rail's "estimated N minutes ago" segment measures from. Same event time,
   // no clock read.
   const stamped = state.steps.map((row) =>
@@ -1294,7 +1294,7 @@ function foldReport(state, event, time) {
 }
 
 /**
- * Branch lanes (step-09): a subagent, a workflow run and a background job all run IN
+ * Branch lanes : a subagent, a workflow run and a background job all run IN
  * PARALLEL with the plan step that started them, so their activity cannot be folded into
  * that step's node list — a subagent's own tool calls are not the plan step's calls. A lane
  * is a small ordered log of activity rows attached to the step that was running when it
@@ -1546,7 +1546,7 @@ function foldSubagent(state, event, time, seq, kind) {
 
 /**
  * `workflow/*` (PLUGIN-BUS shape): a run start, its phase headings and its end. The phase
- * title is a SECTION row inside the lane, exactly as step-09 §1 asks.
+ * title is a SECTION row inside the lane, exactly as §1 asks.
  */
 function foldWorkflowBus(state, type, event, time, seq) {
   const data = dataOf(event);
@@ -1851,7 +1851,7 @@ function foldInboxSpliced(state, event, time) {
 }
 
 /**
- * "revocable while not yet claimed by the session" - the NON-persistent half (step-03 erratum).
+ * "revocable while not yet claimed by the session" - the NON-persistent half (erratum).
  *
  * This branch answers the host's `dispatch.emit("agent/inbox/discarded", { message })`: it carries the message itself,
  * but does NOT enter the session log (the agent-loop README says consumers should use claimed/discarded notices, not rely on
@@ -2227,7 +2227,7 @@ function nodeView(node) {
     error: node.error,
     at: node.at,
     durationMs: node.durationMs,
-    // step-11: the detail's meta line names the event that produced the node. Null for the
+    // the detail's meta line names the event that produced the node. Null for the
     // synthetic nodes (a message without a seq), never invented.
     seq: node.seq === null || node.seq === undefined ? null : node.seq,
   };
@@ -2248,7 +2248,7 @@ function stepView(step, state, now) {
     modelStep: step.modelStep ?? null,
     anchorSeq: step.anchorSeq ?? null,
     percent: step.percent,
-    // step-03: when the LAST number arrived (0 = never). Lets the rail show how stale the
+    // when the LAST number arrived (0 = never). Lets the rail show how stale the
     // estimate it is quoting actually is, without reading a clock anywhere.
     lastEstimateAt: step.lastEstimateAt ?? 0,
     percentSource: step.percentSource,
@@ -2610,12 +2610,12 @@ export function buildView(state, nowMs) {
     nodes,
     // Branch lanes are NOT part of `nodes`: the main flow's node count, its same-tool
     // groups and both caps ignore them, and only a lane's own status dot breathes
-    // (step-09 §4: branches never compete for the “current activity” highlight).
+    // (§4: branches never compete for the “current activity” highlight).
     branches: live.branches.map(branchView),
     active: activeStep ? { stepIndex: activeStep.index, nodeId: activeNode ? activeNode.id : null } : null,
     activeNode: activeNode ? nodeView(activeNode) : null,
     asOf: live.asOf,
-    // step-10: is the session working right now? `turn/start` opened a turn and nothing closed
+    // is the session working right now? `turn/start` opened a turn and nothing closed
     // it. The browser half pauses every animation when this is false; the step rows cannot
     // answer it (PAE leaves them 'running' after the turn ends).
     running: live.turnActive === true,

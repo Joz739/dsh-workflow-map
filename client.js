@@ -1,6 +1,6 @@
-// dsh-workflow-map — client half (step-13: the panel moved from the shell overlay
-// into the sidebar rail + main content area; step-12 settings/export, step-11
-// details, step-10 living layer, step-09 branch lanes all remain).
+// dsh-workflow-map — client half (the panel moved from the shell overlay
+// into the sidebar rail + main content area; settings/export, 
+// details, living layer, branch lanes all remain).
 // GENERATED FILE — do not edit by hand. Sources: src/client/theme.js,
 // src/client/store.js, src/client/Settings.js, src/client/pulse.js,
 // src/client/ProgressUnder.js, src/client/StepDetail.js, src/client/StepColumn.js,
@@ -22,7 +22,7 @@ window.__ModuleLoader__.load({
     // One namespace for the bundle, the slot descriptor's `locale` field and
     // locale.register: they must agree, or the dictionary is not found.
     var NS = "dsh-workflow-map";
-    // step-13: ONE id addresses both seats — the sidebar rail row and the main panel.
+ // ONE id addresses both seats — the sidebar rail row and the main panel.
     var PANEL_ID = "workflow-map";
     var PANEL_ORDER = 10;
 
@@ -202,7 +202,7 @@ window.__ModuleLoader__.load({
 
      /* card: fills the main area; the header and the settings card keep their own height,
          the two-column body takes the rest. No drag grips: the column has no free edges.
-         Flush edges on purpose (step-13): a 12 px rounded box floating inside the centre column
+     Flush edges on purpose : a 12 px rounded box floating inside the centre column
          would read as the old overlay again. */
       ".wf-card{position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;min-width:0;" +
         "border-radius:0;overflow:hidden;" +
@@ -326,7 +326,7 @@ window.__ModuleLoader__.load({
         "text-decoration:line-through}",
 
      /* the rail: WF_STEP_GAP of air below the card frame, WF_STEP_RAIL tall.
-         step-03: the dock is a two-line block — line 1 is the 6 px track + the percent, line 2
+     the dock is a two-line block — line 1 is the 6 px track + the percent, line 2
          the secondary age fact. `flex-direction:column` keeps them stacked without the
          track losing a pixel of width, and the whole block stays right-aligned. */
       ".wf-prog-dock{display:flex;flex-direction:column;gap:2px;margin-top:" + WF_STEP_GAP + "px}",
@@ -373,9 +373,9 @@ window.__ModuleLoader__.load({
 
      /* connector between two cards: WF_STEP_LINK tall, solid once the step above is done */
      /* connector between two cards: WF_STEP_LINK tall, solid once the step above is done.
-         step-02: the line moves 3 px right with the card's new 20 px triangle band, so it still
+     the line moves 3 px right with the card's new 20 px triangle band, so it still
          hangs off the ring's centre (the band is 20 px, the ring starts 20 + 8 px padding).
-         step-05: the column now carries the chain's `gap`, so the connector must NOT add a margin —
+     the column now carries the chain's `gap`, so the connector must NOT add a margin —
          that would make the space between two step cards (gap + margin + link) larger than the hole
          its own line is drawn in. WF_STEP_LINK stays the drawn height. */
       ".wf-step-link{display:block;position:relative;height:" + WF_STEP_LINK + "px}",
@@ -420,7 +420,7 @@ window.__ModuleLoader__.load({
 
      /* the branch strip under a RUNNING node: 2–4 flowing dashes, each ending in a round
          category icon (read = blue / edit = orange / tool = violet, the three hues below are the
-         same ones step-09's wfBranchHue palette covers). Only the running node renders this block,
+     same ones wfBranchHue palette covers). Only the running node renders this block,
          so a done or a pending node produces no branch DOM at all. */
       ".wf-branching{position:relative;display:flex;flex-direction:column;gap:5px;margin:" +
         WF_CHAIN_LINK / 2 + "px 0 0 " + WF_CHAIN_PAD + "px}",
@@ -5825,7 +5825,7 @@ window.__ModuleLoader__.load({
     var WF_FX_FALLBACK_MS = 40;
 
     /**
-     * step-05 · how many node-to-node links the chain layer can draw at once.
+     * how many node-to-node links the chain layer can draw at once.
      *
      * An SVG child list is built once when React renders it; the measuring code can only write into
      * the paths that already exist. The column draws at most WF_FLOW_CAP nodes (60) or, when the user
@@ -5965,7 +5965,7 @@ window.__ModuleLoader__.load({
       }
     }
     /* ------------------------------------------------------------------------- */
-    /* step-05 · the chain's curve channel                                          */
+    /* the chain's curve channel                                          */
     /* ------------------------------------------------------------------------- */
 
     /**
@@ -6247,7 +6247,7 @@ window.__ModuleLoader__.load({
       function refresh() {
         if (state.destroyed) return null;
         var geo = wfFxApply(doc);
-        // step-05: the chain's node-to-node links live in the flow list and are measured from the SAME
+        // the chain's node-to-node links live in the flow list and are measured from the SAME
         // frame — one schedule() drives both layers, so a scroll cannot leave one of them stale.
         wfChainApply(doc);
         state.measures += 1;
@@ -6432,7 +6432,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * step-05 · the chain layer: one <svg> INSIDE the flow list, and one <path> per link slot.
+     * the chain layer: one <svg> INSIDE the flow list, and one <path> per link slot.
      *
      * WHY ONE LAYER AND NOT ONE SVG PER GAP: the gaps are already reserved by the list's `gap`, and a
      * layer per gap would need a box per gap — which drifts the moment the fold expands. One layer

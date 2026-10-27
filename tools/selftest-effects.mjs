@@ -79,7 +79,7 @@ check(
     typeof T.sessionRunning === 'function' &&
     typeof T.renderLive === 'function' &&
     typeof T.fxSignature === 'function',
-  'every step-10 seam is exported'
+ 'every seam is exported'
 );
 
 /* ------------------------------------------------------------------------- */
@@ -807,7 +807,7 @@ check(
   css.includes(".wf-branch-row[data-live='true'] .wf-branch-icon::after") &&
     css.includes('mask-composite:exclude') &&
     css.includes('animation:wf-fx-wrap 2.6s linear infinite'),
-  'the running circle reuses step-10\'s mask-composite ring and its keyframes'
+ 'the running circle reuses \'s mask-composite ring and its keyframes'
 );
 
 // --- the derivation: three categories, from fields the host already sends ---
@@ -977,7 +977,7 @@ check(
   'chain.render.detailReuse',
   byData(chainOpenTree, 'chain-detail').length === 1 &&
     byData(chainOpenTree, 'chain-detail')[0].children.some((child) => child && child.props && child.props['data-dsh-workflow-map'] === 'node-detail'),
-  'the opened circle renders step-11\'s node detail, not a new block'
+ 'the opened circle renders \'s node detail, not a new block'
 );
 check(
   'chain.render.detailFiles',

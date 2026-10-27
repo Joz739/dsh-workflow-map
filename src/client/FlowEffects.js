@@ -39,7 +39,7 @@ var WF_FX_OFFSCREEN = -99;
 var WF_FX_FALLBACK_MS = 40;
 
 /**
- * step-05 · how many node-to-node links the chain layer can draw at once.
+ * how many node-to-node links the chain layer can draw at once.
  *
  * An SVG child list is built once when React renders it; the measuring code can only write into
  * the paths that already exist. The column draws at most WF_FLOW_CAP nodes (60) or, when the user
@@ -179,7 +179,7 @@ function wfFxRectOf(element) {
   }
 }
 /* ------------------------------------------------------------------------- */
-/* step-05 · the chain's curve channel                                          */
+/* the chain's curve channel                                          */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -461,7 +461,7 @@ function wfFxBind(doc, win) {
   function refresh() {
     if (state.destroyed) return null;
     var geo = wfFxApply(doc);
-    // step-05: the chain's node-to-node links live in the flow list and are measured from the SAME
+    // the chain's node-to-node links live in the flow list and are measured from the SAME
     // frame — one schedule() drives both layers, so a scroll cannot leave one of them stale.
     wfChainApply(doc);
     state.measures += 1;
@@ -646,7 +646,7 @@ function wfRenderFlowEffects(h) {
 }
 
 /**
- * step-05 · the chain layer: one <svg> INSIDE the flow list, and one <path> per link slot.
+ * the chain layer: one <svg> INSIDE the flow list, and one <path> per link slot.
  *
  * WHY ONE LAYER AND NOT ONE SVG PER GAP: the gaps are already reserved by the list's `gap`, and a
  * layer per gap would need a box per gap — which drifts the moment the fold expands. One layer

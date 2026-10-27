@@ -173,7 +173,7 @@ var WF_CSS = [
 
  /* card: fills the main area; the header and the settings card keep their own height,
      the two-column body takes the rest. No drag grips: the column has no free edges.
-     Flush edges on purpose (step-13): a 12 px rounded box floating inside the centre column
+ Flush edges on purpose : a 12 px rounded box floating inside the centre column
      would read as the old overlay again. */
   ".wf-card{position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;min-width:0;" +
     "border-radius:0;overflow:hidden;" +
@@ -297,7 +297,7 @@ var WF_CSS = [
     "text-decoration:line-through}",
 
  /* the rail: WF_STEP_GAP of air below the card frame, WF_STEP_RAIL tall.
-     step-03: the dock is a two-line block — line 1 is the 6 px track + the percent, line 2
+ the dock is a two-line block — line 1 is the 6 px track + the percent, line 2
      the secondary age fact. `flex-direction:column` keeps them stacked without the
      track losing a pixel of width, and the whole block stays right-aligned. */
   ".wf-prog-dock{display:flex;flex-direction:column;gap:2px;margin-top:" + WF_STEP_GAP + "px}",
@@ -344,9 +344,9 @@ var WF_CSS = [
 
  /* connector between two cards: WF_STEP_LINK tall, solid once the step above is done */
  /* connector between two cards: WF_STEP_LINK tall, solid once the step above is done.
-     step-02: the line moves 3 px right with the card's new 20 px triangle band, so it still
+ the line moves 3 px right with the card's new 20 px triangle band, so it still
      hangs off the ring's centre (the band is 20 px, the ring starts 20 + 8 px padding).
-     step-05: the column now carries the chain's `gap`, so the connector must NOT add a margin —
+ the column now carries the chain's `gap`, so the connector must NOT add a margin —
      that would make the space between two step cards (gap + margin + link) larger than the hole
      its own line is drawn in. WF_STEP_LINK stays the drawn height. */
   ".wf-step-link{display:block;position:relative;height:" + WF_STEP_LINK + "px}",
@@ -391,7 +391,7 @@ var WF_CSS = [
 
  /* the branch strip under a RUNNING node: 2–4 flowing dashes, each ending in a round
      category icon (read = blue / edit = orange / tool = violet, the three hues below are the
-     same ones step-09's wfBranchHue palette covers). Only the running node renders this block,
+ same ones wfBranchHue palette covers). Only the running node renders this block,
      so a done or a pending node produces no branch DOM at all. */
   ".wf-branching{position:relative;display:flex;flex-direction:column;gap:5px;margin:" +
     WF_CHAIN_LINK / 2 + "px 0 0 " + WF_CHAIN_PAD + "px}",

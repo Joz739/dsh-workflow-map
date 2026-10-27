@@ -1,5 +1,5 @@
 /**
- * dsh-workflow-map — PAE plan reader (step-03).
+ * dsh-workflow-map — PAE plan reader .
  *
  * WHY THIS MODULE EXISTS. The fold in ../src/fold.mjs already recognises plan steps from PAE's
  * own context messages, but that is a reconstruction of the log. The AUTHORITATIVE plan — its

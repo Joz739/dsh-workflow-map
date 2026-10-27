@@ -78,9 +78,9 @@ for (const rel of CHUNKS) {
 }
 
 const header = [
-  '// dsh-workflow-map — client half (step-13: the panel moved from the shell overlay',
-  '// into the sidebar rail + main content area; step-12 settings/export, step-11',
-  '// details, step-10 living layer, step-09 branch lanes all remain).',
+ '// dsh-workflow-map — client half (the panel moved from the shell overlay',
+ '// into the sidebar rail + main content area; settings/export, ',
+ '// details, living layer, branch lanes all remain).',
   '// GENERATED FILE — do not edit by hand. Sources: src/client/theme.js,',
   '// src/client/store.js, src/client/Settings.js, src/client/pulse.js,',
   '// src/client/ProgressUnder.js, src/client/StepDetail.js, src/client/StepColumn.js,',
@@ -104,7 +104,7 @@ const prelude = [
   '    // One namespace for the bundle, the slot descriptor\'s `locale` field and',
   '    // locale.register: they must agree, or the dictionary is not found.',
   '    var NS = "dsh-workflow-map";',
-  '    // step-13: ONE id addresses both seats — the sidebar rail row and the main panel.',
+ ' // ONE id addresses both seats — the sidebar rail row and the main panel.',
   '    var PANEL_ID = "workflow-map";',
   '    var PANEL_ORDER = 10;',
 ].join('\n');

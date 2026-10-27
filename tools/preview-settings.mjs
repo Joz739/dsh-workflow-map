@@ -92,7 +92,7 @@ const view = {
  // running - the honest case the three motion options differ on: "while running" freezes it,
  // "always" keeps it moving.
   running: false,
-  task: 'step-12 面板设置与工作流快照导出',
+ task: '面板设置与工作流快照导出',
   steps: [
     { index: 0, planIndex: 1, title: '面板设置与工作流快照导出', status: 'running', percent: 40, percentSource: 'model', startedAt: T0, lastEstimateAt: T0 - 180000, endedAt: null, nodeIds: nodes.slice(0, 70).map((n) => n.id), nodeCount: 70, groups: [] },
     { index: 1, planIndex: 2, title: '导出验收与收尾', status: 'done', percent: 100, percentSource: 'model', startedAt: T0 + 5000, endedAt: T0 + 9000, nodeIds: nodes.slice(70).map((n) => n.id), nodeCount: 2, groups: [] },
@@ -101,8 +101,8 @@ const view = {
   plan: {
     ver: 1,
     phase: 'executing',
-    task: 'step-12 面板设置与工作流快照导出',
-    taskTitle: 'step-12 面板设置与工作流快照导出',
+ task: '面板设置与工作流快照导出',
+ taskTitle: '面板设置与工作流快照导出',
     stepIndex: 1,
     steps: [],
     statuses: { '1': 'in_progress', '2': 'completed' },

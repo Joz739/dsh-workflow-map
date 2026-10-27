@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// dsh-workflow-map — step-04 self-test for the HTTP VIEW ROUTE (src/route.js + its wiring in
+// dsh-workflow-map — self-test for the HTTP VIEW ROUTE (src/route.js + its wiring in
 // lib/index.js).
 //
 // node tools\probe-route.mjs

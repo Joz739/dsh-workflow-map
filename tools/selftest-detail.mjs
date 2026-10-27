@@ -73,7 +73,7 @@ check(
     typeof T.bindEscape === 'function' &&
     typeof T.buildStepDetail === 'function' &&
     typeof T.stepReport === 'function',
-  'every step-11 seam is exported'
+ 'every seam is exported'
 );
 
 /* ------------------------------------------------------------------------- */
@@ -108,9 +108,9 @@ function textOf(node) {
 const T0 = 1792243000000;
 const SECRET = 'WF_READ_BODY_SECRET_7f3a9d_should_never_render';
 const LONG_BASE =
-  'pwsh -NoProfile -Command "Get-Content C:\\Users\\Administrator\\Documents\\dsh-plugins\\dsh-workflow-map\\src\\client\\NodeDetail.js | Select-Object -First 200 | ForEach-Object { $_ }"';
-// Padded to EXACTLY the host cap (200) so the cap note and the full-text <details> are real.
-const LONG_COMMAND = (LONG_BASE + ' # ' + 'x'.repeat(60)).slice(0, 200);
+  'pwsh -NoProfile -Command "Get-Content D:\\proj\\src\\client\\NodeDetail.js | Select-Object -First 200 | ForEach-Object { $_ }"';
+// Padded past the host cap (200) so the cap note and the full-text <details> are real.
+const LONG_COMMAND = (LONG_BASE + ' # ' + 'x'.repeat(120)).slice(0, 200);
 
 const nodes = [
   {
@@ -227,8 +227,8 @@ const steps = [
 const plan = {
   ver: 1,
   phase: 'executing',
-  task: 'step-11 节点详情',
-  taskTitle: 'step-11 节点详情',
+ task: '节点详情',
+ taskTitle: '节点详情',
   summary: '',
   planDir: 'C:\\pae',
   pausedReason: '',
@@ -257,7 +257,7 @@ const plan = {
   sourcePath: 'C:\\pae\\orchestrator.json',
 };
 
-const view = { asOf: T0 + 100000, task: 'step-11 节点详情', steps, nodes, plan, active: { stepIndex: 1, nodeId: 'r1' }, counts: { steps: 3, nodes: 4, running: 1, completed: 1 } };
+const view = { asOf: T0 + 100000, task: '节点详情', steps, nodes, plan, active: { stepIndex: 1, nodeId: 'r1' }, counts: { steps: 3, nodes: 4, running: 1, completed: 1 } };
 // the fixture opens the right-hand page: the step detail LIVES there now, so every
 // renderer assertion counts one detail block inside the right page instead of under the card.
 const prefs = { ...T.defaultPrefs(), rightOpen: true, rightKind: 'step' };

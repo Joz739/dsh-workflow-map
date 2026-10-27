@@ -338,7 +338,7 @@ if (failures.length === 0) {
   console.log(`selftest-host: PASS ${passed}/${total} assertions`);
   console.log("  registration / init / registry-apply == fold / wire.view == buildView");
   console.log("  + viewSchema tripwire / stateSchema repair / loud failure without the service");
-  console.log("  + one HTTP route per server (step-04): shared on re-apply, removed by its owners");
+ console.log(" + one HTTP route per server : shared on re-apply, removed by its owners");
   process.exit(0);
 }
 
