@@ -1,17 +1,17 @@
 /**
- * RightPage.js — 会话4 · the RIGHT-HAND page, opened by a click on the main flow or on a circle.
+ * RightPage.js — the RIGHT-HAND page, opened by a click on the main flow or on a circle.
  *
  * One page, three kinds of content, decided by the click that opened it:
  *
- *   kind "step"  → that step's full record. The report / artifacts / statistics block is the
- *                  EXISTING step-11 renderer (wfRenderStepDetail); what this file adds is the
- *                  per-type list above it — "this step touched .md ×3, pwsh ×2 …" — each row a
- *                  button that switches the page to that type. That is how a main-flow click can
- *                  walk into a type without going back to the circle.
- *   kind "type"  → every call of ONE file type (a step's circle, or the whole session when the
- *                  click came from the header's type strip). Each call expands IN PLACE into
- *                  step-11's node detail, so the page never grows a second detail vocabulary.
- *   kind "inject"→ the hot-inject composer (HotInject.js), mounted here instead of a third column.
+ * kind "step" → that step's full record. The report / artifacts / statistics block is the
+ * EXISTING renderer (wfRenderStepDetail); what this file adds is the
+ * per-type list above it — "this step touched .md ×3, pwsh ×2 …" — each row a
+ * button that switches the page to that type. That is how a main-flow click can
+ * walk into a type without going back to the circle.
+ * kind "type" → every call of ONE file type (a step's circle, or the whole session when the
+ * click came from the header's type strip). Each call expands IN PLACE into
+ * 's node detail, so the page never grows a second detail vocabulary.
+ * kind "inject"→ the hot-inject composer (HotInject.js), mounted here instead of a third column.
  *
  * Nothing is invented: a type that no call supports renders the empty hint, and a step whose
  * nodes the host never sent says so (the count comes from the host, the list from the wire).
@@ -21,7 +21,7 @@
  * Inlined into client.js by tools/build-client.mjs (single-file browser half).
  */
 
-/** The title line: 第 N 步 · 标题 / .md · 3 处 / 热注入. */
+/** The title line: step N · title / .md · 3 calls / hot injection. */
 function wfPageTitle(kind, say, ctx) {
   var context = ctx || {};
   if (kind === "inject") return say("panel.page.inject");
@@ -55,9 +55,9 @@ function wfPageClose(h, say, actions) {
 }
 
 /**
- * A call row of the type page. It is a <button> that opens step-11's node detail under itself —
+ * A call row of the type page. It is a <button> that opens 's node detail under itself —
  * the SAME wfRenderNodeDetail the flow column uses, fed the SAME node, so the privacy rule and the
- * 200-character caps are whatever step-11 already guarantees.
+ * 200-character caps are whatever already guarantees.
  */
 function wfRenderCallRow(h, node, say, actions, ctx) {
   var context = ctx || {};
@@ -138,7 +138,7 @@ function wfRenderTypeBody(h, bucket, nodes, say, actions, ctx) {
 }
 
 /**
- * The step page's body: the type summary, then step-11's own detail block.
+ * The step page's body: the type summary, then 's own detail block.
  *
  * The type summary is the ONLY new thing, and it exists because the page is reached by clicking a
  * unit, not a circle: without it the circles would be the only way into a type. Each row is a
@@ -189,10 +189,10 @@ function wfRenderStepTypeSummary(h, unit, say, actions, ctx) {
 
 /**
  * The whole right page. `extras` carries the decided content:
- *   {kind, stepIndex, unit, detail, typeKey, bucket, nodes, stepDetail, openType, openCall,
- *    activeNodeId, inject:{...}}
+ * {kind, stepIndex, unit, detail, typeKey, bucket, nodes, stepDetail, openType, openCall,
+ * activeNodeId, inject:{...}}
  *
- * `detail` is the step-11 record built by store.js for the SELECTED step; a page about another
+ * `detail` is the record built by store.js for the SELECTED step; a page about another
  * step falls back to the unit's own numbers and says the report is not loaded, rather than
  * showing the selected step's report under a different step's title.
  */
@@ -224,7 +224,7 @@ function wfRenderRightPage(h, model, say, actions, extras) {
       text: ui.injectText,
       reason: ui.injectReason,
       history: ui.injectHistory,
-      // step-03-unsteer · the one row being revoked (if any) plus the host's reason when it said no.
+ // the one row being revoked (if any) plus the host's reason when it said no.
       revokeId: ui.injectRevokeId,
       revokeState: ui.injectRevokeState,
       revokeReason: ui.injectRevokeReason,
@@ -268,9 +268,9 @@ function wfRenderRightPage(h, model, say, actions, extras) {
       wfPageClose(h, say, actions)
     ),
     h("div", { className: "wf-right-scroll", key: "scroll", "data-dsh-workflow-map": "right-scroll" }, body),
-    // step-04-inject-prominence · the persistent dock. Every page kind that is NOT the composer
-    // gets it at the foot, so a prompt can be typed WITHOUT opening the composer first; the
-    // composer itself does not repeat it. It reads the SAME inject state the composer reads.
+ // the persistent dock. Every page kind that is NOT the composer
+ // gets it at the foot, so a prompt can be typed WITHOUT opening the composer first; the
+ // composer itself does not repeat it. It reads the SAME inject state the composer reads.
     kind === "inject"
       ? null
       : wfRenderInjectDock(h, say, fire, {

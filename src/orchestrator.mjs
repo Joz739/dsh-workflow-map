@@ -8,18 +8,18 @@
  * reads exactly that file and nothing else.
  *
  * BOUNDARIES (each one is load-bearing):
- *   * READ ONLY. Nothing here writes, creates or deletes anything under `.pae`; the self-test
- *     asserts the file's mtime and size are unchanged after a full read.
- *   * NEVER THROWS. A missing file, a half-written file (PAE rewrites it between steps), a
- *     permission problem or a schema surprise must degrade the panel, never the session: every
- *     failure returns null and appends ONE line to errors().
- *   * ONE STAT PER VIEW. read() stats the file and reuses the parsed value while `mtimeMs:size`
- *     is unchanged, so a per-event wire build costs one statSync and no read. The parsed value
- *     is deep-frozen, so the cache can be handed to every view without aliasing risk.
- *   * NO CLOCK, NO AMBIENT STATE. `asOfMtime` is the file's own mtime — the only honest "as of"
- *     instant this source has.
- *   * PATHS ARE NOT GUESSED. `<cwd>` and the session id must both be supplied. A session id
- *     that is not a single path segment is refused, because it would escape `.pae`.
+ * * READ ONLY. Nothing here writes, creates or deletes anything under `.pae`; the self-test
+ * asserts the file's mtime and size are unchanged after a full read.
+ * * NEVER THROWS. A missing file, a half-written file (PAE rewrites it between steps), a
+ * permission problem or a schema surprise must degrade the panel, never the session: every
+ * failure returns null and appends ONE line to errors.
+ * * ONE STAT PER VIEW. read stats the file and reuses the parsed value while `mtimeMs:size`
+ * is unchanged, so a per-event wire build costs one statSync and no read. The parsed value
+ * is deep-frozen, so the cache can be handed to every view without aliasing risk.
+ * * NO CLOCK, NO AMBIENT STATE. `asOfMtime` is the file's own mtime — the only honest "as of"
+ * instant this source has.
+ * * PATHS ARE NOT GUESSED. `<cwd>` and the session id must both be supplied. A session id
+ * that is not a single path segment is refused, because it would escape `.pae`.
  *
  * WHAT IT DOES NOT DO: it never invents a step. `steps` comes from `plan.steps` verbatim (with
  * the 1-based ordinal PAE prints), so a plan row the fold has no evidence for is still listed
@@ -56,8 +56,8 @@ const isRecord = (value) => isObject(value) && !Array.isArray(value);
 const isFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value);
 
 /**
- * A path is NOT passed through `text()`: that helper flattens whitespace, which would silently
- * rewrite a legitimate `C:\Users\A  B\…`. Paths are only length-bounded.
+ * A path is NOT passed through `text`: that helper flattens whitespace, which would silently
+ * rewrite a legitimate `C:\Users\A B\…`. Paths are only length-bounded.
  */
 function pathText(value) {
   if (typeof value !== "string") return "";
@@ -65,7 +65,7 @@ function pathText(value) {
 }
 
 /** PAE's status vocabulary → the fold's four step states. A Map, not an object literal, so a
- *  crafted `"constructor"` key cannot resolve to Object.prototype. */
+ * crafted `"constructor"` key cannot resolve to Object.prototype. */
 const PLAN_STATUS = new Map([
   ["completed", "done"],
   ["done", "done"],
@@ -96,7 +96,7 @@ export function planFilePath(input) {
   const cwd = typeof source.cwd === "string" ? source.cwd.trim() : "";
   const sessionId = typeof source.sessionId === "string" ? source.sessionId.trim() : "";
   if (cwd === "" || sessionId === "") return null;
-  // One path segment only, and not a traversal token.
+ // One path segment only, and not a traversal token.
   if (sessionId === "." || sessionId === "..") return null;
   if (sessionId.includes("/") || sessionId.includes("\\") || sessionId.includes(":")) return null;
   return join(cwd, PLAN_ROOT, sessionId, PLAN_FILE);
@@ -119,7 +119,7 @@ export function normalizePlanDocument(raw, meta) {
   const plan = isRecord(doc.plan) ? doc.plan : {};
   const source = isRecord(meta) ? meta : {};
 
-  // -- steps: the published plan list, in order, with PAE's own 1-based ordinals -----------
+ // -- steps: the published plan list, in order, with PAE's own 1-based ordinals -----------
   const steps = [];
   const rawSteps = Array.isArray(plan.steps) ? plan.steps : [];
   const stepCount = Math.min(rawSteps.length, MAX_PLAN_STEPS);
@@ -128,8 +128,8 @@ export function normalizePlanDocument(raw, meta) {
     const row = isRecord(item) ? item : {};
     steps.push(
       Object.freeze({
-        // Position, not "number of rows kept": a damaged row must not shift every ordinal
-        // after it away from the `statuses` / `anchorSeqs` keys that point at it.
+ // Position, not "number of rows kept": a damaged row must not shift every ordinal
+ // after it away from the `statuses` / `anchorSeqs` keys that point at it.
         index: position + 1,
         title: text(row.title, TITLE_LIMIT),
         file: pathText(row.file),
@@ -138,7 +138,7 @@ export function normalizePlanDocument(raw, meta) {
     );
   }
 
-  // -- statuses: {"1":"completed","2":"in_progress"} ---------------------------------------
+ // -- statuses: {"1":"completed","2":"in_progress"} ---------------------------------------
   const statuses = {};
   if (isRecord(doc.statuses)) {
     for (const [key, value] of Object.entries(doc.statuses)) {
@@ -148,7 +148,7 @@ export function normalizePlanDocument(raw, meta) {
     }
   }
 
-  // -- anchorSeqs: {"1":502,"2":942} — the seq of the user/message that OPENS step n ---------
+ // -- anchorSeqs: {"1":502,"2":942} — the seq of the user/message that OPENS step n ---------
   const anchorSeqs = {};
   if (isRecord(doc.anchorSeqs)) {
     for (const [key, value] of Object.entries(doc.anchorSeqs)) {
@@ -158,7 +158,7 @@ export function normalizePlanDocument(raw, meta) {
     }
   }
 
-  // -- stepReports: one bounded report per step; a retried step keeps its LAST report -------
+ // -- stepReports: one bounded report per step; a retried step keeps its LAST report -------
   const byStep = new Map();
   const rawReports = Array.isArray(doc.stepReports) ? doc.stepReports : [];
   for (const item of rawReports) {
@@ -184,7 +184,7 @@ export function normalizePlanDocument(raw, meta) {
     .slice(0, MAX_STEP_REPORTS)
     .map((report) => Object.freeze(report));
 
-  // -- skipped: [7] — 1-based ordinals PAE skipped ------------------------------------------
+ // -- skipped: [7] — 1-based ordinals PAE skipped ------------------------------------------
   const skipped = [];
   if (Array.isArray(doc.skipped)) {
     const seen = new Set();
@@ -201,7 +201,7 @@ export function normalizePlanDocument(raw, meta) {
     ver: PLAN_VERSION,
     phase: text(doc.phase, MAX_PHASE),
     task: text(rawTask, MAX_TASK),
-    // The first non-empty line, before flattening: it is the panel's header.
+ // The first non-empty line, before flattening: it is the panel's header.
     taskTitle: line(rawTask, MAX_TASK_TITLE),
     summary: text(plan.summary, MAX_SUMMARY),
     planDir: pathText(typeof doc.planDir === "string" && doc.planDir !== "" ? doc.planDir : plan.planDir),
@@ -236,21 +236,21 @@ function planStatusOf(plan, planIndex) {
 /**
  * Merge the plan section into a wire view.
  *
- * The plan is the PRIMARY source ("PAE 计划优先"), the todo table the fallback — but the fold's
+ * The plan is the PRIMARY source ("PAE plan first"), the todo table the fallback - but the fold's
  * own event replay is fresher than a file PAE only rewrites at step boundaries. The five rules
  * below are that judgement, written down so it cannot drift:
  *
- *   1. `task` prefers the plan's first line. The fold's task is the first user message capped
- *      at 120 chars; the plan carries PAE's canonical objective.
- *   2. A plan step matches a folded row by `planIndex` first. ONLY a row the fold derived from
- *      the todo table may fall back to ordinal position — that is the "todo 兜底" case.
- *   3. A matched row's TITLE always comes from the plan: it is the published plan text.
- *   4. A matched row's STATUS comes from the plan ONLY when the row is todo-derived. A row the
- *      fold opened from a PAE step instruction has an event-derived status that is at least as
- *      fresh as the file, and `running` there means "this is happening now".
- *   5. A plan step with no folded row is NOT invented here: `plan.steps` already carries it and
- *      the client renders that list. A fabricated row would need a start time, a percent and
- *      node bindings that no source provides.
+ * 1. `task` prefers the plan's first line. The fold's task is the first user message capped
+ * at 120 chars; the plan carries PAE's canonical objective.
+ * 2. A plan step matches a folded row by `planIndex` first. ONLY a row the fold derived from
+ * the todo table may fall back to ordinal position - that is the "todo fallback" case.
+ * 3. A matched row's TITLE always comes from the plan: it is the published plan text.
+ * 4. A matched row's STATUS comes from the plan ONLY when the row is todo-derived. A row the
+ * fold opened from a PAE step instruction has an event-derived status that is at least as
+ * fresh as the file, and `running` there means "this is happening now".
+ * 5. A plan step with no folded row is NOT invented here: `plan.steps` already carries it and
+ * the client renders that list. A fabricated row would need a start time, a percent and
+ * node bindings that no source provides.
  *
  * The returned view is a new object; the input (and every frozen plan object) is never mutated.
  *
@@ -293,8 +293,8 @@ export function applyPlanToView(view, plan) {
       const status = planStatusOf(normalized, planStep.index);
       if (status !== null && status !== step.status) {
         patch.status = status;
-        // `buildView` pins a closed step at 100 when no report gave a number; the same rule
-        // applies after this late status change, or the bar would show "—" on a finished step.
+ // `buildView` pins a closed step at 100 when no report gave a number; the same rule
+ // applies after this late status change, or the bar would show "—" on a finished step.
         if ((status === "done" || status === "failed") && (step.percent === null || step.percent === undefined)) {
           patch.percent = 100;
         }
@@ -325,11 +325,11 @@ export function applyPlanToView(view, plan) {
  * One per-session reader: path + mtime/size cache + a bounded error log.
  *
  * The instance is created by the host half's `init(header)` and lives outside the projection
- * STATE on purpose — a reader is not JSON, and the persisted state is. `read()` is called from
+ * STATE on purpose — a reader is not JSON, and the persisted state is. `read` is called from
  * the wire view, where it costs one `statSync`; `apply` never touches the disk.
  *
  * @param {{cwd?: unknown, sessionId?: unknown}} [options]
- * @returns {{path: string|null, read: () => object|null, stats: () => object, errors: () => object[], reset: () => void}}
+ * @returns {{path: string|null, read: => object|null, stats: => object, errors: => object[], reset: => void}}
  */
 export function createPlanReader(options) {
   const source = isRecord(options) ? options : {};
@@ -344,7 +344,7 @@ export function createPlanReader(options) {
     counters.error += 1;
     const messageText = text(message, TEXT_LIMIT);
     const last = errors[errors.length - 1];
-    // A session without PAE stats a missing file on every event: one line, not thousands.
+ // A session without PAE stats a missing file on every event: one line, not thousands.
     if (last !== undefined && last.code === code && last.message === messageText) return;
     errors.push({ code, message: messageText });
     if (errors.length > MAX_ERRORS) errors.splice(0, errors.length - MAX_ERRORS);
@@ -388,7 +388,7 @@ export function createPlanReader(options) {
 
     let document;
     try {
-      // A BOM is legal in a text file and illegal to JSON.parse: strip it, do not fail on it.
+ // A BOM is legal in a text file and illegal to JSON.parse: strip it, do not fail on it.
       document = JSON.parse(raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw);
     } catch (error) {
       return fail("PARSE_FAILED", error);
@@ -405,7 +405,7 @@ export function createPlanReader(options) {
     read,
     stats: () => ({ ...counters }),
     errors: () => errors.map((entry) => ({ ...entry })),
-    /** Forget the cached value (the counters and the error log restart with it). */
+ /** Forget the cached value (the counters and the error log restart with it). */
     reset() {
       cacheKey = null;
       cached = null;

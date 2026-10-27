@@ -1,25 +1,25 @@
 /**
  * FlowColumn.js — the right column: the selected step's flow, node by node.
  *
- * Structure of the column (step-08):
- *   header   「分步流程 · 第 8 步 · 标题」 — OUTSIDE the scroller, so it never moves
- *   scroller one independently scrolling area (`overflow:auto`)
- *     strip  「更早 n 个被折叠」 + 「展开全部」 — only when the cap bites
- *     list   every item hangs off one vertical spine (the tree脊)
- *            item = ONE node card (NodeCard.js) or ONE folded run of same-tool calls
+ * Structure of the column :
+ * header "step flow · step 8 · title" - OUTSIDE the scroller, so it never moves
+ * scroller one independently scrolling area (`overflow:auto`)
+ * strip "n earlier rows folded" + "expand all" - only when the cap bites
+ * list - every item hangs off one vertical spine (the tree spine)
+ * item = ONE node card (NodeCard.js) or ONE folded run of same-tool calls
  *
- * The fold: `view.steps[i].groups` (host, step-02) is authoritative when it resolves
+ * The fold: `view.steps[i].groups` (host, ) is authoritative when it resolves
  * against the node list; otherwise the browser folds consecutive same-tool calls
  * itself with the same threshold (WF_GROUP_MIN = the host's GROUP_THRESHOLD). A group
  * hit by the 300-node host cap loses its missing members but never invents one.
  *
- * Branches (step-09): `wfRenderBranches` (Branches.js) draws the selected step's subagent /
+ * Branches : `wfRenderBranches` (Branches.js) draws the selected step's subagent /
  * workflow / background-job lanes under the list, from `model.flow.branches`. A lane is NOT
  * a node: the node count, the fold, the node window and the current-activity highlight all
  * ignore it — only the lane's own status dot breathes.
  *
  * The cap: by default only the NEWEST WF_FLOW_CAP nodes are drawn (the list opens at
- * its bottom); a group is never split at the boundary. 「展开全部」 lifts the cap until
+ * its bottom); a group is never split at the boundary. "expand all" lifts the cap until
  * the step changes — that reset is `wfFlowUiFor`, keyed by step index, so it is a pure
  * function and tools/selftest-panel.mjs can prove it.
  *
@@ -29,7 +29,7 @@
  */
 
 /* ------------------------------------------------------------------------- */
-/* grouping                                                                  */
+/* grouping */
 /* ------------------------------------------------------------------------- */
 
 /** Fold consecutive same-tool calls with the host's threshold. */
@@ -160,7 +160,7 @@ function wfFlowItems(nodes, groups) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* the cap                                                                   */
+/* the cap */
 /* ------------------------------------------------------------------------- */
 
 function wfFlowItemSize(item) {
@@ -199,7 +199,7 @@ function wfFlowWindow(items, cap, showAll) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* per-step UI state (expanded groups · show-all · selected node)            */
+/* per-step UI state (expanded groups · show-all · selected node) */
 /* ------------------------------------------------------------------------- */
 
 function wfFlowEmptyUi(stepIndex) {
@@ -209,9 +209,9 @@ function wfFlowEmptyUi(stepIndex) {
     showAll: false,
     selectedNode: null,
     closedBranches: [],
-    // step-05: which round branch icon is open under the running node (null = none). It is per
-    // step, like everything else here, so switching steps closes it instead of leaving a detail
-    // hanging under a card the user did not click.
+ // which round branch icon is open under the running node (null = none). It is per
+ // step, like everything else here, so switching steps closes it instead of leaving a detail
+ // hanging under a card the user did not click.
     openChain: null,
   };
 }
@@ -219,7 +219,7 @@ function wfFlowEmptyUi(stepIndex) {
 /**
  * Read the UI state AS IT APPLIES to `stepIndex`. A state from another step is not
  * "merged" or reused: switching steps starts from the defaults, which is exactly the
- * `收起 + 展开全部失效 + 选中清空` reset the step asks for (and it happens on the
+ * "collapse + expand-all cleared + selection cleared" reset the step asks for (and it happens on the
  * first render of the new step, not one frame later).
  */
 function wfFlowUiFor(ui, stepIndex) {
@@ -233,8 +233,8 @@ function wfFlowUiFor(ui, stepIndex) {
       if (typeof ui.expanded[i] === "string" && expanded.indexOf(ui.expanded[i]) === -1) expanded.push(ui.expanded[i]);
     }
   }
-  // Branch lanes are open by default (their whole point is to show the parallel work),
-  // so the remembered list is the FOLDED ones. Both lists are per step and reset together.
+ // Branch lanes are open by default (their whole point is to show the parallel work),
+ // so the remembered list is the FOLDED ones. Both lists are per step and reset together.
   var closedBranches = [];
   if (Array.isArray(ui.closedBranches)) {
     for (var c = 0; c < ui.closedBranches.length; c += 1) {
@@ -249,8 +249,8 @@ function wfFlowUiFor(ui, stepIndex) {
     showAll: ui.showAll === true,
     selectedNode: typeof ui.selectedNode === "string" && ui.selectedNode !== "" ? ui.selectedNode : null,
     closedBranches: closedBranches,
-    // A category name, never an arbitrary string: anything else collapses to null, so a hand-edited
-    // state cannot open a detail block that has no branch behind it.
+ // A category name, never an arbitrary string: anything else collapses to null, so a hand-edited
+ // state cannot open a detail block that has no branch behind it.
     openChain: WF_CHAIN_KINDS.indexOf(ui.openChain) >= 0 ? ui.openChain : null,
   };
 }
@@ -305,12 +305,12 @@ function wfFlowClearSelection(ui, stepIndex) {
     showAll: base.showAll,
     selectedNode: null,
     closedBranches: base.closedBranches,
-    // Escape closes the branch detail too: it is the same "put the flow back" gesture.
+ // Escape closes the branch detail too: it is the same "put the flow back" gesture.
     openChain: null,
   };
 }
 
-/** Fold / unfold one branch lane. The click target is the lane's HEAD (step-09 §5). */
+/** Fold / unfold one branch lane. The click target is the lane's HEAD ( §5). */
 function wfFlowToggleBranch(ui, stepIndex, branchId) {
   var base = wfFlowUiFor(ui, stepIndex);
   if (typeof branchId !== "string" || branchId === "") return base;
@@ -333,7 +333,7 @@ function wfFlowIsExpanded(state, key) {
 }
 
 /**
- * step-05 · open / close one round branch icon's detail. `kind` is one of WF_CHAIN_KINDS; clicking
+ * open / close one round branch icon's detail. `kind` is one of WF_CHAIN_KINDS; clicking
  * the same circle again closes it (a toggle, like every other disclosure in the panel), and an
  * unknown kind is a no-op rather than an error.
  */
@@ -351,7 +351,7 @@ function wfFlowToggleChain(state, kind) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* rendering                                                                 */
+/* rendering */
 /* ------------------------------------------------------------------------- */
 
 /** A folded run's dot: error beats running beats pending beats done. */
@@ -380,9 +380,9 @@ function wfRenderFlowGroup(h, item, state, say, actions, ctx) {
     ? wfNodeCategory(members[0])
     : "tool";
 
-  // step-02: the disclosure triangle is a real <button>, a SIBLING of the row button
-  // (a button inside a button is invalid HTML). The wrapper is a one-column grid, so the
-  // triangle and the row share cell 1/1 and the whole 20 px band down the row is clickable.
+ // the disclosure triangle is a real <button>, a SIBLING of the row button
+ // (a button inside a button is invalid HTML). The wrapper is a one-column grid, so the
+ // triangle and the row share cell 1/1 and the whole 20 px band down the row is clickable.
   var headRow = h(
     "div",
     { className: "wf-group-row", key: "row" },
@@ -402,8 +402,8 @@ function wfRenderFlowGroup(h, item, state, say, actions, ctx) {
         "data-dsh-workflow-map": "group",
         "data-group-key": item.key,
         "aria-expanded": reopened ? "true" : "false",
-        // Mirrored on the head too: the head is the element carrying
-        // data-dsh-workflow-map="group", so a selector or a test sees the state here.
+ // Mirrored on the head too: the head is the element carrying
+ // data-dsh-workflow-map="group", so a selector or a test sees the state here.
         "data-expanded": reopened ? "true" : "false",
         title: say(reopened ? "panel.flow.collapseGroup" : "panel.flow.expandGroup"),
         onClick: function () {
@@ -462,8 +462,8 @@ function wfRenderFlowColumn(h, model, say, actions, ui) {
   var stepIndex = model && wfFinite(model.selected) !== null ? Math.round(model.selected) : 0;
   var state = wfFlowUiFor(ui, stepIndex);
   var items = wfFlowItems(nodes, wfFlowGroups(nodes, flow ? flow.groups : null));
-  // step-12: the node window is a display pref (30 / 60 / 120 / all). 0 means all,
-  // and 「展开全部」 still lifts any finite cap for this step.
+ // the node window is a display pref (30 / 60 / 120 / all). 0 means all,
+ // and "expand all" still lifts any finite cap for this step.
   var cap = model && model.settings && wfFinite(model.settings.nodeLimit) !== null
     ? Math.max(0, Math.round(model.settings.nodeLimit))
     : WF_FLOW_CAP;
@@ -474,9 +474,9 @@ function wfRenderFlowColumn(h, model, say, actions, ui) {
     activeNodeId: flow && typeof flow.activeNodeId === "string" ? flow.activeNodeId : null,
     selectedNodeId: state.selectedNode,
     detail: model && model.settings && model.settings.detail === "title" ? "title" : "summary",
-    // step-05: which branch category the user opened under the running node, and whether that
-    // strip is allowed to animate. `chainLive` is the same `running` flag the living layer uses,
-    // so an idle session freezes the dashes with everything else (CSS pauses them).
+ // which branch category the user opened under the running node, and whether that
+ // strip is allowed to animate. `chainLive` is the same `running` flag the living layer uses,
+ // so an idle session freezes the dashes with everything else (CSS pauses them).
     openChain: state.openChain,
     chainLive: !!(model && model.running === true),
   };
@@ -493,9 +493,9 @@ function wfRenderFlowColumn(h, model, say, actions, ui) {
     h("span", { className: "wf-count", key: "count" }, say("panel.nodes", { count: total }))
   );
 
-  // The strip is a SIBLING of the scroller: pinned under the header, so 「展开全部」
-  // stays reachable exactly while the list is open at its bottom. It also carries
-  // the host-cap note, which 「展开全部」 CANNOT undo (those nodes were never sent).
+ // The strip is a SIBLING of the scroller: pinned under the header, so "expand all"
+ // stays reachable exactly while the list is open at its bottom. It also carries
+ // the host-cap note, which "expand all" CANNOT undo (those nodes were never sent).
   var stripText = view.hiddenNodes > 0 ? say("panel.flow.more", { count: view.hiddenNodes }) : "";
   if (truncated > 0) stripText = stripText === "" ? say("panel.truncated", { count: truncated }) : stripText + " · " + say("panel.truncated", { count: truncated });
   var more =
@@ -534,9 +534,9 @@ function wfRenderFlowColumn(h, model, say, actions, ui) {
         "data-empty": "false",
         "data-truncated": truncated > 0 ? "true" : "false",
         "data-items": view.items.length,
-        // step-05: the chain layer is a child of the LIST (so its user space is the list's box and
-        // its links follow the cards on every scroll/resize — FlowEffects measures it) and it is
-        // FIRST, so it paints under the cards instead of over their text.
+ // the chain layer is a child of the LIST (so its user space is the list's box and
+ // its links follow the cards on every scroll/resize — FlowEffects measures it) and it is
+ // FIRST, so it paints under the cards instead of over their text.
         "data-chain": "curve",
       },
       wfRenderChain(h),
@@ -563,9 +563,9 @@ function wfRenderFlowColumn(h, model, say, actions, ui) {
       "div",
       { className: "wf-scroll wf-flow-scroll", key: "list", "data-dsh-workflow-map": "flow-scroll" },
       body,
-      // Branch lanes (Branches.js) hang off the same track AFTER the nodes: they are
-      // parallel work, not part of the step's own sequence. NULL when nothing runs in
-      // parallel, so a plain session renders no branch shell at all.
+ // Branch lanes (Branches.js) hang off the same track AFTER the nodes: they are
+ // parallel work, not part of the step's own sequence. NULL when nothing runs in
+ // parallel, so a plain session renders no branch shell at all.
       wfRenderBranches(h, model, say, actions, state),
     )
   );

@@ -1,20 +1,20 @@
-// selftest-effects.mjs — step-10: the flowing curve, the wrapped frames, the breathing dot.
+// selftest-effects.mjs — the flowing curve, the wrapped frames, the breathing dot.
 //
 // Run: node tools/selftest-effects.mjs
 //
 // What this file proves, in order:
-//   1. the bundle carries the pieces (build-client also refuses to ship without them)
-//   2. the pure geometry: two rects → the exact cubic bezier, and every "do not draw" case
-//   3. the DOM writer (wfFxApply) and the lifecycle (wfFxBind): d / endpoints / data-visible,
-//      a re-measure on scroll, and a clean teardown — driven by a tiny fake DOM, no Chrome
-//   4. idle + motion: wfSessionRunning's three signals, wfMotionMode's three environments,
-//      and that the panel puts data-idle / data-motion on BOTH roots (panel and capsule)
-//   5. the renderer: one fx layer per ready panel, six rainbow stops, two paths, two caps,
-//      the 「正在 …」 chip only on the running step / active node, none while planning
-//   6. the stylesheet: geometry, dash flow, the wrapped-frame mask, the 1.2 s blink, the
-//      idle-pause and static-motion rules, and no SMIL / no @property anywhere
-//   7. the cost claim: animations live on the two paths, the two wrapped frames and the live
-//      chip — never on a per-node rule (a 60-node step must not turn into 60 animations)
+// 1. the bundle carries the pieces (build-client also refuses to ship without them)
+// 2. the pure geometry: two rects → the exact cubic bezier, and every "do not draw" case
+// 3. the DOM writer (wfFxApply) and the lifecycle (wfFxBind): d / endpoints / data-visible,
+// a re-measure on scroll, and a clean teardown — driven by a tiny fake DOM, no Chrome
+// 4. idle + motion: wfSessionRunning's three signals, wfMotionMode's three environments,
+// and that the panel puts data-idle / data-motion on BOTH roots (panel and capsule)
+// 5. the renderer: one fx layer per ready panel, six rainbow stops, two paths, two caps,
+// the "working ..." chip only on the running step / active node, none while planning
+// 6. the stylesheet: geometry, dash flow, the wrapped-frame mask, the 1.2 s blink, the
+// idle-pause and static-motion rules, and no SMIL / no @property anywhere
+// 7. the cost claim: animations live on the two paths, the two wrapped frames and the live
+// chip — never on a per-node rule (a 60-node step must not turn into 60 animations)
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,7 +27,7 @@ const check = (id, pass, detail) => {
 };
 
 /* ------------------------------------------------------------------------- */
-/* load the built bundle (the same seam as selftest-panel)                   */
+/* load the built bundle (the same seam as selftest-panel) */
 /* ------------------------------------------------------------------------- */
 
 const source = fs.readFileSync(path.join(ROOT, 'client.js'), 'utf8');
@@ -83,7 +83,7 @@ check(
 );
 
 /* ------------------------------------------------------------------------- */
-/* tree helpers                                                              */
+/* tree helpers */
 /* ------------------------------------------------------------------------- */
 
 const hasData = (node) => node && node.props && typeof node.props['data-dsh-workflow-map'] === 'string';
@@ -112,7 +112,7 @@ function textOf(node) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* fixtures                                                                  */
+/* fixtures */
 /* ------------------------------------------------------------------------- */
 
 const say = T.makeSay(undefined);
@@ -165,15 +165,15 @@ const runningView = {
     },
     { index: 2, title: '节点详情', status: 'pending', percent: null, nodeIds: [], nodeCount: 0, groups: [] },
   ],
-  // n2 is still in flight: no result yet, so its card is the "current activity".
+ // n2 is still in flight: no result yet, so its card is the "current activity".
   nodes: [
     node('n0', 'read', 'read a.js', T0 - 60000),
     node('n1', 'read', 'read b.js', T0 - 30000),
-    // n2 carries the host's file list (path + action label), which is what the step-05 branch
-    // strip derives from: one 读 file, one 改 file, plus the tool call itself → read/edit/tool.
+ // n2 carries the host's file list (path + action label), which is what the branch
+ // strip derives from: one read file, one edited file, plus the tool call itself -> read/edit/tool.
     node('n2', 'edit', 'edit c.js', T0 - 1000, {
       resultHead: '',
-      // The VIEW carries `files` (host field); store.js narrows it into the model's `fileList`.
+ // The VIEW carries `files` (host field); store.js narrows it into the model's `fileList`.
       files: [
         { path: 'D:/proj/a.js', action: '读' },
         { path: 'D:/proj/c.js', action: '改' },
@@ -198,7 +198,7 @@ const ui = {
 };
 
 /* ------------------------------------------------------------------------- */
-/* 2. pure geometry                                                          */
+/* 2. pure geometry */
 /* ------------------------------------------------------------------------- */
 
 const rect = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height });
@@ -263,7 +263,7 @@ check(
 );
 
 /* ------------------------------------------------------------------------- */
-/* 3. DOM writer + lifecycle (fake DOM, still the real functions)            */
+/* 3. DOM writer + lifecycle (fake DOM, still the real functions) */
 /* ------------------------------------------------------------------------- */
 
 function fakeElement(box, label) {
@@ -448,7 +448,7 @@ const roWin = {
     this.listeners.push({ type, fn });
   },
   removeEventListener() {},
-  // Deliberately never calls the callback: this is the dump-dom situation.
+ // Deliberately never calls the callback: this is the dump-dom situation.
   requestAnimationFrame() {
     return 1;
   },
@@ -490,7 +490,7 @@ roBinding.destroy();
 check('bind.ro.disconnect', observed.indexOf('disconnect') >= 0, observed.join(','));
 
 /* ------------------------------------------------------------------------- */
-/* 4. idle + motion                                                          */
+/* 4. idle + motion */
 /* ------------------------------------------------------------------------- */
 
 check('running.hostWins', T.sessionRunning({ running: false }, 'n2', T0) === false, 'an explicit view.running=false wins over an active node');
@@ -525,7 +525,7 @@ check(
 );
 
 /* ------------------------------------------------------------------------- */
-/* 5. renderer                                                               */
+/* 5. renderer */
 /* ------------------------------------------------------------------------- */
 
 const panelTree = T.renderPanel(live, prefs, say, actions, ui);
@@ -549,7 +549,7 @@ check(
   JSON.stringify({ idle: capsuleRoot.props['data-idle'], motion: capsuleRoot.props['data-motion'] })
 );
 
-// 会话4 · the two-column layer itself is no longer mounted (there is no second column to connect).
+// the two-column layer itself is no longer mounted (there is no second column to connect).
 // Its MARKUP still exists and is still exported — the satellites' rings and the dashed branch use
 // the same gradients — so the shape is asserted on wfRenderFlowEffects directly, not on the panel.
 const fxTree = T.renderFlowEffects(createElement);
@@ -599,7 +599,7 @@ const planningTree = T.renderPanel(
 );
 check('fx.planningNone', byData(planningTree, 'fx').length === 0, 'the planning card has no curve layer');
 
-// 会话4 · the two-column curve is gone (there is no second column to connect), so the living layer's
+// the two-column curve is gone (there is no second column to connect), so the living layer's
 // remaining job is the WINDOW: the running unit breathes, and a running satellite's ring flows.
 check('fx.layerGone', byData(panelTree, 'fx').length === 0, 'no two-column curve layer is drawn');
 
@@ -637,7 +637,7 @@ check(
 const cssLive = T.css();
 check(
   'fx.ring.unit',
-  // 会话6 · 正在进行的卡片保留虹环；但**连接线**不再有虹彩（用户要求：分步之间只留一致虚线）。
+ // The running card keeps its rainbow ring, but the CONNECTORS no longer carry a rainbow (by request: one dashed style between steps).
   cssLive.includes(".wf-unit[data-status='running']>.wf-unit-center>.wf-unit-card::after") &&
     !/\.wf-unit-link\[data-live='true'\]\{[^}]*WF_FX_RAINBOW/.test(cssLive) &&
     cssLive.includes(".wf-unit-link[data-live='true']{background:repeating-linear-gradient(180deg,"),
@@ -674,15 +674,15 @@ check('sig.idle', T.fxSignature(idleModel) !== sigA, 'idle → new signature');
 check('sig.none', T.fxSignature(null) === 'none', T.fxSignature(null));
 
 /* ------------------------------------------------------------------------- */
-/* 6. stylesheet                                                             */
+/* 6. stylesheet */
 /* ------------------------------------------------------------------------- */
 
 const css = T.css();
 const needles = [
   ['body anchor', '.wf-body{position:relative}'],
   ['gutter', '.wf-flow-scroll,.wf-steps-scroll{padding-right:4px}'],
-  // The layer keeps a real box while hidden (opacity, not display) — otherwise its own rect
-  // would measure 0×0 and the first measurement could never resolve user space.
+ // The layer keeps a real box while hidden (opacity, not display) — otherwise its own rect
+ // would measure 0×0 and the first measurement could never resolve user space.
   ['layer', '.wf-fx{position:absolute;inset:0;'],
   ['layer not hidden by display', '.wf-fx{position:absolute;inset:0;width:100%;height:100%;opacity:0;'],
   ['layer hidden', ".wf-fx[data-visible='true']{opacity:1}"],
@@ -703,8 +703,8 @@ const needles = [
   ['live blink', '@keyframes wf-live-dot'],
   ['live dots', '.wf-live-dots>i{'],
   ['live stagger', '.wf-live-dots>i:nth-child(2){animation-delay:.16s}'],
-  // The pseudo-elements must be listed: animation properties are not inherited, so `*` alone
-  // leaves the wrapped frame's ring and the lane dot running. (A browser measurement caught it.)
+ // The pseudo-elements must be listed: animation properties are not inherited, so `*` alone
+ // leaves the wrapped frame's ring and the lane dot running. (A browser measurement caught it.)
   ['idle pause', ".wf-root[data-idle='1'] *,.wf-root[data-idle='1'] *::before,.wf-root[data-idle='1'] *::after{animation-play-state:paused!important}"],
   ['static motion', ".wf-root[data-motion='static'] *,.wf-root[data-motion='static'] *::before,.wf-root[data-motion='static'] *::after{animation:none!important}"],
   ['reduced motion', '@media (prefers-reduced-motion: reduce){.wf-root *,.wf-root *::before,.wf-root *::after{animation:none!important}}'],
@@ -744,17 +744,17 @@ const animatedSelectors = css
   .split('\n')
   .filter((line) => line.includes('animation:') && line.includes('{'))
   .map((line) => line.split('{')[0].trim())
-  // @media wrappers and the two attribute-scoped freeze rules are not "extra animated elements";
-  // every selector listed here is one of the documented ones (or a scoped freeze).
+ // @media wrappers and the two attribute-scoped freeze rules are not "extra animated elements";
+ // every selector listed here is one of the documented ones (or a scoped freeze).
   .filter((selector) => !/^@media/.test(selector) && !/\[data-(motion|idle)/.test(selector));
 check(
   'css.cost.selectors',
-  // step-05 adds exactly one more animated thing: the branch dashes (`.wf-branch-core`). It is
-  // allowed here ONLY because the strip exists solely under the running node — at most 3 paths —
-  // so it can never turn a 60-node step into 60 animations. check('css.cost.chainDashes')
-  // below proves that scoping, rather than trusting this list to be meaningful on its own.
-  // 会话4 adds the unit's ring and the satellite row: both scoped to `data-status=running` /
-  // `data-live=true`, so a finished chain is still completely quiet.
+ // adds exactly one more animated thing: the branch dashes (`.wf-branch-core`). It is
+ // allowed here ONLY because the strip exists solely under the running node — at most 3 paths —
+ // so it can never turn a 60-node step into 60 animations. check('css.cost.chainDashes')
+ // below proves that scoping, rather than trusting this list to be meaningful on its own.
+ // adds the unit's ring and the satellite row: both scoped to `data-status=running` /
+ // `data-live=true`, so a finished chain is still completely quiet.
   animatedSelectors.every((selector) =>
     /wf-fx|wf-live|running|wf-prog|wf-dot|wf-branch-dot|wf-branch-core|wf-branch-icon|wf-flow-status|wf-flow-item|wf-step-link|wf-ring|wf-sat|wf-unit/.test(selector)
   ),
@@ -767,7 +767,7 @@ check(
 );
 
 /* ------------------------------------------------------------------------- */
-/* step-05 · the chain: distances, branches, round icons, the curve channel    */
+/* the chain: distances, branches, round icons, the curve channel */
 /* ------------------------------------------------------------------------- */
 
 // --- the distances are real constants, and they stay in the documented ranges ---
@@ -886,8 +886,8 @@ check(
 );
 check(
   'chain.curve.endpoints',
-  // The card's own centre, in the LIST's user space: the cards start at x=12 and are 360 wide,
-  // so their centre is 12 + 360/2 = 192, and the curve must land exactly there (≤ 2 px).
+ // The card's own centre, in the LIST's user space: the cards start at x=12 and are 360 wide,
+ // so their centre is 12 + 360/2 = 192, and the curve must land exactly there (≤ 2 px).
   near(chainGeo.from.x, 12 + 360 / 2) &&
     near(chainGeo.from.y, upperBox.bottom) &&
     near(chainGeo.to.x, 12 + 360 / 2) &&
@@ -926,7 +926,7 @@ check(
 );
 
 // --- the renderer: only the running node, only three circles ---
-// 会话4 · the in-node branch strip belonged to the flow column. The SAME category derivation now
+// the in-node branch strip belonged to the flow column. The SAME category derivation now
 // drives the chain's satellites, so the assertions move to the unit that carries them: one running
 // unit, its circles split by side, the running one flowing.
 const chainModel = T.buildModel(runningView, prefs, T0);
@@ -935,9 +935,9 @@ const chainSats = byData(chainTree, 'sat');
 check('chain.render.onlyRunning', chainSats.filter((one) => one.props['data-live'] === 'true').length === 1, chainSats.length + ' circles, one flowing');
 check(
   'chain.render.sides',
-  // A .js file that was read in one call and edited in another is ONE circle (the FIRST evidence
-  // wins), so this fixture legitimately puts every circle on the right. What must hold is that a
-  // side is always one of the two real values.
+ // A .js file that was read in one call and edited in another is ONE circle (the FIRST evidence
+ // wins), so this fixture legitimately puts every circle on the right. What must hold is that a
+ // side is always one of the two real values.
   chainSats.length >= 1 && chainSats.every((one) => one.props['data-side'] === 'left' || one.props['data-side'] === 'right'),
   chainSats.map((one) => one.props['data-side']).join(',')
 );
@@ -1047,7 +1047,7 @@ check(
   'the branch dashes stop under reduced motion even before the root rule applies'
 );
 
-/* report                                                                    */
+/* report */
 /* ------------------------------------------------------------------------- */
 
 const failed = results.filter((row) => !row.pass);

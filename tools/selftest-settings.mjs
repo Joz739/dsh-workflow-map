@@ -1,16 +1,16 @@
-// selftest-settings.mjs — step-12: presentation preferences + workflow snapshot export.
+// selftest-settings.mjs — presentation preferences + workflow snapshot export.
 //
 // Run: node tools/selftest-settings.mjs
 //
 // Proves, in order:
-//   1. the bundle carries the step-12 seams and the four allow-lists
-//   2. defaults / sanitization / corrupted localStorage self-heal
-//   3. the settings card: four segmented rows, active state, reset, four export buttons
-//   4. immediate rendering effects: palette root attribute, detail=title compact cards,
-//      nodeLimit 30/60/120/all windows, motion preference attribute
-//   5. Markdown + JSON snapshots agree with the panel (step count, node count, titles)
-//   6. download filename + Blob/URL path + revoke-on-cleanup
-//   7. clipboard copy goes through the same 1.5 s acknowledgement as node detail
+// 1. the bundle carries the seams and the four allow-lists
+// 2. defaults / sanitization / corrupted localStorage self-heal
+// 3. the settings card: four segmented rows, active state, reset, four export buttons
+// 4. immediate rendering effects: palette root attribute, detail=title compact cards,
+// nodeLimit 30/60/120/all windows, motion preference attribute
+// 5. Markdown + JSON snapshots agree with the panel (step count, node count, titles)
+// 6. download filename + Blob/URL path + revoke-on-cleanup
+// 7. clipboard copy goes through the same 1.5 s acknowledgement as node detail
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

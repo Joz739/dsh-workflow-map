@@ -1,4 +1,4 @@
-// step-01 shape self-check: asserts the bundle skeleton is internally consistent
+// shape self-check: asserts the bundle skeleton is internally consistent
 // WITHOUT touching the profile. Run: node tools/selftest-shape.mjs
 import fs from 'node:fs';
 import path from 'node:path';
@@ -75,9 +75,9 @@ check('patch.name', patch.includes("name: 'dsh-workflow-map'"), 'row name');
 check('patch.no.config', !/\bconfig:/.test(patch), 'no config block yet');
 
 // --- host half ------------------------------------------------------------
-// index.js is the manifest's entry and, from step-02 on, a thin facade: the host half itself
-// lives in lib/index.js (the step-02 drop point) and index.js re-exports it, so the installed
-// manifest written at step-01 keeps pointing at the same specifier.
+// index.js is the manifest's entry and, from on, a thin facade: the host half itself
+// lives in lib/index.js (the drop point) and index.js re-exports it, so the installed
+// manifest written at keeps pointing at the same specifier.
 const hostImpl = read('lib/index.js');
 check('host.facade.reexportsLib', /export \* from "\.\/lib\/index\.js";/.test(host), 'export * from ./lib/index.js');
 check('host.facade.default', /export \{ default \} from "\.\/lib\/index\.js";/.test(host), 'default re-export');
@@ -92,7 +92,7 @@ check('host.apply.takesCtx', /export function apply\(ctx\)/.test(hostImpl), 'exp
 check('host.registers', /const registry = ctx\.sessionProjections;/.test(hostImpl) && /registry\.register\(\{/.test(hostImpl), 'registry.register({');
 check('host.projectionKey', /export const PROJECTION_KEY = "workflowView";/.test(hostImpl), 'projection key workflowView');
 // The host half may import ONLY its own modules: the shared fold, the PAE plan reader and
-// (from step-04) the HTTP view route, and (from the hot-inject step) `node:crypto` for the
+// (from ) the HTTP view route, and (from the hot-inject step) `node:crypto` for the
 // message id — a NODE BUILTIN, which is the one exception the rule allows: it resolves
 // regardless of where the package is installed from, because it is not a package at all.
 // No bare specifier: a third-party import would not be guaranteed to resolve.
@@ -106,7 +106,7 @@ check('host.no.clock', !/Date\.now\(/.test(hostImpl), 'no wall-clock read on thi
 check('files.whitelist.src', pkg.files.includes('src'), 'src/ is shipped (fold.mjs lives there)');
 check('files.whitelist.lib', pkg.files.includes('lib'), 'lib/ is shipped (the host half lives there)');
 
-// --- the HTTP view route (step-04) -----------------------------------------
+// --- the HTTP view route -----------------------------------------
 const routeSrc = read('src/route.js');
 check('route.prefix', routeSrc.includes('export const ROUTE_PREFIX = "/dsh-workflow"'), 'route prefix');
 check('route.endpoint', routeSrc.includes('export const STATE_ENDPOINT = "/state"'), 'state endpoint');
@@ -116,7 +116,7 @@ check('route.noStore', routeSrc.includes('no-store'), 'cache-control: no-store')
 check('route.composeView', /export function composeView\(/.test(routeSrc), 'composeView is exported');
 check('host.route.attached', /attachViewRoute\(ctx, registry\)/.test(hostImpl), 'apply() attaches the route');
 check('host.route.snapshot', /registry\.snapshot\(session, \[PROJECTION_KEY\]\)/.test(hostImpl), 'the route reads the projection snapshot');
-// --- the steer channel (step-04-hot-inject) ---------------------------------
+// --- the steer channel ---------------------------------
 check('route.steerEndpoint', routeSrc.includes('export const STEER_ENDPOINT = "/steer"'), 'steer endpoint');
 check('route.steerPath', routeSrc.includes('export const STEER_PATH ='), 'steer path as data');
 check('route.allowPost', routeSrc.includes('const ALLOW = "GET, HEAD, POST, OPTIONS"'), 'POST is allowed');
@@ -129,7 +129,7 @@ check('host.steer.callsSteer', /agent\.steer\(message\)/.test(hostImpl), 'it cal
 check('host.steer.sourceKind', /kind: `plugin:\$\{packageName\}`/.test(hostImpl), 'source.kind is the producer-owned plugin:<name>, never an inherited user');
 check('host.steer.notRunning', /status: 409/.test(hostImpl), 'a non-running session answers 409');
 check('host.noCancel', !/agent\.cancel\(/.test(hostImpl), 'the steer channel never cancels a turn');
-// --- the unsteer channel (step-03-unsteer) ----------------------------------
+// --- the unsteer channel ----------------------------------
 // The undo of that write: a route of its own, wired to the loop's own `inbox.remove`, and a
 // browser half whose button exists for exactly one row state. The two halves are asserted
 // together because a route without a button (or a button without a route) is the drift this file
@@ -156,7 +156,7 @@ const WF_POLL_HIDDEN_MS = /var WF_POLL_HIDDEN = 3000;/;
 const clientBody = client.replace(/^(?:\s*\/\/[^\n]*\n|\s*\n)+/, '');
 check('client.loader', clientBody.startsWith('window.__ModuleLoader__.load({'), 'window.__ModuleLoader__.load');
 check('client.id', client.includes('id: "dsh-workflow-map"'), 'factory id == package name');
-// step-13: the overlay seat is gone. One id now addresses two seats — the sidebar rail
+// the overlay seat is gone. One id now addresses two seats — the sidebar rail
 // row and the main panel — so the shape check asserts BOTH registrations and the id/order.
 check('client.panelId', (client.match(/var PANEL_ID = "([^"]+)"/) || [])[1] === 'workflow-map', 'panel id');
 check('client.panelOrder', (client.match(/var PANEL_ORDER = (\d+);/) || [])[1] === '10', 'order 10');
@@ -164,7 +164,7 @@ check('client.noOverlaySeat', !client.includes('shell.overlay'), 'no shell.overl
 check('client.register', /ctx\.slots\.register\(/.test(client), 'ctx.slots.register');
 check('client.injectSlots', /ctx\.slots\.inject\("sidebar\.panellist"/.test(client), 'ctx.slots.inject(sidebar.panellist)');
 check('client.injectMain', /ctx\.slots\.inject\("main"/.test(client), 'ctx.slots.inject(main)');
-// 会话6 · 会话标签栏入口：第三个席位，同一个面板，排在 chat/trajectory/context/fleet 之后。
+// Session tab-bar entry: a third seat, the same panel, ordered after chat/trajectory/context/fleet.
 check(
   'client.injectConversationView',
   /ctx\.slots\.inject\("conversation\.view"/.test(client),
@@ -177,9 +177,9 @@ check(
 );
 check(
   'client.conversationViewSeat',
-  // step-05 · 页签席位注册的就是**同一个** `WorkflowMapPanel`（那层只用于「盖住 composer」的薄包装
-  // `WorkflowMapTabSeat` 已随覆盖层删除）。会话6 追加：注册的是座位包装 `WorkflowMapViewSeat` ——
-  // 它给同一个面板加一枚座位标记（`WF_VIEW_SEAT_MARKER`），样式表据此把宿主的 composer 座位藏掉。
+ // The tab seat registers the SAME `WorkflowMapPanel` (the thin wrapper that only existed to "cover the composer",
+ // `WorkflowMapTabSeat`, was removed together with the overlay). Instead it registers the seat wrapper `WorkflowMapViewSeat` -
+ // which adds a seat marker (`WF_VIEW_SEAT_MARKER`) to the same panel, and the stylesheet uses it to hide the host composer seat.
   /name: "conversation\.view",[\s\S]{0,420}WorkflowMapViewSeat/.test(client) &&
     !client.includes('WorkflowMapTabSeat'),
   'the tab seat renders the seat-marked wrapper around the SAME WorkflowMapPanel',
@@ -210,7 +210,7 @@ check('client.pollHiddenMs', WF_POLL_HIDDEN_MS.test(client), '3 s while the page
 check('client.ifNoneMatch', client.includes('If-None-Match'), 'conditional GET');
 check('client.cacheNoStore', client.includes('cache: "no-store"'), 'cache: no-store');
 check('client.abort', /new AbortController\(\)/.test(client) && /\.abort\(\)/.test(client), 'AbortController + abort');
-// step-03-unsteer · the revoke half's presence in the shipped bundle. The row's own state decides
+// the revoke half's presence in the shipped bundle. The row's own state decides
 // whether the button exists (never a disabled button on a picked/canceled row), and the failure
 // line is the host's own text.
 check('client.revokePath', client.includes('var WF_UNSTEER_PATH = "/dsh-workflow/unsteer";'), 'the browser addresses the unsteer route');
@@ -221,7 +221,7 @@ check('client.revokeButton', client.includes('"data-inject": "revoke"'), 'the hi
 check('client.revokeErrorLine', client.includes('"data-inject": "revoke-error"'), 'a refused revoke has a line of its own');
 check('client.revokeOnlyPending', client.indexOf('var pending = row.status === "pending";') >= 0, 'the button is rendered only for an unclaimed row');
 check('client.revokeCss', client.includes('.wf-inject-row-revoke{') && client.includes('.wf-inject-row-error{'), 'the button and the failure line have their own styles');
-// step-04-inject-prominence · the enlarged header entry, its pending badge and the persistent dock
+// the enlarged header entry, its pending badge and the persistent dock
 // must all be IN THE SHIPPED BUNDLE, not merely in the sources: the self-test loads client.js, so
 // these strings are what the browser will actually receive.
 check('client.hotToggle.prominent', client.includes('.wf-btn-hot{position:relative;width:auto;min-width:96px;height:30px'), 'the header entry is 96×30 in the shipped stylesheet');
@@ -238,7 +238,7 @@ check(
   'the old "the host exposes no revoke API" wording is gone from the shipped dictionary'
 );
 check('client.visibility', client.includes('visibilityState === "visible"'), 'visibilityState check');
-// step-13: the panel is a normal main-column region: no fixed box, no corner anchor, no
+// the panel is a normal main-column region: no fixed box, no corner anchor, no
 // z-index, no click-through layer and no drag grips. The main area owns the geometry.
 check('client.rootNoFixed', !/\.wf-root\{position:fixed/.test(client), 'no position:fixed root');
 check('client.rootFills', /\.wf-root\{position:relative;width:100%;height:100%/.test(client), 'root fills the main area');
@@ -251,7 +251,7 @@ check('client.grid', client.includes('grid-template-columns:minmax(240px,44%) 1f
 check('client.capsule', /\.wf-capsule\{/.test(client) && client.includes('panel.planning'), 'collapsed capsule + planning line');
 check('client.emptyNoDom', /\.wf-empty\{/.test(client) && /return null;/.test(client), 'empty state renders nothing');
 check('client.tokens', ['--dsw-alias-bg-base', '--dsw-alias-border-l1', '--dsw-alias-brand-primary', '--dsw-alias-label-primary'].every((t) => client.includes(t)), 'theme tokens read');
-// step-13: the frame's own surface moved from bg-overlay to bg-base (it is no longer a
+// the frame's own surface moved from bg-overlay to bg-base (it is no longer a
 // floating card), but every token must STILL carry a concrete fallback.
 check('client.tokensFallback', /\.wf-card\{[^}]*var\(--dsw-alias-bg-base,#[0-9a-f]{6}\)/.test(client), 'token fallbacks are concrete colours');
 check('client.rebuildBlocked', /do not edit by hand/.test(client), 'generated banner names the sources');

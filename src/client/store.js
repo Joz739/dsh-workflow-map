@@ -9,7 +9,7 @@
  */
 
 /* ------------------------------------------------------------------------- */
-/* numbers                                                                   */
+/* numbers */
 /* ------------------------------------------------------------------------- */
 
 /** A finite number, or null. Used so a missing `percent` never becomes NaN. */
@@ -29,12 +29,12 @@ function wfRound(value) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* preferences — step-13 keeps ONLY what the panel still owns                  */
+/* preferences — keeps ONLY what the panel still owns */
 /* ------------------------------------------------------------------------- */
 
 /**
- * step-13: `width` / `height` are no longer written by the UI — the layout owns both —
- * but they are still READ and sanitised, because a record written by step-06..12 sits in
+ * `width` / `height` are no longer written by the UI — the layout owns both —
+ * but they are still READ and sanitised, because a record written by ..12 sits in
  * every user's localStorage. Keeping the two fields means an upgrade never throws away
  * `collapsed` / `selectedStep` / the presentation settings just because an old record
  * happens to carry a size.
@@ -50,10 +50,10 @@ function wfDefaultPrefs() {
     motion: display.motion,
     detail: display.detail,
     nodeLimit: display.nodeLimit,
-    // 会话4 · the single-page layout's right-hand page. `rightOpen` says the page is shown (the
-    // user clicked a main-flow unit, a round satellite, or 热注入); `rightKind` / `rightKey` say
-    // WHAT it shows. A stale (kind, key) pair is harmless — the page finds no content and
-    // renders the empty hint — so nothing here is re-validated against the live view.
+ // the single-page layout's right-hand page. `rightOpen` says the page is shown (the
+ // user clicked a main-flow unit, a round satellite, or hot injection); `rightKind` / `rightKey` say
+ // WHAT it shows. A stale (kind, key) pair is harmless — the page finds no content and
+ // renders the empty hint — so nothing here is re-validated against the live view.
     rightOpen: false,
     rightKind: "step",
     rightKey: null,
@@ -109,8 +109,8 @@ function wfLoadPrefs(storage) {
     if (!store || typeof store.getItem !== "function") return wfDefaultPrefs();
     return wfParsePrefs(store.getItem(WF_PREFS_KEY));
   } catch (error) {
-    // A disabled / quota-exhausted / partitioned localStorage is NOT an error the
-    // panel may die on: it just means "no memory this session".
+ // A disabled / quota-exhausted / partitioned localStorage is NOT an error the
+ // panel may die on: it just means "no memory this session".
     return wfDefaultPrefs();
   }
 }
@@ -153,8 +153,8 @@ function wfApplyPrefsPatch(prev, patch) {
     motion: display.motion,
     detail: display.detail,
     nodeLimit: display.nodeLimit,
-    // 会话4 · the right page. `rightKey: null` means "keep whatever was open" — closing is
-    // expressed with `rightOpen: false`, so clearing the key is never ambiguous.
+ // the right page. `rightKey: null` means "keep whatever was open" — closing is
+ // expressed with `rightOpen: false`, so clearing the key is never ambiguous.
     rightOpen: typeof next.rightOpen === "boolean" ? next.rightOpen : base.rightOpen,
     rightKind: WF_RIGHT_KINDS.indexOf(next.rightKind) >= 0 ? next.rightKind : base.rightKind,
     rightKey:
@@ -168,7 +168,7 @@ function wfApplyPrefsPatch(prev, patch) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* the poll request                                                          */
+/* the poll request */
 /* ------------------------------------------------------------------------- */
 
 function wfPollUrl(sessionId) {
@@ -180,7 +180,7 @@ function wfPollUrl(sessionId) {
  * always decide what to render and how long to wait.
  *
  * @returns {Promise<{status:number, etag:string, payload:any, error:string}>}
- *   304 → keep the current view; 200 → new payload; anything else → `error`.
+ * 304 → keep the current view; 200 → new payload; anything else → `error`.
  */
 function wfPollOnce(fetchImpl, url, etag, signal) {
   var headers = {};
@@ -218,9 +218,9 @@ function wfPollOnce(fetchImpl, url, etag, signal) {
       });
     })
     .catch(function (error) {
-      // An aborted request is NOT a failure: the caller cancelled it (visibility
-      // change or unmount). status -1 says "nothing to report" so the loop neither
-      // paints an offline badge nor schedules a duplicate poll.
+ // An aborted request is NOT a failure: the caller cancelled it (visibility
+ // change or unmount). status -1 says "nothing to report" so the loop neither
+ // paints an offline badge nor schedules a duplicate poll.
       var aborted = !!error && error.name === "AbortError";
       return {
         status: aborted ? -1 : 0,
@@ -233,7 +233,7 @@ function wfPollOnce(fetchImpl, url, etag, signal) {
 
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
-/* the write request (step-04-hot-inject)                                    */
+/* the write request */
 /* ------------------------------------------------------------------------- */
 
 // `wfPostSteer` lives in HotInject.js (it is the inject column's own request shape, and the
@@ -241,7 +241,7 @@ function wfPollOnce(fetchImpl, url, etag, signal) {
 // ONE write is defined exactly once in the bundle.
 
 /* ------------------------------------------------------------------------- */
-/* session identity                                                          */
+/* session identity */
 /* ------------------------------------------------------------------------- */
 
 /* ------------------------------------------------------------------------- */
@@ -280,7 +280,7 @@ function wfSessionIdFromSnapshot(snapshot) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* view → model                                                              */
+/* view → model */
 /* ------------------------------------------------------------------------- */
 
 var WF_STATUS_KEYS = {
@@ -310,7 +310,7 @@ function wfKindKey(kind) {
 function wfTrimText(value, limit) {
   if (typeof value !== "string") return "";
   var text = value.replace(/\s+/g, " ").trim();
-  // The ellipsis counts toward the limit, so a 300-char budget stays 300 chars.
+ // The ellipsis counts toward the limit, so a 300-char budget stays 300 chars.
   if (typeof limit === "number" && text.length > limit) return text.slice(0, Math.max(0, limit - 1)) + "…";
   return text;
 }
@@ -454,13 +454,13 @@ function wfTodoRows(todos) {
 /**
  * Build the render model, or null when the panel must not exist at all.
  *
- * Empty state rules (step-06 contract §3):
- *   - no steps and no PAE plan still being written  → null (NOTHING is rendered)
- *   - plan.phase === "planning" with no steps yet    → a one-line "规划中…" card
- *   - otherwise                                      → right/left two-column model
+ * Empty state rules ( contract §3):
+ * - no steps and no PAE plan still being written → null (NOTHING is rendered)
+ * - plan.phase === "planning" with no steps yet -> a one-line "planning..." card
+ * - otherwise → right/left two-column model
  */
 /* ------------------------------------------------------------------------- */
-/* 会话4 · tool FILE TYPES (the satellites' data source)                        */
+/* tool FILE TYPES (the satellites' data source) */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -492,7 +492,7 @@ function wfTypeBadge(ext) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* 会话5 · hot-inject history (pure shaping, no DOM)                          */
+/* hot-inject history (pure shaping, no DOM) */
 /* ------------------------------------------------------------------------- */
 
 /** How many rows the composer page lists; the oldest fall off with a stated count. */
@@ -504,9 +504,9 @@ var WF_INJECT_HISTORY = 40;
  * Each row keeps the three facts the user asked for: WHAT was injected (the text), WHEN
  * (`at`, the splice's own event time — never a browser clock), and its STATUS, which is one
  * of two words with different meanings:
- *   `pending`   — the message is in the session's inbox; the turn has not picked it up yet.
- *   `picked`    — the session's own `user/message` with the same id is in the log, i.e. the
- *                 running turn HAS taken it. This is measured, not assumed.
+ * `pending` — the message is in the session's inbox; the turn has not picked it up yet.
+ * `picked` — the session's own `user/message` with the same id is in the log, i.e. the
+ * running turn HAS taken it. This is measured, not assumed.
  *
  * A row without an id cannot be matched, so it is dropped rather than listed as status-less.
  */
@@ -524,9 +524,9 @@ function wfInjectRows(list) {
       pickedUpAt: wfFinite(row.pickedUpAt),
       target: typeof row.target === "string" ? row.target : "",
       text: wfTrimText(row.text, 300),
-      // 会话6 · three states, not two: a message the loop DISCARDED (durable cancel) is neither
-      // "waiting" nor "taken" — it will never be read. Only the host's own
-      // `agent/inbox/discarded` event sets this, so it is never inferred.
+ // three states, not two: a message the loop DISCARDED (durable cancel) is neither
+ // "waiting" nor "taken" — it will never be read. Only the host's own
+ // `agent/inbox/discarded` event sets this, so it is never inferred.
       status: row.pickedUp === true ? "picked" : row.canceled === true ? "canceled" : "pending",
       canceledAt: wfFinite(row.canceledAt),
     });
@@ -537,7 +537,7 @@ function wfInjectRows(list) {
   return rows;
 }
 
-/** `step-06-client-shell.md` → `.md`; a path with no dot → `""` (the "no extension" bucket). */
+/** `.md` → `.md`; a path with no dot → `""` (the "no extension" bucket). */
 function wfTypeOfPath(path) {
   if (typeof path !== "string" || path === "") return "";
   var flat = path.replace(/\\/g, "/");
@@ -548,13 +548,13 @@ function wfTypeOfPath(path) {
     if (base.length > compound.length && base.slice(-compound.length) === compound) return compound;
   }
   var at = base.lastIndexOf(".");
-  // A leading dot is a dotfile (`.gitignore`): its own type, not "no extension".
+ // A leading dot is a dotfile (`.gitignore`): its own type, not "no extension".
   if (at === 0) return base;
   if (at <= 0) return "";
   return base.slice(at);
 }
 
-/** Which side a host file action lives on: 读/查 → left (input), 写/改 → right (output). */
+/** Which side a host file action lives on: read/query -> left (input), write/edit -> right (output). */
 function wfTypeSide(action) {
   var label = typeof action === "string" ? action.trim().toLowerCase() : "";
   if (
@@ -581,7 +581,7 @@ function wfTypeSide(action) {
  * A type is a KEY: `file:.md` for a file extension, `tool:pwsh` for a call whose only evidence is
  * the tool name. A call that touched a file counts under that file's type only (its tool is
  * already visible in the call's own row); a call that touched nothing gets a tool circle on the
- * right — that is where 「调用的工具」 lives.
+ * right - that is where "tools called" lives.
  */
 function wfTypeBuckets(nodes, activeNodeId) {
   var list = Array.isArray(nodes) ? nodes : [];
@@ -691,7 +691,7 @@ function wfTypeSides(nodes, activeNodeId) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* the model                                                                 */
+/* the model */
 /* ------------------------------------------------------------------------- */
 
 function wfBuildModel(view, prefs, nowMs) {
@@ -704,10 +704,10 @@ function wfBuildModel(view, prefs, nowMs) {
   if (plan) task = wfTrimText(plan.taskTitle || plan.task, 300);
   if (task === "") task = wfTrimText(view.task, 300);
 
-  // 会话4 · the single page keeps ONE selected step: the unit the user last opened. The policy is
-  // unchanged (a remembered index wins, then the running step, then the active one, then the last
-  // done step, then the first) — what changed is only that the page no longer needs a second
-  // "selected" notion for the flow column, because the flow column is gone.
+ // the single page keeps ONE selected step: the unit the user last opened. The policy is
+ // unchanged (a remembered index wins, then the running step, then the active one, then the last
+ // done step, then the first) — what changed is only that the page no longer needs a second
+ // "selected" notion for the flow column, because the flow column is gone.
   var steps = view.steps;
   if (steps.length === 0) {
     if (!planning) return null;
@@ -718,12 +718,12 @@ function wfBuildModel(view, prefs, nowMs) {
       progress: { done: 0, total: 0, percent: 0 },
       activeStep: null,
       selected: null,
-      // step-12: palette / motion / detail depth / node window travel with the model,
-      // so a preference change is one ordinary re-render (no second state channel).
+ // palette / motion / detail depth / node window travel with the model,
+ // so a preference change is one ordinary re-render (no second state channel).
       settings: wfSettingsOf(prefs),
-      // Is the session actually working? (step-10) The curve, both wrapped frames and the
-      // breathing dot all freeze when it is not — see pulse.js wfSessionRunning for the
-      // three signals and why the host's own `view.running` wins when it exists.
+ // Is the session actually working? The curve, both wrapped frames and the
+ // breathing dot all freeze when it is not — see pulse.js wfSessionRunning for the
+ // three signals and why the host's own `view.running` wins when it exists.
       running: wfSessionRunning(view, null, nowMs),
       steps: [],
       flow: {
@@ -738,13 +738,13 @@ function wfBuildModel(view, prefs, nowMs) {
         hiddenBranches: 0,
         branchDropped: 0,
       },
-      // 会话4 · the single page has nothing to draw while the plan is still being written; the
-      // shape is present so the renderer never has to branch on "does page exist".
+ // the single page has nothing to draw while the plan is still being written; the
+ // shape is present so the renderer never has to branch on "does page exist".
       page: { units: [], runningIndex: null, toolTypes: [] },
       counts: view.counts && typeof view.counts === "object" ? view.counts : null,
       plan: wfPlanSummary(plan),
-      // 会话5 · the hot-inject history travels with the model, so the composer page can list
-      // what was sent and whether the session admitted it (see wfInjectRows).
+ // the hot-inject history travels with the model, so the composer page can list
+ // what was sent and whether the session admitted it (see wfInjectRows).
       injects: wfInjectRows(view.injects),
     };
   }
@@ -779,8 +779,8 @@ function wfBuildModel(view, prefs, nowMs) {
       statusKey: wfStatusKey(status),
       percent: clampedPercent === null ? null : Math.round(clampedPercent),
       percentSource: typeof step.percentSource === "string" ? step.percentSource : "none",
-      // step-03: when the last progress estimate arrived (0 = never). The rail uses it for the
-      // "N 分钟前估计" segment and prints nothing at all when it is 0.
+ // when the last progress estimate arrived (0 = never). The rail uses it for the
+ // "estimated N minutes ago" segment and prints nothing at all when it is 0.
       lastEstimateAt: wfFinite(step.lastEstimateAt) === null ? 0 : Math.max(0, Math.round(wfFinite(step.lastEstimateAt))),
       nodeCount: wfFinite(step.nodeCount) === null ? 0 : step.nodeCount,
       planIndex: wfFinite(step.planIndex) === null ? null : step.planIndex,
@@ -797,9 +797,9 @@ function wfBuildModel(view, prefs, nowMs) {
     });
   }
 
-  // The status policy (PAE > todo > anchorSeqs > host, see StepColumn.js) lives
-  // in the step column but is applied HERE, so the header's done-count, the
-  // running-step selection and every card's badge cannot disagree.
+ // The status policy (PAE > todo > anchorSeqs > host, see StepColumn.js) lives
+ // in the step column but is applied HERE, so the header's done-count, the
+ // running-step selection and every card's badge cannot disagree.
   rows = wfApplyDerivedStatuses(rows, planSummary, todos);
 
   var done = 0;
@@ -808,22 +808,22 @@ function wfBuildModel(view, prefs, nowMs) {
   for (var r = 0; r < rows.length; r += 1) {
     if (rows[r].status === "done") done += 1;
     if (rows[r].status === "running" && runningIndex === null) runningIndex = r;
-    // Overall progress = the mean of every step's own estimate, so a long running
-    // step moves the header between completions instead of freezing at done/total.
+ // Overall progress = the mean of every step's own estimate, so a long running
+ // step moves the header between completions instead of freezing at done/total.
     percentSum += wfEffectivePercent(rows[r]);
   }
-  // 会话6 · ONE live row. The host already closes stray running rows (fold.mjs soleRunning);
-  // this is the browser's own guard, because the PAE/todo status policy applied just above can
-  // ALSO promote a row to 'running'. Everything that animates (ring, rail, connector, the
-  // flowing tool type) keys off `live`, so at most one of each can ever light up.
+ // ONE live row. The host already closes stray running rows (fold.mjs soleRunning);
+ // this is the browser's own guard, because the PAE/todo status policy applied just above can
+ // ALSO promote a row to 'running'. Everything that animates (ring, rail, connector, the
+ // flowing tool type) keys off `live`, so at most one of each can ever light up.
   var liveIndex = runningIndex;
   if (liveIndex === null && activeIndex !== null) liveIndex = activeIndex;
   for (var lr = 0; lr < rows.length; lr += 1) rows[lr].live = lr === liveIndex;
 
   var percentOverall = Math.round(wfClamp(percentSum / steps.length, 0, 100));
 
-  // Selection: remember the user's pick, drop it if it no longer exists, then fall
-  // back to the running step, the active step, the last done step, or the first.
+ // Selection: remember the user's pick, drop it if it no longer exists, then fall
+ // back to the running step, the active step, the last done step, or the first.
   var selected = null;
   var wanted = prefs && wfFinite(prefs.selectedStep) !== null ? Math.round(prefs.selectedStep) : null;
   if (wanted !== null && wanted >= 0 && wanted < rows.length) selected = wanted;
@@ -855,12 +855,12 @@ function wfBuildModel(view, prefs, nowMs) {
       title: wfTrimText(found.title, 160) || wfTrimText(found.detail, 160) || "—",
       detail: wfTrimText(found.detail, 200),
       files: Array.isArray(found.files) ? found.files.length : 0,
-      // The first path is what the card titles itself with (「读 · x.js」): basename
-      // only, the full path stays in the tooltip.
+ // The first path is what the card titles itself with ("read · x.js"): basename
+ // only, the full path stays in the tooltip.
       path: firstFile && typeof firstFile.path === "string" ? firstFile.path : "",
-      // The detail block needs the whole file list (paths + host action labels) — the card
-      // above only counts them. `fileList` is a whitelist copy: `files` on the wire could
-      // carry anything, and only path/action ever reach the renderer.
+ // The detail block needs the whole file list (paths + host action labels) — the card
+ // above only counts them. `fileList` is a whitelist copy: `files` on the wire could
+ // carry anything, and only path/action ever reach the renderer.
       fileList: Array.isArray(found.files)
         ? found.files
             .filter(function (file) {
@@ -870,9 +870,9 @@ function wfBuildModel(view, prefs, nowMs) {
               return { path: file.path, action: typeof file.action === "string" ? file.action : "" };
             })
         : [],
-      // The args digest / result head / error text are bounded by the host (200 chars).
-      // They are copied verbatim — never flattened — because the detail renders them in a
-      // pre-wrap block and a command's newlines are part of what the user asked to see.
+ // The args digest / result head / error text are bounded by the host (200 chars).
+ // They are copied verbatim — never flattened — because the detail renders them in a
+ // pre-wrap block and a command's newlines are part of what the user asked to see.
       argsText: typeof found.argsText === "string" ? found.argsText.slice(0, 200) : "",
       resultLine: typeof found.resultHead === "string" ? found.resultHead.slice(0, 200) : "",
       errorText: typeof found.error === "string" ? found.error.slice(0, 200) : "",
@@ -884,12 +884,12 @@ function wfBuildModel(view, prefs, nowMs) {
     });
   }
 
-  // The selected step's own detail (step-11): the report + statistics from the nodes above.
+ // The selected step's own detail : the report + statistics from the nodes above.
   var detail = wfBuildStepDetail(rows[selected], flowNodes, planSummary);
 
-  // Host fold records are copied field by field: they are only RANGES over the node
-  // list above (FlowColumn resolves them), so a group whose ids are missing here can
-  // never hide a node.
+ // Host fold records are copied field by field: they are only RANGES over the node
+ // list above (FlowColumn resolves them), so a group whose ids are missing here can
+ // never hide a node.
   var flowGroups = [];
   if (Array.isArray(step.groups)) {
     for (var g = 0; g < step.groups.length; g += 1) {
@@ -907,11 +907,11 @@ function wfBuildModel(view, prefs, nowMs) {
     }
   }
 
-  // Branch lanes (step-09) — the parallel work of THIS step, reduced to what Branches.js
-  // draws. A lane that started before any step existed (stepIndex null) belongs to the
-  // first step. Only the newest WF_BRANCH_SHOWN lanes are drawn; the rest are counted by
-  // the renderer, and lanes the HOST dropped at its own cap are counted separately — the
-  // two numbers have different causes and must not be merged.
+ // Branch lanes — the parallel work of THIS step, reduced to what Branches.js
+ // draws. A lane that started before any step existed (stepIndex null) belongs to the
+ // first step. Only the newest WF_BRANCH_SHOWN lanes are drawn; the rest are counted by
+ // the renderer, and lanes the HOST dropped at its own cap are counted separately — the
+ // two numbers have different causes and must not be merged.
   var branchRows = [];
   var allBranches = Array.isArray(view.branches) ? view.branches : [];
   for (var bi = 0; bi < allBranches.length; bi += 1) {
@@ -965,17 +965,17 @@ function wfBuildModel(view, prefs, nowMs) {
   }
   var branchDropped = wfFinite(view.droppedBranches) === null ? 0 : Math.max(0, view.droppedBranches);
 
-  // The pulsing node is only "current" while its OWN step is the selected one.
-  // The pulsing node is only "current" while its OWN step is the selected one.
+ // The pulsing node is only "current" while its OWN step is the selected one.
+ // The pulsing node is only "current" while its OWN step is the selected one.
   var activeNodeId = null;
   if (activeIndex !== null && activeIndex === selected && view.active && typeof view.active.nodeId === "string") {
     activeNodeId = view.active.nodeId;
   }
 
-  // 会话4 · the single page. EVERY step becomes one unit on the serial main flow, with its own
-  // satellites, so the page needs each step's nodes — not only the selected step's. The same
-  // whitelist copy is used (path/action only), so a satellite can never carry anything the
-  // selected step's flow would refuse to show.
+ // the single page. EVERY step becomes one unit on the serial main flow, with its own
+ // satellites, so the page needs each step's nodes — not only the selected step's. The same
+ // whitelist copy is used (path/action only), so a satellite can never carry anything the
+ // selected step's flow would refuse to show.
   var pageUnits = [];
   for (var u = 0; u < rows.length; u += 1) {
     var unitStep = steps[u] && typeof steps[u] === "object" ? steps[u] : {};
@@ -1009,7 +1009,7 @@ function wfBuildModel(view, prefs, nowMs) {
           }),
       });
     }
-    // The running step's own active call lights its satellite; every other step gets none.
+ // The running step's own active call lights its satellite; every other step gets none.
     var unitActive = activeIndex === u && view.active && typeof view.active.nodeId === "string" ? view.active.nodeId : "";
     var unitSides = wfTypeSides(unitNodes, unitActive);
     pageUnits.push({
@@ -1020,7 +1020,7 @@ function wfBuildModel(view, prefs, nowMs) {
       statusSource: rows[u].statusSource,
       planIndex: rows[u].planIndex,
       active: rows[u].active,
-      // 会话6 · the ONE flag every animated piece reads (ring, rail, connector, tool type).
+ // the ONE flag every animated piece reads (ring, rail, connector, tool type).
       live: rows[u].live === true,
       percent: rows[u].percent,
       percentSource: rows[u].percentSource,
@@ -1045,17 +1045,17 @@ function wfBuildModel(view, prefs, nowMs) {
     progress: { done: done, total: steps.length, percent: percentOverall },
     activeStep: activeIndex,
     selected: selected,
-    // step-10: the one flag the living layer switches on. Derived AFTER activeNodeId, because
-    // "a node is mid-call right now" is the strongest non-host signal there is.
+ // the one flag the living layer switches on. Derived AFTER activeNodeId, because
+ // "a node is mid-call right now" is the strongest non-host signal there is.
     running: wfSessionRunning(view, activeNodeId, nowMs),
     steps: rows,
     flow: {
       stepTitle: rows[selected].title,
       nodes: flowNodes,
       total: flowNodes.length,
-      // 「已省略」 must cover EVERY missing node, not only the per-step cap: the
-      // global 1200-node cap also prunes a step's id list while leaving
-      // step.truncatedNodes at 0. The honest gap is nodeCount − drawn.
+ // "omitted" count must cover EVERY missing node, not only the per-step cap: the
+ // global 1200-node cap also prunes a step's id list while leaving
+ // step.truncatedNodes at 0. The honest gap is nodeCount − drawn.
       truncated: Math.max(
         wfFinite(step.truncatedNodes) === null ? 0 : step.truncatedNodes,
         (wfFinite(step.nodeCount) === null ? flowNodes.length : step.nodeCount) - flowNodes.length
@@ -1067,9 +1067,9 @@ function wfBuildModel(view, prefs, nowMs) {
       hiddenBranches: hiddenBranches,
       branchDropped: branchDropped,
     },
-    // 会话4 · the single page: one unit per step, its satellites, and the index of the step the
-    // chain should bring to the middle. `types` is every bucket (not only the drawn ones), so the
-    // right page can show the ones the card could not fit.
+ // the single page: one unit per step, its satellites, and the index of the step the
+ // chain should bring to the middle. `types` is every bucket (not only the drawn ones), so the
+ // right page can show the ones the card could not fit.
     page: {
       units: pageUnits,
       runningIndex: pageRunningIndex,
@@ -1077,12 +1077,12 @@ function wfBuildModel(view, prefs, nowMs) {
     },
     counts: view.counts && typeof view.counts === "object" ? view.counts : null,
     plan: planSummary,
-    // step-11: the selected step's report + statistics, or null for the planning card.
+ // the selected step's report + statistics, or null for the planning card.
     detail: detail,
     settings: wfSettingsOf(prefs),
     todos: todos,
-    // 会话5 · the hot-inject history (the host's own fold of `agent/inbox/spliced` + the
-    // admitting `user/message`). Oldest first, bounded, never invented.
+ // the hot-inject history (the host's own fold of `agent/inbox/spliced` + the
+ // admitting `user/message`). Oldest first, bounded, never invented.
     injects: wfInjectRows(view.injects),
     asOf: wfFinite(view.asOf),
     now: wfFinite(nowMs),

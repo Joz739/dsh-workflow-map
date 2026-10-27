@@ -1,26 +1,26 @@
 #!/usr/bin/env node
-// dsh-workflow-map — step-03 self-test for the PAE plan reader (src/orchestrator.mjs).
+// dsh-workflow-map — self-test for the PAE plan reader (src/orchestrator.mjs).
 //
-//   node tools\selftest-orchestrator.mjs            # real .pae data + synthetic fixtures
-//   node tools\selftest-orchestrator.mjs <root>     # root = the workspace holding `.pae`
-//   node tools\selftest-orchestrator.mjs --no-real  # synthetic fixtures only
+// node tools\selftest-orchestrator.mjs # real .pae data + synthetic fixtures
+// node tools\selftest-orchestrator.mjs <root> # root = the workspace holding `.pae`
+// node tools\selftest-orchestrator.mjs --no-real # synthetic fixtures only
 //
 // What is asserted, in the order the step asks for it:
-//   (A) path resolution: both inputs required, one path segment, no traversal.
-//   (B) a REAL current plan: readable, 1-based ordinals, statuses/reports/anchors, frozen, and
-//       the second read is a cache HIT (one stat, one read for two calls).
-//   (C) a REAL historical plan (a different file) reads the same way.
-//   (D) a REAL planning-phase document (no `plan` yet) is still renderable.
-//   (E) missing file / directory-instead-of-file: null, one deduped error line, never throws.
-//   (F) corrupt JSON: null + PARSE_FAILED, and a repaired file is picked up again; BOM tolerated.
-//   (G) missing / damaged fields degrade one field at a time and never shift an ordinal.
-//   (H) cache invalidation: changed size and changed mtime are both noticed.
-//   (I) READ ONLY: the real plan file's mtime/size are unchanged after every read above.
-//   (J) through lib/index.js: init(header) captures the identity, the wire view carries the plan,
-//       the view schema accepts it (and rejects a shifted plan ordinal), a cold state read keeps
-//       the identity, and a headerless state yields plan === null.
-//   (K) the merge rules: plan task/title/status on a todo-derived view, PAE-derived status kept,
-//       counts recomputed, inputs never mutated.
+// (A) path resolution: both inputs required, one path segment, no traversal.
+// (B) a REAL current plan: readable, 1-based ordinals, statuses/reports/anchors, frozen, and
+// the second read is a cache HIT (one stat, one read for two calls).
+// (C) a REAL historical plan (a different file) reads the same way.
+// (D) a REAL planning-phase document (no `plan` yet) is still renderable.
+// (E) missing file / directory-instead-of-file: null, one deduped error line, never throws.
+// (F) corrupt JSON: null + PARSE_FAILED, and a repaired file is picked up again; BOM tolerated.
+// (G) missing / damaged fields degrade one field at a time and never shift an ordinal.
+// (H) cache invalidation: changed size and changed mtime are both noticed.
+// (I) READ ONLY: the real plan file's mtime/size are unchanged after every read above.
+// (J) through lib/index.js: init(header) captures the identity, the wire view carries the plan,
+// the view schema accepts it (and rejects a shifted plan ordinal), a cold state read keeps
+// the identity, and a headerless state yields plan === null.
+// (K) the merge rules: plan task/title/status on a todo-derived view, PAE-derived status kept,
+// counts recomputed, inputs never mutated.
 //
 // Exit code 0 = every assertion passed. Real data is REQUIRED by default: this test is the
 // evidence that the reader matches what PAE actually writes, so silently skipping it would make
@@ -390,9 +390,9 @@ if (real === null) {
       skips.push("a planning-phase real document");
     }
 
-    // -------------------------------------------------------------------------
-    // (J) through the host half: identity → wire view → schema → cold read
-    // -------------------------------------------------------------------------
+ // -------------------------------------------------------------------------
+ // (J) through the host half: identity → wire view → schema → cold read
+ // -------------------------------------------------------------------------
 
     const registrations = [];
     applyHost({
@@ -434,16 +434,16 @@ if (real === null) {
     const headerless = typeof projection.init === "function" ? projection.init() : {};
     equal("(J) no header → no identity", [headerless.sessionId, headerless.cwd], ["", ""]);
     equal("(J) no header → no plan", projection.wire.view(headerless).plan, null);
-    // PAE builds its plan dir from `header.cwd ?? process.cwd()`; the host half mirrors that
-    // exact rule, or a session without a header cwd would silently lose its plan.
+ // PAE builds its plan dir from `header.cwd ?? process.cwd`; the host half mirrors that
+ // exact rule, or a session without a header cwd would silently lose its plan.
     const noCwd = typeof projection.init === "function" ? projection.init({ id: "session-no-cwd" }) : {};
     equal("(J) a session without a header cwd falls back to the host cwd", noCwd.cwd, process.cwd());
     equal("(J) that fallback still names the session", noCwd.sessionId, "session-no-cwd");
     equal("(J) and that session has no plan on this host", projection.wire.view(noCwd).plan, null);
 
-    // -------------------------------------------------------------------------
-    // (I) READ ONLY: the file is byte-identical in mtime and size after everything
-    // -------------------------------------------------------------------------
+ // -------------------------------------------------------------------------
+ // (I) READ ONLY: the file is byte-identical in mtime and size after everything
+ // -------------------------------------------------------------------------
 
     const after = fs.statSync(current.file);
     equal("(I) the plan file's mtime is untouched", after.mtimeMs, before.mtimeMs);

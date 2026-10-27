@@ -1,41 +1,41 @@
 /**
- * FlowEffects.js — 彩色流光曲线层（step-10）。
+ * FlowEffects.js - the flowing-gradient curve layer (legacy two-column layout).
  *
- * 面板里最有识别度的一条：**正在进行的那个分步**（左列发光外框）与它**正在进行的那个流程节点**
- * （右列发光外框）之间，有一条彩虹流光曲线连着。
+ * The most recognisable element of that design: the running step (left column, glowing frame) and
+ * the running node (right column, glowing frame) were joined by a rainbow curve.
  *
- * 结构：
- *   wfFxRound / wfFxBounds      几何小工具（四舍五入到 0.01 px、把 DOMRect 归一化）
- *   wfFxCurve                   纯几何：两点 → 三次贝塞尔 `M x1 y1 C …`
- *   wfFxGeometry                纯几何：两张卡片 + 视口 → {visible, d, from, to, reason}
- *   wfFxQuery / wfFxApply       DOM：找元素、算、把 `d`/端点写回 SVG，并留 `data-endpoints` 证据
- *   wfFxBind                    DOM：ResizeObserver + scroll(capture) + resize，rAF 节流重算
- *   wfUseFlowEffects            React 封装：每次「视觉签名」变化就重建一次绑定
- *   wfRenderFlowEffects         纯 markup：<svg> + 两个渐变 + 两条路径 + 两个端点圆
- *   wfFxSignature               模型 → 一句短签名（变了才重绑，不是每个 800 ms 轮询都重绑）
+ * Structure:
+ * wfFxRound / wfFxBounds - geometry helpers (round to 0.01 px, normalise a DOMRect)
+ * wfFxCurve - pure geometry: two points -> a cubic Bezier `M x1 y1 C ...`
+ * wfFxGeometry - pure geometry: two cards + viewport -> {visible, d, from, to, reason}
+ * wfFxQuery / wfFxApply - DOM: find elements, compute, write `d`/endpoints back into the SVG, leaving `data-endpoints` as evidence
+ * wfFxBind - DOM: ResizeObserver + scroll(capture) + resize, recomputed on a rAF throttle
+ * wfUseFlowEffects - React wrapper: rebinds once per "visual signature" change
+ * wfRenderFlowEffects - pure markup: <svg> + two gradients + two paths + two endpoint circles
+ * wfFxSignature - model -> a short signature (rebind only when it changes, not on every 800 ms poll)
  *
- * 为什么用「绝对定位 + 无 viewBox 的 SVG」：曲线要在两列之间的空隙里画，而两列各自是
- * 独立滚动的。SVG 铺满 .wf-body（position:relative），坐标 = 卡片 rect − SVG rect，
- * 所以不需要任何 viewBox 缩放，1 用户单位就是 1 px，端点误差只来自一次取整。
+ * Why "absolutely positioned SVG with no viewBox": the curve was drawn in the gap between the two
+ * columns, each scrolling independently. The SVG covers .wf-body (position:relative); coordinates = card rect - SVG rect,
+ * so no viewBox scaling is needed: 1 user unit is 1 px, and endpoint error comes only from one rounding step.
  *
- * 端点规矩：**两张卡片都完整落在各自滚动视口内**才画曲线，否则隐藏（data-visible=false）。
- * 与其把端点夹到视口边缘（那就不再「贴合卡片边缘」，验收的 2 px 容差也没意义），
- * 不如诚实地不画。
+ * Endpoint rule: the curve is drawn only when BOTH cards are fully inside their own scroll viewport; otherwise hidden (data-visible=false).
+ * Clamping endpoints to the viewport edge would stop them hugging the card edge, making the 2 px tolerance meaningless,
+ * so drawing nothing is the honest option.
  *
- * 纯函数、无 import/export：由 tools/build-client.mjs 内联进 client.js（单文件浏览器半）。
+ * Pure, no import/export: inlined into client.js by tools/build-client.mjs (single-file browser half).
  */
 
-/** 两列之间至少要留这么宽的空隙才画得下一条曲线（再窄就是两列贴在一起了）。 */
+/** Minimum column gap needed to fit a curve (below this the columns would touch). */
 var WF_FX_MIN_GAP = 10;
 
-/** 曲线在两端各留的余量：控制点的水平偏移按空隙宽度取 45 %，夹在这个区间。 */
+/** Endpoint margin: the control point horizontal offset is 45 % of the gap, clamped to this range. */
 var WF_FX_BOW_MIN = 8;
 var WF_FX_BOW_MAX = 140;
 
-/** 写进 SVG 的占位端点（未测量时两个圆藏在画布外，不闪一下）。 */
+/** Placeholder endpoints written into the SVG (before measuring, both circles sit outside the canvas so nothing flashes). */
 var WF_FX_OFFSCREEN = -99;
 
-/** 排队后最多等这么久就从定时器量一次（rAF 永不触发的环境，例如无头 --dump-dom）。 */
+/** After queueing, wait at most this long before measuring from a timer (environments where rAF never fires, e.g. headless --dump-dom). */
 var WF_FX_FALLBACK_MS = 40;
 
 /**
@@ -53,7 +53,7 @@ function wfFxRound(value) {
   return n === null ? 0 : Math.round(n * 100) / 100;
 }
 
-/** DOMRect（或任何 {left, top, width, height}）→ 归一化矩形；不可用则 null。 */
+/** DOMRect (or any {left, top, width, height}) -> a normalised rect; null when unusable. */
 function wfFxBounds(rect) {
   if (!rect || typeof rect !== "object") return null;
   var left = wfFinite(rect.left);
@@ -69,7 +69,7 @@ function wfFxBounds(rect) {
   return { left: left, top: top, width: width, height: height, right: left + width, bottom: top + height };
 }
 
-/** 矩形是否完整落在视口里（允许 0.5 px 的取整误差，不允许露出半张卡片）。 */
+/** Is the rect fully inside the viewport (0.5 px rounding allowed, half a card not allowed). */
 function wfFxInside(rect, view) {
   if (!rect || !view) return false;
   return (
@@ -81,9 +81,9 @@ function wfFxInside(rect, view) {
 }
 
 /**
- * 两点之间的三次贝塞尔。控制点只在水平方向偏移（经典的「S 形连线」）：
+ * A cubic Bezier between two points. Control points offset horizontally only (the classic "S bend"):
  *   M x1 y1 C x1+bow y1, x2-bow y2, x2 y2
- * 空隙太窄（< WF_FX_MIN_GAP）或坐标不合法 → null，调用方据此隐藏整层。
+ * Gap too narrow (< WF_FX_MIN_GAP) or invalid coordinates -> null, and the caller hides the whole layer.
  *
  * @returns {{d:string, from:{x:number,y:number}, to:{x:number,y:number}, dx:number, bow:number}|null}
  */
@@ -113,10 +113,10 @@ function wfFxCurve(fromX, fromY, toX, toY) {
 }
 
 /**
- * 两张卡片 + 各自滚动视口 → 这一帧该不该画、画在哪。
+ * Two cards + their own scroll viewports -> whether to draw this frame, and where.
  *
- * `origin` 是 SVG 的 rect（不是 .wf-body 的 border box：绝对定位元素的包含块是 padding box，
- * 用 SVG 自己的 rect 当原点，坐标才和它内部的用户坐标系一一对应）。
+ * `origin` is the SVG rect (not the .wf-body border box: an absolutely positioned element's containing block is the padding box,
+ * so using the SVG's own rect keeps coordinates aligned with its internal user coordinate system).
  *
  * reason: ok | no-origin | no-step | no-node | step-clipped | node-clipped | no-gap
  */
@@ -153,7 +153,7 @@ function wfFxGeometry(stepRect, nodeRect, origin, stepClip, nodeClip) {
 /* DOM                                                                       */
 /* ------------------------------------------------------------------------- */
 
-/** 一次查询拿全：容器、SVG、两张卡片、两个滚动视口。缺任何一个都不猜。 */
+/** One query returns everything: container, SVG, both cards, both scroll viewports. Missing any of them means no guessing. */
 function wfFxQuery(doc) {
   if (!doc || typeof doc.querySelector !== "function") return null;
   var body = doc.querySelector('[data-dsh-workflow-map="body"]');
@@ -161,9 +161,9 @@ function wfFxQuery(doc) {
   return {
     body: body,
     svg: body.querySelector('[data-dsh-workflow-map="fx"]'),
-    // 左列：正在进行的那个分步卡片（li 带 data-status，卡片是它的直接子元素）
+    // Left column: the running step card (the li carries data-status; the card is its direct child)
     stepCard: body.querySelector('.wf-step-item[data-status="running"] > .wf-step-card'),
-    // 右列：正在调用的那个节点卡片（同一个 li 上的 data-status 是唯一的 running）
+    // Right column: the node card being called (the same li's data-status is the only running one)
     nodeCard: body.querySelector('.wf-flow-item[data-status="running"] > .wf-node'),
     stepClip: body.querySelector(".wf-steps-scroll"),
     nodeClip: body.querySelector(".wf-flow-scroll"),
@@ -185,7 +185,7 @@ function wfFxRectOf(element) {
 /**
  * Two node cards + the list's own rect → ONE cubic that links them.
  *
- * The shape is the step's 「竖向中点 + 水平外扩」: the path leaves the upper card's bottom edge and
+ * The shape is the step's "vertical midpoint + horizontal bulge": the path leaves the upper card's bottom edge and
  * arrives at the lower card's top edge, with both control points pulled to the VERTICAL midpoint
  * and pushed sideways by `bow`. Sideways is what makes it an S without a corner: a straight
  * vertical hop with a single control point in the middle would still kink at both ends.
@@ -211,7 +211,7 @@ function wfChainCurve(origin, upper, lower) {
   // put a stray mark on a card's edge, so the link is simply absent — an honest hole, not a lie.
   if (!(dy > 0)) return { visible: false, reason: "too-close", d: null };
 
-  // The sideways bow (「水平外扩」): a share of the horizontal offset plus a fixed 10 px, clamped so
+  // The sideways bow ("horizontal bulge"): a share of the horizontal offset plus a fixed 10 px, clamped so
   // an aligned pair still bulges into a readable S instead of collapsing into a straight line.
   var bow = wfClamp(Math.abs(toX - fromX) * 0.6 + 10, 8, 40);
   // Both control points sit on the VERTICAL MIDPOINT of the gap, so the path leaves and arrives
@@ -366,9 +366,9 @@ function wfFxSetCaps(caps, from, to) {
 }
 
 /**
- * 量一次并把结果写进 DOM。返回几何结果（tool 与自测都读它）。
- * 写进 DOM 的三样东西：path 的 `d`、两个端点圆的 cx/cy、以及 `data-visible` /
- * `data-endpoints`（JSON，供无头浏览器自检直接取证，不需要猜）。
+ * Measure once and write the result into the DOM. Returns the geometry (read by the tool and the self-test).
+ * Three things written into the DOM: the path's `d`, the two endpoint circles' cx/cy, and `data-visible` /
+ * `data-endpoints` (JSON, so a headless self-check takes evidence directly instead of guessing).
  */
 function wfFxApply(doc) {
   var found = wfFxQuery(doc);
@@ -409,11 +409,11 @@ function wfFxApply(doc) {
 }
 
 /**
- * 把测量挂到页面生命周期上：窗口 resize、任意滚动（capture，两列的内部滚动都能收到）、
- * 以及容器尺寸变化（ResizeObserver）。全部走 rAF 节流，一帧最多算一次。
+ * Bind measurement to the page lifecycle: window resize, any scroll (capture, so both columns' inner scrolling is seen),
+ * and container size changes (ResizeObserver). Everything goes through a rAF throttle, at most one computation per frame.
  *
- * 返回 { refresh, schedule, destroy, measures }：`refresh` 同步量一次，`measures` 回读
- * 已经量过多少次（无头自检用它证明「滚动/缩放之后真的重算了」，而不是只有首帧）。
+ * Returns { refresh, schedule, destroy, measures }: `refresh` measures synchronously, `measures` reports
+ * how many measurements happened (the headless check uses it to prove recomputation after scroll/resize, not just the first frame).
  */
 function wfFxBind(doc, win) {
   if (!doc || !win) return null;
@@ -500,7 +500,7 @@ function wfFxBind(doc, win) {
     schedule();
   }
 
-  // capture=true：两列各自是 overflow:auto 的内部滚动容器，scroll 不冒泡到 window。
+  // capture=true: each column is its own overflow:auto scroller, so scroll does not bubble to window.
   doc.addEventListener("scroll", onScroll, true);
   win.addEventListener("resize", onScroll);
 
@@ -545,7 +545,7 @@ function wfFxBind(doc, win) {
   };
 }
 
-/** 视觉签名：只有「该重算的东西」变了才重绑（轮询导致的同形模型不会每 800 ms 抖一次）。 */
+/** Visual signature: rebind only when something that matters changed (an unchanged polled model does not jitter every 800 ms). */
 function wfFxSignature(model) {
   if (!model) return "none";
   var flow = model.flow && typeof model.flow === "object" ? model.flow : {};
@@ -571,7 +571,7 @@ function wfFxSignature(model) {
   ].join("|");
 }
 
-/** 组件里的挂载点：签名变化 → 重建绑定；卸载 → 全部摘掉（不留监听器）。 */
+/** The component mount point: signature change -> rebind; unmount -> remove everything (no listeners left behind). */
 function wfUseFlowEffects(model) {
   var signature = wfFxSignature(model);
   React.useEffect(
@@ -592,11 +592,11 @@ function wfUseFlowEffects(model) {
 /* ------------------------------------------------------------------------- */
 
 /**
- * 曲线层本体。放在 .wf-body 里（两列之后、绝对定位覆盖整个 body），
- * 未测量前 data-visible="false"（CSS 里 display:none），量到才显形。
+ * The curve layer itself. Lives in .wf-body (after the two columns, absolutely positioned over the whole body);
+ * before measuring it carries data-visible="false" (display:none in CSS) and appears only once measured.
  *
- * 渐变用 CSS 类给 stop 上色（stop-color 在 Chrome 里是 CSS 属性）：
- * React 与自测里的假 `h` 都能原样通过，不需要额外转换属性名。
+ * Stop colours come from CSS classes (stop-color is a CSS property in Chrome):
+ * both React and the self-test's fake `h` pass it through unchanged, with no extra attribute mapping.
  */
 function wfRenderFlowEffects(h) {
   var rainbow = [];

@@ -1,5 +1,7 @@
 # dsh-workflow-map
 
+[**English**](README.en.md) · 简体中文
+
 DeepSeek Harness 插件：把当前会话渲染为一张可交互的分步工作流地图。
 
 三个入口共用同一份数据与同一套组件 —— 侧边栏面板项（`sidebar.panellist`）、主内容区（`main`）、

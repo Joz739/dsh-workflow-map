@@ -1,15 +1,15 @@
-// 真实会话日志回放 —— 「打开会话会不会炸」的端到端检查（2026-10-26 事故的回归工具）。
+// Real session-log replay - an end-to-end check for "does opening a session blow up" (regression tool for the 2026-10-26 incident).
 //
-// 事故：`foldInboxSpliced` 调了未定义的 `inboxApplySplice` / `markInjectCanceled`，宿主把投影里的
-// ReferenceError 包装成 `SESSION_QUERY_CORRUPT_SESSION`，于是**所有**会话都显示「历史加载失败」。
-// 单元自测当时没覆盖那条路径；这个工具直接拿本机真实日志（`~/.dsh/sessions/**/session.v4.jsonl.zstd`）
-// 逐帧解压后整份折叠一遍，任何会话抛错都会被点名。
+// Incident: `foldInboxSpliced` called the undefined `inboxApplySplice` / `markInjectCanceled`; the host wrapped the
+// projection's ReferenceError as `SESSION_QUERY_CORRUPT_SESSION`, so EVERY session showed "history failed to load".
+// The unit tests did not cover that path; this tool uses real local logs (`~/.dsh/sessions/**/session.v4.jsonl.zstd`),
+// decompresses every frame and folds the whole log, naming any session that throws.
 //
-// 用法：
-//   node tools/check-real-sessions.mjs                  # 读 ~/.dsh/sessions
-//   node tools/check-real-sessions.mjs <sessions-root>  # 指定别的根目录
+// Usage:
+// node tools/check-real-sessions.mjs                  # reads ~/.dsh/sessions
+// node tools/check-real-sessions.mjs <sessions-root>  # use a different root
 //
-// 退出码 0 = 每个会话都折得动；1 = 有会话抛错（列出会话 id 与错误）。
+// Exit 0 = every session folds; 1 = some session threw (session id and error are listed).
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -88,7 +88,7 @@ for (const { session, dir } of sessionDirs(ROOT)) {
   try {
     let state = createInitialState();
     for (const event of events) state = foldEvent(state, event);
-    // The wire view is where a broken projection really surfaces: build it, do not just fold.
+ // The wire view is where a broken projection really surfaces: build it, do not just fold.
     const view = buildView(state, state.asOf);
     totals.events += events.length;
     totals.nodes += view.nodes.length;

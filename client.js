@@ -39,11 +39,11 @@ window.__ModuleLoader__.load({
      * concrete fallback: an unknown token must degrade to a readable panel, never to
      * transparent text on a transparent card. The token names below are the ones
      * Cordis Inspect (client/Theme) reports as live in this build:
-     *   --dsw-alias-bg-base / bg-layer-1 / bg-layer-2 / bg-overlay
-     *   --dsw-alias-border-l1 / l2
-     *   --dsw-alias-brand-primary
-     *   --dsw-alias-label-primary / secondary
-     *   --dsw-alias-state-success-primary / warn / error / idle
+     * --dsw-alias-bg-base / bg-layer-1 / bg-layer-2 / bg-overlay
+     * --dsw-alias-border-l1 / l2
+     * --dsw-alias-brand-primary
+     * --dsw-alias-label-primary / secondary
+     * --dsw-alias-state-success-primary / warn / error / idle
      * (--dsw-alias-label-tertiary is NOT in that list; it is still written with a
      * fallback because the contract names it, and a future build may add it.)
      */
@@ -58,11 +58,11 @@ window.__ModuleLoader__.load({
     var WF_POLL_HIDDEN = 3000;
 
     /**
-     * Geometry (step-13). The main content area owns the size now: WIDTH/HEIGHT are no
+     * Geometry . The main content area owns the size now: WIDTH/HEIGHT are no
      * longer dragged or persisted, only the bounds and the historical default survive so
-     * a stored record from step-06..12 still sanitises into a valid value.
-     *   MIN_WIDTH       a sane lower bound for the centred column's content
-     *   MAX_HEIGHT      the tallest the settings card may ever become (bounded independently)
+     * a stored record from ..12 still sanitises into a valid value.
+     * MIN_WIDTH a sane lower bound for the centred column's content
+     * MAX_HEIGHT the tallest the settings card may ever become (bounded independently)
      */
     var WF_DEFAULT_WIDTH = 720;
     var WF_DEFAULT_HEIGHT = 0;
@@ -71,25 +71,25 @@ window.__ModuleLoader__.load({
     var WF_MIN_HEIGHT = 220;
     var WF_MAX_HEIGHT = 860;
     /** The panel now lives in the layout's centre column, so it carries no z-index at all
-     *  (stacking inside the column is ordinary document order). Kept as a named constant
-     *  so a future overlay seat can reintroduce one deliberately. */
+     * (stacking inside the column is ordinary document order). Kept as a named constant
+     * so a future overlay seat can reintroduce one deliberately. */
     var WF_Z_INDEX = 0;
     var WF_DEFAULT_COLLAPSED = false;
-    /** step-12 presentation prefs. Values are an allow-list: a hand-edited localStorage
-     *  record can only pick one of these, never invent a new visual mode. */
+    /** presentation prefs. Values are an allow-list: a hand-edited localStorage
+     * record can only pick one of these, never invent a new visual mode. */
     var WF_PALETTES = ["rainbow", "brand", "soft"];
     var WF_MOTIONS = ["full", "always", "static"];
     var WF_DETAIL_MODES = ["summary", "title"];
-    /** 0 means 「全部」 (no window), matching the 4th choice in the settings card. */
+    /** 0 means "all" (no window), matching the 4th choice in the settings card. */
     var WF_NODE_LIMITS = [30, 60, 120, 0];
 
     /**
-     * Step-card geometry (step-07), also asserted by tools/selftest-panel.mjs and
+     * Step-card geometry , also asserted by tools/selftest-panel.mjs and
      * measured in the browser by tools/measure-panel.ps1:
-     *   STEP_GAP   air between a card's bottom border and its progress rail (8 px)
-     *   STEP_RAIL  the rail track's thickness (6 px)
-     *   STEP_LINK  the connector line between two cards (14 px)
-     *   STEP_MANY  from this many cards up the column scrolls and its header sticks
+     * STEP_GAP air between a card's bottom border and its progress rail (8 px)
+     * STEP_RAIL the rail track's thickness (6 px)
+     * STEP_LINK the connector line between two cards (14 px)
+     * STEP_MANY from this many cards up the column scrolls and its header sticks
      */
     var WF_STEP_GAP = 8;
     var WF_STEP_RAIL = 6;
@@ -97,38 +97,38 @@ window.__ModuleLoader__.load({
     var WF_STEP_MANY = 8;
 
     /**
-     * Flow-column limits (step-08), asserted by tools/selftest-panel.mjs:
-     *   FLOW_CAP   nodes drawn by default — the newest ones, the list opens at the bottom
-     *   GROUP_MIN  consecutive same-tool calls that fold into one row (mirrors the host's
-     *              GROUP_THRESHOLD in src/fold.mjs; the browser only applies it when the
-     *              host sent no groups, e.g. a state captured before withGroups existed)
+     * Flow-column limits , asserted by tools/selftest-panel.mjs:
+     * FLOW_CAP nodes drawn by default — the newest ones, the list opens at the bottom
+     * GROUP_MIN consecutive same-tool calls that fold into one row (mirrors the host's
+     * GROUP_THRESHOLD in src/fold.mjs; the browser only applies it when the
+     * host sent no groups, e.g. a state captured before withGroups existed)
      */
     var WF_FLOW_CAP = 60;
     var WF_GROUP_MIN = 3;
 
     /**
-     * Branch lanes (step-09), asserted by tools/selftest-panel.mjs:
-     *   BRANCH_SHOWN  lanes drawn per step (mirrors the host's BRANCHES_SHOWN); the rest are
-     *                 reported as “+n 条” — never silently dropped
-     *   BRANCH_LINK   the coloured connector from the main track into a lane (6 px)
+     * Branch lanes , asserted by tools/selftest-panel.mjs:
+     * BRANCH_SHOWN lanes drawn per step (mirrors the host's BRANCHES_SHOWN); the rest are
+     * reported as "+n more" - never silently dropped
+     * BRANCH_LINK the coloured connector from the main track into a lane (6 px)
      */
     var WF_BRANCH_SHOWN = 4;
     var WF_BRANCH_LINK = 6;
 
     /**
-     * Chain geometry (step-05 · 流程图改链式) — asserted by tools/selftest-effects.mjs，measured in a
+     * Chain geometry (the chain layout) - asserted by tools/selftest-effects.mjs, measured in a
      * browser by tools/measure-effects.ps1.
      *
      * WHY THE NUMBERS LIVE HERE: the step's whole point is that the flow stops looking cramped, and
      * "cramped" is four distances, not a feeling. Keeping them in the theme is what makes the browser
      * measurement (a real getBoundingClientRect difference) and the stylesheet agree on ONE source.
-     *   CHAIN_GAP    node-to-node air on the spine (28 px). The chain reads as links, not a stack.
-     *   CHAIN_LINK   the bezier channel between two nodes (14 px of drawing room inside the gap).
-     *                CHAIN_GAP must stay >= CHAIN_LINK so a connector never overflows its gap.
-     *   CHAIN_PAD    the breathing room between the spine and a card's left edge (12 px).
-     *   CHAIN_BRANCH how far a branch dashes AWAY from the node before its round icon (34 px).
-     *   CHAIN_ICON   the round category icon's diameter (22 px — the step allows 20–24).
-     *   CHAIN_RING   the flowing halo around a running icon, as an inset overshoot (2 px).
+     * CHAIN_GAP node-to-node air on the spine (28 px). The chain reads as links, not a stack.
+     * CHAIN_LINK the bezier channel between two nodes (14 px of drawing room inside the gap).
+     * CHAIN_GAP must stay >= CHAIN_LINK so a connector never overflows its gap.
+     * CHAIN_PAD the breathing room between the spine and a card's left edge (12 px).
+     * CHAIN_BRANCH how far a branch dashes AWAY from the node before its round icon (34 px).
+     * CHAIN_ICON the round category icon's diameter (22 px — the step allows 20–24).
+     * CHAIN_RING the flowing halo around a running icon, as an inset overshoot (2 px).
      */
     var WF_CHAIN_GAP = 28;
     var WF_CHAIN_LINK = 14;
@@ -137,15 +137,15 @@ window.__ModuleLoader__.load({
     var WF_CHAIN_ICON = 22;
     var WF_CHAIN_RING = 2;
     /**
-     * The living layer (step-10) — asserted by tools/selftest-effects.mjs and measured in a
+     * The living layer — asserted by tools/selftest-effects.mjs and measured in a
      * browser by tools/measure-effects.ps1:
-     *   FX_RAINBOW  the six-stop rainbow the flowing curve and both wrapped frames share
-     *   FX_BRAND    the brand-coloured alternative (`data-curve="brand"`, step-12 may switch it)
-     *   CURVE_MODE  which one the layer starts in
-     *   FX_STROKE   the crisp stroke width of the curve
-     *   FX_GLOW     the blurred halo width (one extra path, 2.5 px blur — a glow, not a shadow)
-     *   FX_DASH     dash on/off; the keyframes slide `stroke-dashoffset`, so the colour flows
-     *   FX_RING     the conic-ish gradient of the wrapped frame (300 % wide, slid by keyframes)
+     * FX_RAINBOW the six-stop rainbow the flowing curve and both wrapped frames share
+     * FX_BRAND the brand-coloured alternative (`data-curve="brand"`, may switch it)
+     * CURVE_MODE which one the layer starts in
+     * FX_STROKE the crisp stroke width of the curve
+     * FX_GLOW the blurred halo width (one extra path, 2.5 px blur — a glow, not a shadow)
+     * FX_DASH dash on/off; the keyframes slide `stroke-dashoffset`, so the colour flows
+     * FX_RING the conic-ish gradient of the wrapped frame (300 % wide, slid by keyframes)
      * The blinking rhythm is 1.2 s and lives in two places on purpose: WF_PULSE_PERIOD (pulse.js,
      * read by the self-test) and the `1.2s` literals below (this file builds the CSS before
      * pulse.js has run, so it cannot read that constant). tools/selftest-effects.mjs asserts the
@@ -162,18 +162,18 @@ window.__ModuleLoader__.load({
     var WF_LIVE_PERIOD = "1.2s";
 
     /**
-     * 会话4 · single-page chain geometry. ONE vertical run of step units; each unit hangs a few
+     * single-page chain geometry. ONE vertical run of step units; each unit hangs a few
      * round satellites off its LEFT (read / query) and RIGHT (write / edit / tool) edges, joined by
-     * STRAIGHT lines (the user asked for 直线, not the old bezier channel).
+     * STRAIGHT lines (straight connectors were requested, not the old bezier channel).
      *
-     *   PAGE_PAD    air between the scroller edge and a satellite circle
-     *   SATELLITE   round icon diameter (30 px — a top-level click target, bigger than the 22 px
-     *               in-node category chip, because this one carries a count AND a label)
-     *   SAT_LINK    the horizontal run from a unit's edge to its circle
-     *   UNIT_GAP    air between two consecutive main-flow units (the 「间距尽量大」 ask)
-     *   UNIT_LINK   the straight connector drawn inside that gap
-     *   SIDE_SLOTS  circles a side may carry: 2 left + 2 right per unit (user decision)
-     *   SIDE_FILES  calls one circle stands for before it stops listing them
+     * PAGE_PAD air between the scroller edge and a satellite circle
+     * SATELLITE round icon diameter (30 px — a top-level click target, bigger than the 22 px
+     * in-node category chip, because this one carries a count AND a label)
+     * SAT_LINK the horizontal run from a unit's edge to its circle
+     * UNIT_GAP air between two consecutive main-flow units (the "as much spacing as possible" requirement)
+     * UNIT_LINK the straight connector drawn inside that gap
+     * SIDE_SLOTS circles a side may carry: 2 left + 2 right per unit (user decision)
+     * SIDE_FILES calls one circle stands for before it stops listing them
      */
     var WF_PAGE_PAD = 16;
     var WF_SATELLITE = 30;
@@ -184,7 +184,7 @@ window.__ModuleLoader__.load({
     var WF_SIDE_FILES = 60;
 
     /**
-     * 会话4 · what the right-hand page can show. `step` = one step's record, `type` = every call of
+     * what the right-hand page can show. `step` = one step's record, `type` = every call of
      * one tool file type, `inject` = the hot-inject composer. An allow-list, because the value is
      * persisted and a hand-edited record must not be able to invent a fourth page.
      */
@@ -192,22 +192,22 @@ window.__ModuleLoader__.load({
 
     /** One CSS rule set, injected as <style id="dsh-workflow-map-css"> and removed on unmount. */
     var WF_CSS = [
-      /* root (step-13): the panel IS the main content area. No fixed box, no corner anchor,
+     /* root : the panel IS the main content area. No fixed box, no corner anchor,
          no click-through layer — the layout gives it the centre column and it fills it. */
       ".wf-root{position:relative;width:100%;height:100%;min-height:0;display:flex;flex-direction:column;" +
-        // step-05 · the three branch hues live on the ROOT, so the dashed branches and their round
-        // icons share one palette with the rest of the panel (and one place to change it).
+     // the three branch hues live on the ROOT, so the dashed branches and their round
+     // icons share one palette with the rest of the panel (and one place to change it).
         "--wf-chain-read:#5b8cff;--wf-chain-edit:#e0a13a;--wf-chain-tool:#8f7bea;" +
         "font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:12px;line-height:1.5}",
 
-      /* card: fills the main area; the header and the settings card keep their own height,
+     /* card: fills the main area; the header and the settings card keep their own height,
          the two-column body takes the rest. No drag grips: the column has no free edges.
          Flush edges on purpose (step-13): a 12 px rounded box floating inside the centre column
          would read as the old overlay again. */
       ".wf-card{position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;min-width:0;" +
         "border-radius:0;overflow:hidden;" +
         "background:var(--dsw-alias-bg-base,#161920);color:var(--dsw-alias-label-primary,#e9ecf3)}",
-      /* header */
+     /* header */
       ".wf-head{display:flex;align-items:flex-start;gap:8px;padding:9px 10px 8px 14px;" +
         "border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.12));" +
         "background:var(--dsw-alias-bg-layer-1,#232733)}",
@@ -224,11 +224,11 @@ window.__ModuleLoader__.load({
       ".wf-btn:hover{background:var(--dsw-alias-bg-layer-2,#2c3140);color:var(--dsw-alias-label-primary,#e9ecf3)}",
       ".wf-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:1px}",
       ".wf-btn[data-active='true']{color:var(--dsw-alias-brand-primary,#5b8cff);border-color:var(--dsw-alias-brand-primary,#5b8cff)}",
-      // 会话4 · 热注入 is the one header action that injects text into the RUNNING turn, so it is the
-      // one that must never be hunted for: a named, filled chip that keeps its name in Chinese.
-      // step-04-inject-prominence · 用户反馈「太小、还是得先点开」：放大到 96×30（同排另外两个仍是
-      // 23×23，它自己撑高这一行）、底色改品牌色实底、右上角挂「N 条待会话拾取」徽标。徽标只由
-      // model.injects 里 status==='pending' 的行数驱动，没有 pending 时按钮上不留任何徽标宿主。
+     // Hot injection is the one header action that injects text into the RUNNING turn, so it is the
+     // one that must never be hunted for: a named, filled chip that keeps its name in Chinese.
+     // User feedback: "too small, still have to open it first" - so it grows to 96x30 (the other two in the row stay
+     // 23x23 and it sets this row's height), gets a solid brand background, and carries an "N awaiting pickup" badge. The badge is driven only by
+     // the count of status==='pending' rows in model.injects; with no pending rows the button carries no badge at all.
       ".wf-btn-hot{position:relative;width:auto;min-width:96px;height:30px;padding:0 14px;gap:5px;" +
         "font-size:12.5px;font-weight:600;letter-spacing:.01em;" +
         "color:var(--dsw-alias-bg-base,#161920);background:var(--dsw-alias-brand-primary,#5b8cff);" +
@@ -236,14 +236,14 @@ window.__ModuleLoader__.load({
       ".wf-btn-hot:hover{filter:brightness(1.08);color:var(--dsw-alias-bg-base,#161920)}",
       ".wf-btn-hot[data-active='true']{box-shadow:0 0 0 2px var(--dsw-alias-bg-base,#161920)," +
         "0 0 0 3px var(--dsw-alias-brand-primary,#5b8cff)}",
-      // The badge is a real <span>, not a pseudo-element: the count is text a screen reader can read,
-      // and the button keeps `data-pending-count` so the layout self-test can measure it.
+     // The badge is a real <span>, not a pseudo-element: the count is text a screen reader can read,
+     // and the button keeps `data-pending-count` so the layout self-test can measure it.
       ".wf-inject-badge{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;" +
         "border-radius:9px;background:var(--dsw-alias-state-error-primary,#e85a5a);color:#fff;" +
         "font-size:9.5px;font-weight:700;line-height:16px;text-align:center;font-variant-numeric:tabular-nums;" +
         "box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-1,#232733);pointer-events:none}",
 
-      /* settings strip (skeleton: endpoint / counts / reset) */
+     /* settings strip (skeleton: endpoint / counts / reset) */
       ".wf-settings{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:7px 12px;font-size:11px;" +
         "color:var(--dsw-alias-label-secondary,#9aa3b2);border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.1))}",
       ".wf-kv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}",
@@ -251,7 +251,7 @@ window.__ModuleLoader__.load({
         "background:transparent;color:inherit;font:inherit;cursor:pointer}",
       ".wf-link:hover{border-color:var(--dsw-alias-brand-primary,#5b8cff);color:var(--dsw-alias-label-primary,#e9ecf3)}",
 
-      /* body: the two columns the whole step is about */
+     /* body: the two columns the whole step is about */
       ".wf-body{display:grid;grid-template-columns:minmax(240px,44%) 1fr;gap:10px;padding:10px;overflow:hidden;min-height:0;flex:1 1 auto}",
       ".wf-body[data-kind='planning']{grid-template-columns:1fr}",
       ".wf-col{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0;overflow:hidden}",
@@ -263,23 +263,23 @@ window.__ModuleLoader__.load({
       ".wf-scroll{display:flex;flex-direction:column;gap:5px;min-height:0;overflow:auto;padding-right:2px;scrollbar-width:thin}",
       ".wf-col>.wf-scroll{flex:1 1 auto}",
 
-      /* step column (left): cards, the rail under each card, the connector between them */
+     /* step column (left): cards, the rail under each card, the connector between them */
       ".wf-steps-scroll{flex:1 1 auto}",
       ".wf-col-h-sticky{position:sticky;top:0;z-index:3;padding:2px 0 6px;" +
         "background:var(--dsw-alias-bg-overlay,#1c1f27)}",
-      // step-05 · the step column gets the SAME chain air the flow column got: the cards are now
-      // WF_CHAIN_GAP apart (they were 8 px + a 14 px connector), so the two columns read as one
-      // document. `gap` replaces the per-connector margin, which is why the link below no longer
-      // carries a `margin-top` of its own.
+     // the step column gets the SAME chain air the flow column got: the cards are now
+     // WF_CHAIN_GAP apart (they were 8 px + a 14 px connector), so the two columns read as one
+     // document. `gap` replaces the per-connector margin, which is why the link below no longer
+     // carries a `margin-top` of its own.
       ".wf-steps{display:flex;flex-direction:column;gap:" + WF_CHAIN_GAP + "px;list-style:none;margin:0;" +
         "padding:0;min-height:0}",
-      // step-02: the disclosure triangle is a real <button> in the 20 px band the card
-      // reserves with padding-left. One-column grid ⇒ the triangle and the card share cell 1/1,
-      // so the triangle spans the card's whole height; the card stays a DIRECT child of the
-      // <li> (the running-frame ring and FlowEffects both query `.wf-step-item > .wf-step-card`).
+     // the disclosure triangle is a real <button> in the 20 px band the card
+     // reserves with padding-left. One-column grid ⇒ the triangle and the card share cell 1/1,
+     // so the triangle spans the card's whole height; the card stays a DIRECT child of the
+     // <li> (the running-frame ring and FlowEffects both query `.wf-step-item > .wf-step-card`).
       ".wf-step-item{display:grid;grid-template-columns:1fr;list-style:none}",
-      // `grid-area:1/1` is what makes the triangle and the card share the cell: without it the
-      // auto-placement cursor would drop the card into row 2, below the triangle.
+     // `grid-area:1/1` is what makes the triangle and the card share the cell: without it the
+     // auto-placement cursor would drop the card into row 2, below the triangle.
       ".wf-step-card{grid-area:1/1;display:flex;gap:8px;align-items:flex-start;width:100%;padding:7px 8px;border-radius:8px;text-align:left;" +
         "font:inherit;color:inherit;cursor:pointer;border:1px solid transparent;" +
         "background:var(--dsw-alias-bg-layer-2,#282d3a);border-left:3px solid transparent}",
@@ -309,12 +309,12 @@ window.__ModuleLoader__.load({
         "color:var(--dsw-alias-label-tertiary,#7d8798);font-variant-numeric:tabular-nums}",
       ".wf-step-flag{padding:0 5px;border-radius:999px;font-size:10px;line-height:15px;" +
         "color:var(--dsw-alias-state-warn-primary,#e0a13a);border:1px solid currentColor}",
-      // 会话5 · the card of a step that is waiting on a human gets a warn-toned left edge, so the
-      // flag is visible even when the badge row has scrolled out of the card's visible text.
+     // the card of a step that is waiting on a human gets a warn-toned left edge, so the
+     // flag is visible even when the badge row has scrolled out of the card's visible text.
       ".wf-step-item[data-confirm='true']>.wf-step-card{box-shadow:inset 2px 0 0 var(--dsw-alias-state-warn-primary,#e0a13a)}",
       ".wf-unit[data-confirm='true'] .wf-unit-ring{color:var(--dsw-alias-state-warn-primary,#e0a13a)}",
       ".wf-step-card[data-selected='true'] .wf-step-title{font-weight:600}",
-      /* status badges */
+     /* status badges */
       ".wf-badge{padding:0 5px;border-radius:999px;font-size:10px;line-height:15px;border:1px solid currentColor}",
       ".wf-step-item[data-status='done'] .wf-badge{color:var(--dsw-alias-state-success-primary,#45c07a)}",
       ".wf-step-item[data-status='running'] .wf-badge{color:var(--dsw-alias-brand-primary,#5b8cff)}",
@@ -325,27 +325,27 @@ window.__ModuleLoader__.load({
       ".wf-step-item[data-status='skipped'] .wf-step-title{color:var(--dsw-alias-label-tertiary,#7d8798);" +
         "text-decoration:line-through}",
 
-      /* the rail: WF_STEP_GAP of air below the card frame, WF_STEP_RAIL tall.
+     /* the rail: WF_STEP_GAP of air below the card frame, WF_STEP_RAIL tall.
          step-03: the dock is a two-line block — line 1 is the 6 px track + the percent, line 2
          the secondary age fact. `flex-direction:column` keeps them stacked without the
          track losing a pixel of width, and the whole block stays right-aligned. */
       ".wf-prog-dock{display:flex;flex-direction:column;gap:2px;margin-top:" + WF_STEP_GAP + "px}",
       ".wf-prog-row{display:flex;align-items:center;gap:6px;height:" + WF_STEP_RAIL + "px}",
-      /* step-03: the second line. Tertiary colour, one font step below the percent, tabular
+     /* the second line. Tertiary colour, one font step below the percent, tabular
          figures so a ticking age does not jitter its own width, nowrap so it never wraps
          into a third line and eats the card below. */
       ".wf-prog-sub{display:flex;align-items:center;justify-content:flex-end;gap:4px;min-width:0;" +
         "font-size:9px;line-height:1.2;color:var(--dsw-alias-label-tertiary,#7d8798);" +
         "font-variant-numeric:tabular-nums;white-space:nowrap}",
       ".wf-prog-ago{flex:0 0 auto}",
-      // 会话6 (2026-10-26, measured by tools/measure-panel.ps1): in the single-page layout the dock
-      // is a child of the `gap:8px` centre column, so its own margin added a SECOND 8 px and the
-      // documented "8 px of air under the card" measured 16 px. Scoped away for that placement only.
+     // (2026-10-26, measured by tools/measure-panel.ps1): in the single-page layout the dock
+     // is a child of the `gap:8px` centre column, so its own margin added a SECOND 8 px and the
+     // documented "8 px of air under the card" measured 16 px. Scoped away for that placement only.
       ".wf-unit-center>.wf-prog-dock{margin-top:0}",
-      /* Narrow container (`detail = title`): line 2 is dropped, not squeezed. */
+     /* Narrow container (`detail = title`): line 2 is dropped, not squeezed. */
       ".wf-step-item[data-detail='title'] .wf-prog-dock{height:" + WF_STEP_RAIL + "px;gap:0}",
       ".wf-step-item[data-detail='title'] .wf-prog-sub{display:none}",
-      /* 会话6 · THE ONE ANIMATED RAIL and THE ONE ANIMATED FILL.
+     /* THE ONE ANIMATED RAIL and THE ONE ANIMATED FILL.
          The user's rule: exactly ONE step's rail may animate, and it must be a real PROGRESS bar
          (a measured fill + a number), never a plain scrolling streamer. Two consequences
          are encoded here:
@@ -371,8 +371,8 @@ window.__ModuleLoader__.load({
       ".wf-prog-label[data-kind='estimate']{font-style:italic}",
       ".wf-prog-label[data-kind='self']{color:var(--dsw-alias-label-secondary,#9aa3b2)}",
 
-      /* connector between two cards: WF_STEP_LINK tall, solid once the step above is done */
-      /* connector between two cards: WF_STEP_LINK tall, solid once the step above is done.
+     /* connector between two cards: WF_STEP_LINK tall, solid once the step above is done */
+     /* connector between two cards: WF_STEP_LINK tall, solid once the step above is done.
          step-02: the line moves 3 px right with the card's new 20 px triangle band, so it still
          hangs off the ring's centre (the band is 20 px, the ring starts 20 + 8 px padding).
          step-05: the column now carries the chain's `gap`, so the connector must NOT add a margin —
@@ -389,14 +389,14 @@ window.__ModuleLoader__.load({
       "@keyframes wf-ring{0%,100%{opacity:1}50%{opacity:.45}}",
       "@media (prefers-reduced-motion: reduce){.wf-prog-fill,.wf-step-ring{animation:none}}",
 
-      /* flow column (right): one spine, node cards hang off it, groups fold runs */
+     /* flow column (right): one spine, node cards hang off it, groups fold runs */
       ".wf-flow{flex:1 1 auto;min-height:0}",
       ".wf-flow-h{display:flex;align-items:baseline;gap:8px;flex:0 0 auto;padding:0 0 6px;" +
         "border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.12))}",
       ".wf-flow-h .wf-col-sub{flex:1 1 auto;min-width:0}",
       ".wf-flow-h .wf-count{flex:0 0 auto;margin-left:auto;white-space:nowrap}",
       ".wf-flow-scroll{flex:1 1 auto;padding-top:4px}",
-      /* step-05 · 链式布局: the list stops being a 5 px stack and becomes a CHAIN — WF_CHAIN_GAP of
+     /* Chain layout: the list stops being a 5 px stack and becomes a CHAIN - WF_CHAIN_GAP of
          air between neighbours (a real distance, so a link can be drawn in it), the spine inset by
          WF_CHAIN_PAD, and every card one link further right. `gap` alone would be enough for the
          spacing; the padding and the gap come from the SAME constants the browser measurement reads.
@@ -418,7 +418,7 @@ window.__ModuleLoader__.load({
         "animation:wf-pulse 1.6s ease-in-out infinite}",
       ".wf-flow-item[data-status='error']::before{background:var(--dsw-alias-state-error-primary,#e85a5a)}",
 
-      /* step-05 · the branch strip under a RUNNING node: 2–4 flowing dashes, each ending in a round
+     /* the branch strip under a RUNNING node: 2–4 flowing dashes, each ending in a round
          category icon (read = blue / edit = orange / tool = violet, the three hues below are the
          same ones step-09's wfBranchHue palette covers). Only the running node renders this block,
          so a done or a pending node produces no branch DOM at all. */
@@ -426,9 +426,9 @@ window.__ModuleLoader__.load({
         WF_CHAIN_LINK / 2 + "px 0 0 " + WF_CHAIN_PAD + "px}",
       ".wf-branch-row{position:relative;display:flex;align-items:center;gap:7px;min-width:0;padding-left:" +
         WF_CHAIN_BRANCH + "px;min-height:" + WF_CHAIN_ICON + "px}",
-      // the flowing dash itself: one absolutely positioned SVG per row, drawn by FlowEffects.js as a
-      // cubic bezier from the spine out to the icon. Conic-gradient would colour it flat, so the
-      // stroke carries a gradient id and the dash slides with `stroke-dashoffset` (step-10's ruse).
+     // the flowing dash itself: one absolutely positioned SVG per row, drawn by FlowEffects.js as a
+     // cubic bezier from the spine out to the icon. Conic-gradient would colour it flat, so the
+     // stroke carries a gradient id and the dash slides with `stroke-dashoffset` ('s ruse).
       ".wf-branch-stroke{position:absolute;left:0;top:0;width:" + WF_CHAIN_BRANCH + "px;height:100%;" +
         "pointer-events:none;overflow:visible}",
       ".wf-branch-core{fill:none;stroke-width:1.8;stroke-linecap:round;stroke-dasharray:4 4;" +
@@ -436,8 +436,8 @@ window.__ModuleLoader__.load({
       ".wf-branch-row[data-kind='read'] .wf-branch-core{stroke:var(--wf-chain-read,#5b8cff)}",
       ".wf-branch-row[data-kind='edit'] .wf-branch-core{stroke:var(--wf-chain-edit,#e0a13a)}",
       ".wf-branch-row[data-kind='tool'] .wf-branch-core{stroke:var(--wf-chain-tool,#8f7bea)}",
-      // the round icon: a real <button> (keyboard-operable, aria-expanded) that IS the circle, so the
-      // 22 px diameter below is the measured diameter and not an inner badge.
+     // the round icon: a real <button> (keyboard-operable, aria-expanded) that IS the circle, so the
+     // 22 px diameter below is the measured diameter and not an inner badge.
       ".wf-branch-icon{flex:0 0 auto;width:" + WF_CHAIN_ICON + "px;height:" + WF_CHAIN_ICON + "px;padding:0;" +
         "border-radius:50%;display:inline-flex;align-items:center;justify-content:center;" +
         "font:inherit;font-size:11px;line-height:1;cursor:pointer;position:relative;" +
@@ -448,8 +448,8 @@ window.__ModuleLoader__.load({
       ".wf-branch-row[data-kind='read'] .wf-branch-icon{color:var(--wf-chain-read,#5b8cff);border-color:currentColor}",
       ".wf-branch-row[data-kind='edit'] .wf-branch-icon{color:var(--wf-chain-edit,#e0a13a);border-color:currentColor}",
       ".wf-branch-row[data-kind='tool'] .wf-branch-icon{color:var(--wf-chain-tool,#8f7bea);border-color:currentColor}",
-      // 「正在进行的圆形被彩色流光包裹」— the same mask-composite ring step-10 wraps the two cards in,
-      // sized to the icon: 2 px of paint outside the circle, slid by background-position.
+     // "the running circle is wrapped in flowing colour" - the same mask-composite ring wraps the two cards in,
+     // sized to the icon: 2 px of paint outside the circle, slid by background-position.
       ".wf-branch-row[data-live='true'] .wf-branch-icon::after{content:'';position:absolute;inset:-" +
         WF_CHAIN_RING + "px;border-radius:50%;padding:" + WF_CHAIN_RING + "px;background:" + WF_FX_RING + ";" +
         "background-size:300% 100%;animation:wf-fx-wrap 2.6s linear infinite;pointer-events:none;" +
@@ -458,17 +458,17 @@ window.__ModuleLoader__.load({
       ".wf-branch-label{flex:1 1 auto;min-width:0;font-size:10.5px;line-height:1.35;" +
         "color:var(--dsw-alias-label-tertiary,#7d8798);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
       ".wf-branch-open .wf-branch-label{color:var(--dsw-alias-label-secondary,#9aa3b2)}",
-      // the opened category detail: the SAME .wf-node-detail block step-11 renders, pulled back to
-      // the icon's column so it reads as belonging to the circle that opened it.
+     // the opened category detail: the SAME .wf-node-detail block renders, pulled back to
+     // the icon's column so it reads as belonging to the circle that opened it.
       ".wf-branch-body{display:flex;flex-direction:column;gap:4px;margin-left:" + WF_CHAIN_PAD + "px}",
       "@media (prefers-reduced-motion: reduce){.wf-branch-core{animation:none}}",
 
-      /* the "earlier nodes folded" strip above the list */
+     /* the "earlier nodes folded" strip above the list */
       ".wf-flow-more{display:flex;align-items:center;gap:8px;padding:5px 8px;margin:6px 0 0;border-radius:8px;" +
         "font-size:10.5px;line-height:1.4;color:var(--dsw-alias-label-tertiary,#7d8798);" +
         "border:1px dashed var(--dsw-alias-border-l2,rgba(255,255,255,.2))}",
       ".wf-flow-more .wf-link{margin-left:auto;flex:0 0 auto}",
-      /* node card: icon · title · meta · status dot */
+     /* node card: icon · title · meta · status dot */
       ".wf-node{display:flex;gap:7px;align-items:flex-start;width:100%;padding:6px 8px;border-radius:8px;" +
         "text-align:left;font:inherit;color:inherit;cursor:pointer;" +
         "background:var(--dsw-alias-bg-layer-2,#282d3a);border:1px solid transparent;" +
@@ -511,7 +511,7 @@ window.__ModuleLoader__.load({
         "animation:wf-pulse 1.6s ease-in-out infinite}",
       ".wf-flow-status[data-status='error']{background:var(--dsw-alias-state-error-primary,#e85a5a)}",
 
-      /* a folded run: one dashed row, expanded into its calls on click */
+     /* a folded run: one dashed row, expanded into its calls on click */
       ".wf-group{display:flex;flex-direction:column;gap:5px;min-width:0}",
       ".wf-group-head{grid-area:1/1;display:flex;gap:7px;align-items:center;width:100%;padding:6px 8px 6px 20px;border-radius:8px;" +
         "text-align:left;font:inherit;color:inherit;cursor:pointer;" +
@@ -525,16 +525,16 @@ window.__ModuleLoader__.load({
       ".wf-group-label{font-size:11.5px;line-height:1.35;color:var(--dsw-alias-label-primary,#e9ecf3);" +
         "white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
       ".wf-group-meta{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#7d8798);font-variant-numeric:tabular-nums}",
-      // step-02: the caret is a real <button> now (wfTri in StepColumn.js), so the row is a
-      // one-column grid: triangle and row share cell 1/1 and the triangle spans the row's
-      // height in the 20 px band the row reserves with padding-left.
+     // the caret is a real <button> now (wfTri in StepColumn.js), so the row is a
+     // one-column grid: triangle and row share cell 1/1 and the triangle spans the row's
+     // height in the 20 px band the row reserves with padding-left.
       ".wf-group-row{display:grid;grid-template-columns:1fr}",
       ".wf-group-body{display:flex;flex-direction:column;gap:5px;list-style:none;margin:0 0 0 6px;padding:0 0 0 8px;" +
         "border-left:1px dashed var(--dsw-alias-border-l2,rgba(255,255,255,.2))}",
       ".wf-group-body .wf-flow-item::before{display:none}",
       "@media (prefers-reduced-motion: reduce){.wf-flow-status,.wf-flow-item::before{animation:none}}",
 
-      /* branch lanes (step-09): parallel subagent / workflow / background job */
+     /* branch lanes : parallel subagent / workflow / background job */
       ".wf-branches{position:relative;display:flex;flex-direction:column;gap:6px;margin-top:10px;padding:0 0 2px 14px}",
       ".wf-branches-h{display:flex;align-items:baseline;gap:8px;font-size:10.5px;font-weight:600;letter-spacing:.02em;" +
         "color:var(--dsw-alias-label-tertiary,#7d8798)}",
@@ -587,20 +587,20 @@ window.__ModuleLoader__.load({
       ".wf-empty{padding:10px;border-radius:8px;text-align:center;font-size:11px;" +
         "color:var(--dsw-alias-label-tertiary,#7d8798);border:1px dashed var(--dsw-alias-border-l2,rgba(255,255,255,.2))}",
 
-      /* ===== step-11: node detail + step detail ===== */
+     /* ===== node detail + step detail ===== */
 
-      /* The 「i」 sits inside the 26 px band the card reserves on its right, so it never
+     /* The 「i」 sits inside the 26 px band the card reserves on its right, so it never
          covers the title or the seq counter. Sibling of the card: valid HTML, Tab-reachable. */
-      // step-02: the card keeps a 20 px band on its LEFT for the disclosure triangle and the
-      // 26 px band on its right for the 「i」; the <li> is a grid (see .wf-step-item above), so
-      // both siblings land in cell 1/1 without absolute positioning games on the card side.
+     // the card keeps a 20 px band on its LEFT for the disclosure triangle and the
+     // 26 px band on its right for the 「i」; the <li> is a grid (see .wf-step-item above), so
+     // both siblings land in cell 1/1 without absolute positioning games on the card side.
       ".wf-step-item{position:relative}",
       ".wf-step-card{padding-left:20px;padding-right:26px}",
-      // The ONE disclosure triangle: a full-height band, not an 8 px glyph. `grid-area:1/1` puts
-      // it in the card's cell and `align-self:stretch` makes it exactly as tall as the card, so
-      // the hit target is 20 px × the card height (measured in the browser by measure-tri.ps1).
-      // 10 px glyph on a 20 px band: big enough to read as a control, small enough not to compete
-      // with the status ring next to it. The colour lifts on hover/focus and on the open state.
+     // The ONE disclosure triangle: a full-height band, not an 8 px glyph. `grid-area:1/1` puts
+     // it in the card's cell and `align-self:stretch` makes it exactly as tall as the card, so
+     // the hit target is 20 px × the card height (measured in the browser by measure-tri.ps1).
+     // 10 px glyph on a 20 px band: big enough to read as a control, small enough not to compete
+     // with the status ring next to it. The colour lifts on hover/focus and on the open state.
       ".wf-tri{grid-area:1/1;align-self:stretch;justify-self:start;width:20px;min-height:100%;" +
         "padding:8px 0 0;margin:0;border:0;border-radius:6px 0 0 6px;background:transparent;" +
         "color:var(--dsw-alias-label-secondary,#9aa3b2);" +
@@ -660,8 +660,8 @@ window.__ModuleLoader__.load({
         "border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.2));background:transparent;color:inherit;" +
         "font:inherit;font-size:10px;line-height:15px;cursor:pointer}",
       ".wf-detail-copy:hover{border-color:var(--dsw-alias-brand-primary,#5b8cff)}",
-      // The acknowledgement lives in its own span: a file row keeps its basename + directory,
-      // and the standalone copy button hides its label while the status shows.
+     // The acknowledgement lives in its own span: a file row keeps its basename + directory,
+     // and the standalone copy button hides its label while the status shows.
       ".wf-copy-status{flex:0 0 auto;margin-left:auto;color:inherit;white-space:nowrap}",
       ".wf-copy-status:empty{display:none}",
       ".wf-detail-copy[data-copy-state='copied'] .wf-copy-label,.wf-detail-copy[data-copy-state='failed'] .wf-copy-label{display:none}",
@@ -674,8 +674,8 @@ window.__ModuleLoader__.load({
         "font-size:10px;line-height:1.4;white-space:pre-wrap;word-break:break-all;" +
         "color:var(--dsw-alias-label-secondary,#9aa3b2);max-height:30px;overflow:hidden}",
       ".wf-detail-more{margin-top:1px}",
-      // step-02: NO ::before glyph here. The triangle belongs to the step card / folded run
-      // (a real <button> with aria-expanded); a <details> summary only styles its own marker.
+     // NO ::before glyph here. The triangle belongs to the step card / folded run
+     // (a real <button> with aria-expanded); a <details> summary only styles its own marker.
       ".wf-detail-summary{cursor:pointer;font-size:10px;line-height:1.5;list-style:none;" +
         "color:var(--dsw-alias-brand-primary,#5b8cff)}",
       ".wf-detail-summary::-webkit-details-marker{display:none}",
@@ -715,11 +715,11 @@ window.__ModuleLoader__.load({
       ".wf-detail-close:hover{color:var(--dsw-alias-label-primary,#e9ecf3);background:var(--dsw-alias-bg-layer-2,#2c3140)}",
       ".wf-detail-close:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:1px}",
 
-      /* collapsed capsule (step-13): the main area keeps a one-line pill at its top;
+     /* collapsed capsule : the main area keeps a one-line pill at its top;
          clicking it expands the two-column panel back. pointer-events:auto is now the
          default — the root is a real column, not a click-through overlay. */
       ".wf-capsule-bar{display:flex;align-items:center;gap:8px;padding:10px 12px}",
-      /* collapsed capsule */
+     /* collapsed capsule */
       ".wf-capsule{display:inline-flex;align-items:center;gap:7px;pointer-events:auto;padding:5px 11px;border-radius:999px;" +
         "font:inherit;font-size:12px;cursor:pointer;color:var(--dsw-alias-label-primary,#e9ecf3);" +
         "background:var(--dsw-alias-bg-overlay,#1c1f27);border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.24));" +
@@ -731,22 +731,22 @@ window.__ModuleLoader__.load({
       "@keyframes wf-pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(91,140,255,.55)}50%{opacity:.55;box-shadow:0 0 0 5px rgba(91,140,255,0)}}",
       "@media (prefers-reduced-motion: reduce){.wf-dot{animation:none}}",
 
-      /* ===== step-10: the living layer — flowing curve, wrapped frames, breathing dot ===== */
+     /* ===== the living layer — flowing curve, wrapped frames, breathing dot ===== */
 
-      /* The body is the curve layer's containing block: an absolutely positioned SVG inside the
+     /* The body is the curve layer's containing block: an absolutely positioned SVG inside the
          two-column grid needs position:relative here, and 3 px of extra gutter so neither wrapped
          frame's ring is shaved by a scroller's overflow:auto edge. */
       ".wf-body{position:relative}",
       ".wf-flow-scroll,.wf-steps-scroll{padding-right:4px}",
-      // The wrapped frame's ring is 3 px outside the card, so the first card's ring would be shaved
-      // by the step scroller's own overflow:auto edge. 4 px of list padding buys it back (the browser
-      // screenshot showed the left edge of the ring clipped before this).
+     // The wrapped frame's ring is 3 px outside the card, so the first card's ring would be shaved
+     // by the step scroller's own overflow:auto edge. 4 px of list padding buys it back (the browser
+     // screenshot showed the left edge of the ring clipped before this).
       ".wf-steps{padding-left:4px;padding-top:4px}",
 
-      /* the layer itself: click-through, painted above both columns, hidden until measured */
-      // Hidden means opacity:0, never display:none — a display:none box measures 0×0, and the
-      // first measurement needs the layer's real rect to turn the card coordinates into user
-      // space. An invisible SVG paints nothing, so there is no cost either way.
+     /* the layer itself: click-through, painted above both columns, hidden until measured */
+     // Hidden means opacity:0, never display:none — a display:none box measures 0×0, and the
+     // first measurement needs the layer's real rect to turn the card coordinates into user
+     // space. An invisible SVG paints nothing, so there is no cost either way.
       ".wf-fx{position:absolute;inset:0;width:100%;height:100%;opacity:0;overflow:visible;pointer-events:none;z-index:4}",
       ".wf-fx[data-visible='true']{opacity:1}",
       ".wf-fx-core{fill:none;stroke:url(#wf-fx-rainbow);stroke-width:" + WF_FX_STROKE + ";stroke-linecap:round;" +
@@ -766,10 +766,10 @@ window.__ModuleLoader__.load({
       ".wf-fx-stop-b1{stop-color:var(--dsw-alias-brand-primary,#5b8cff)}",
       ".wf-fx-stop-b2{stop-color:#8f7bea}",
       ".wf-fx-stop-b3{stop-color:var(--dsw-alias-brand-primary,#5b8cff)}",
-      // One pattern length is 9+7 = 16 px, so a -32 offset is a seamless loop.
+     // One pattern length is 9+7 = 16 px, so a -32 offset is a seamless loop.
       "@keyframes wf-fx-dash{from{stroke-dashoffset:0}to{stroke-dashoffset:-32}}",
 
-      /* step-05 · the chain's curve channel. One SVG per flow list, absolutely positioned INSIDE the
+     /* the chain's curve channel. One SVG per flow list, absolutely positioned INSIDE the
          list, drawn between the cards' right and left edges so the two endpoints sit on the edges
          themselves (the 2 px acceptance tolerance is about rounding, not correction). It is
          pointer-events:none — the step's own discipline and the only way the cards stay clickable
@@ -781,7 +781,7 @@ window.__ModuleLoader__.load({
       ".wf-chain-core{fill:none;stroke:var(--dsw-alias-border-l2,rgba(255,255,255,.22));stroke-width:1.6;" +
         "stroke-linecap:round;stroke-linejoin:round}",
       ".wf-chain-core[data-done='true']{stroke:var(--dsw-alias-state-success-primary,#45c07a);opacity:.75}",
-      /* Wrapped frame: the running step card and the running node card. The pseudo-element is
+     /* Wrapped frame: the running step card and the running node card. The pseudo-element is
          3 px larger than the card and paints only its outer 2 px (mask), which leaves the 1 px
          transparent seam between ring and card edge the step asks for. No @property: the
          gradient is 300 % wide and slid by background-position, which every Chrome does. */
@@ -794,7 +794,7 @@ window.__ModuleLoader__.load({
         "mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}",
       "@keyframes wf-fx-wrap{from{background-position:0 0}to{background-position:300% 0}}",
 
-      /* 「正在 …」: a 6 px breathing dot with a spreading halo + three dots lighting in turn.
+     /* "working ...": a 6 px breathing dot with a spreading halo plus three dots lighting in turn.
          The period is 1.2 s (WF_LIVE_PERIOD / WF_PULSE_PERIOD) — same rhythm as the DSH
          thinking indicator, deliberately faster than the 1.6 s status dots around it. */
       ".wf-live{display:inline-flex;align-items:center;gap:5px;margin-top:1px;font-size:10.5px;line-height:1.3;" +
@@ -810,19 +810,19 @@ window.__ModuleLoader__.load({
       "@keyframes wf-live-dot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(91,140,255,.55)}50%{opacity:.35;box-shadow:0 0 0 5px rgba(91,140,255,0)}}",
       "@keyframes wf-live-dots{0%,100%{opacity:.2}60%{opacity:1}}",
 
-      /* Idle freezes every animation under the panel (paused keeps the current frame, so the
+     /* Idle freezes every animation under the panel (paused keeps the current frame, so the
          still image does not jump); reduced motion removes them outright and keeps the static
          rainbow ring/curve. Both are attributed on the root, so the capsule is covered too. */
-      // The pseudo-elements are listed explicitly: `animation`/`animation-play-state` are NOT
-      // inherited, so a rule on `*` never reaches the ring on .wf-step-card::after or the lane dot on
-      // .wf-flow-item::before. (The browser measurement caught exactly this.)
+     // The pseudo-elements are listed explicitly: `animation`/`animation-play-state` are NOT
+     // inherited, so a rule on `*` never reaches the ring on .wf-step-card::after or the lane dot on
+     // .wf-flow-item::before. (The browser measurement caught exactly this.)
       ".wf-root[data-idle='1'] *,.wf-root[data-idle='1'] *::before,.wf-root[data-idle='1'] *::after{animation-play-state:paused!important}",
       ".wf-root[data-motion='static'] *,.wf-root[data-motion='static'] *::before,.wf-root[data-motion='static'] *::after{animation:none!important}",
       "@media (prefers-reduced-motion: reduce){.wf-root *,.wf-root *::before,.wf-root *::after{animation:none!important}}",
-      /* ===== step-12: settings card + palette switch + snapshot export ===== */
+     /* ===== settings card + palette switch + snapshot export ===== */
 
-      // One settings card inside the panel (the gear is the only entry). The grid keeps every
-      // label in a fixed column so the four segmented controls read as one block.
+     // One settings card inside the panel (the gear is the only entry). The grid keeps every
+     // label in a fixed column so the four segmented controls read as one block.
       ".wf-settings{display:flex;flex-direction:column;gap:7px;padding:8px 12px 9px;font-size:11px;flex:0 0 auto;" +
         "max-height:min(55vh,320px);overflow:auto;scrollbar-width:thin;" +
         "color:var(--dsw-alias-label-secondary,#9aa3b2);border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.1));" +
@@ -845,8 +845,8 @@ window.__ModuleLoader__.load({
       ".wf-export .wf-link[data-copy-state='failed'],.wf-export .wf-seg-btn[data-copy-state='failed']{color:var(--dsw-alias-state-error-primary,#e85a5a)}",
       ".wf-settings .wf-kv{font-size:10px}",
 
-      // Palette "brand": every living accent follows the harness brand token instead of the
-      // six-stop rainbow. Palette "soft": low-saturation, dimmed colours for dark rooms.
+     // Palette "brand": every living accent follows the harness brand token instead of the
+     // six-stop rainbow. Palette "soft": low-saturation, dimmed colours for dark rooms.
       ".wf-root[data-palette='brand'] .wf-fx-core,.wf-root[data-palette='brand'] .wf-fx-glow{stroke:url(#wf-fx-brand)}",
       ".wf-root[data-palette='brand'] .wf-fx-cap{fill:url(#wf-fx-brand)}",
       ".wf-root[data-palette='brand'] .wf-step-item[data-status='running']>.wf-step-card::after," +
@@ -876,7 +876,7 @@ window.__ModuleLoader__.load({
         "var(--wf-soft-1),var(--wf-soft-2),var(--wf-soft-1));background-size:200% 100%}",
     ].join("\n");
 
-    /* ===== step-04-hot-inject: the split body and the inject column ===== */
+    /* ===== the split body and the inject column ===== */
 
     // Two-column mode replaces the body's grid with a flex row: the flow keeps its own layout and
     // simply GROWS (flex:1 1 auto), and the inject column is a FIXED 320 px beside it. A grid with
@@ -887,8 +887,8 @@ window.__ModuleLoader__.load({
     // The important property: `min-width:0` on the flow side. Without it a flex item refuses to
     // shrink below its content and the whole body would overflow instead of the column scrolling.
     var WF_CSS_INJECT = [
-      // 会话4 · the split is GONE: 热注入 is the right page's third kind, mounted inside .wf-right-scroll
-      // (a flex COLUMN), so the composer must fill that column instead of keeping its old fixed basis.
+     // the split is GONE: hot injection is the right page's third kind, mounted inside .wf-right-scroll
+     // (a flex COLUMN), so the composer must fill that column instead of keeping its old fixed basis.
       ".wf-card{container-type:inline-size}",
       ".wf-right .wf-inject{flex:1 1 auto;min-height:0;border:0;border-radius:0;padding:0;background:transparent}",
       ".wf-inject-head{display:flex;align-items:center;gap:8px;min-width:0}",
@@ -904,14 +904,14 @@ window.__ModuleLoader__.load({
       ".wf-inject-count{flex:1;min-width:0;font-size:10px;font-variant-numeric:tabular-nums;" +
         "color:var(--dsw-alias-label-tertiary,#7d8798)}",
       ".wf-inject-send{font-size:10.5px}",
-      // The enabled button is the only one that reads as an action; a disabled one must still look
-      // like a button, just not like an invitation.
+     // The enabled button is the only one that reads as an action; a disabled one must still look
+     // like a button, just not like an invitation.
       ".wf-inject-send[data-ready='true']{color:var(--dsw-alias-brand-primary,#5b8cff);" +
         "border-color:var(--dsw-alias-brand-primary,#5b8cff)}",
       ".wf-inject-send:disabled{opacity:.45;cursor:default}",
-      // 会话5 · the history rows. Three columns (status / text / time) that stay readable in the
-      // right page's 460 px: the status chip is fixed, the text takes the rest and wraps, the time
-      // is tabular so a column of rows does not jitter.
+     // the history rows. Three columns (status / text / time) that stay readable in the
+     // right page's 460 px: the status chip is fixed, the text takes the rest and wraps, the time
+     // is tabular so a column of rows does not jitter.
       ".wf-inject-history{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding-top:8px;" +
         "border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.14));min-height:0}",
       ".wf-inject-history-label{font-size:10px;font-weight:600;letter-spacing:.02em;" +
@@ -928,19 +928,19 @@ window.__ModuleLoader__.load({
       ".wf-inject-row-text{min-width:0;overflow-wrap:anywhere;color:var(--dsw-alias-label-primary,#e9ecf3)}",
       ".wf-inject-row-time{white-space:nowrap;font-variant-numeric:tabular-nums;" +
         "color:var(--dsw-alias-label-tertiary,#7d8798)}",
-      // step-03-unsteer · the row's own「撤回」 button and its failure line. The button is a `wf-link`
-      // like every other affordance in this panel, so it stays quiet next to the status word; the
-      // failure line spans the whole row (grid-column 1/-1) and prints the host's reason verbatim.
+     // the row's own "Revoke" button and its failure line. The button is a `wf-link`
+     // like every other affordance in this panel, so it stays quiet next to the status word; the
+     // failure line spans the whole row (grid-column 1/-1) and prints the host's reason verbatim.
       ".wf-inject-row-revoke{white-space:nowrap;font-size:10px;color:var(--dsw-alias-state-warn-primary,#e8b84a)}",
       ".wf-inject-row-revoke:disabled{opacity:.45;cursor:default}",
       ".wf-inject-row-error{grid-column:1/-1;font-size:10px;line-height:1.4;overflow-wrap:anywhere;" +
         "color:var(--dsw-alias-state-error-primary,#e85a5a)}",
       ".wf-inject-note[data-kind='sent']{color:var(--dsw-alias-state-success-primary,#45c07a)}",
       ".wf-inject-note[data-kind='failed']{color:var(--dsw-alias-state-error-primary,#e85a5a)}",
-      // step-04-inject-prominence · the PERSISTENT dock: the right page's footer for every kind that
-      // is NOT the composer itself, so a prompt can be typed without opening the page first. One row
-      // (label + single-line input + send + the NEWEST injection's status); a failed send prints the
-      // host's own reason under that row, inside the same bar and verbatim — never optimistically.
+     // the PERSISTENT dock: the right page's footer for every kind that
+     // is NOT the composer itself, so a prompt can be typed without opening the page first. One row
+     // (label + single-line input + send + the NEWEST injection's status); a failed send prints the
+     // host's own reason under that row, inside the same bar and verbatim — never optimistically.
       ".wf-inject-dock{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;padding:7px 10px;min-width:0;" +
         "border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.12));background:var(--dsw-alias-bg-layer-2,#2c3140)}",
       ".wf-inject-dock-row{display:flex;align-items:center;gap:7px;min-width:0}",
@@ -963,84 +963,84 @@ window.__ModuleLoader__.load({
       ".wf-inject-dock-note{font-size:10px;line-height:1.4;overflow-wrap:anywhere;" +
         "color:var(--dsw-alias-state-error-primary,#e85a5a)}",
       ".wf-inject-dock-note[data-kind='sent']{color:var(--dsw-alias-state-success-primary,#45c07a)}",
-      // Narrow: the panel is its own container, so the dock stays the stacked layout's footer and is
-      // allowed to wrap rather than squeeze the input down to nothing. Declared HERE (not in
-      // WF_CSS_PAGE's container block) because this stylesheet is concatenated last: the same
-      // specificity means the later declaration wins.
+     // Narrow: the panel is its own container, so the dock stays the stacked layout's footer and is
+     // allowed to wrap rather than squeeze the input down to nothing. Declared HERE (not in
+     // WF_CSS_PAGE's container block) because this stylesheet is concatenated last: the same
+     // specificity means the later declaration wins.
       "@container (max-width:900px){.wf-inject-dock{padding:6px 8px}" +
         ".wf-inject-dock-row{flex-wrap:wrap}" +
         ".wf-inject-dock-input{flex:1 1 120px}}",
     ].join("\n");
 
-    /* ===== 会话4 · the single page: serial main flow + satellites + the right page ===== */
+    /* ===== the single page: serial main flow + satellites + the right page ===== */
 
     // The body is now ONE scrolling column plus an optional right page. The right page is a FLEX
     // sibling, not an overlay: it takes width from the flow (which narrows, never re-flows its
     // content), and the whole thing stays inside the card.
     //
-    // The flow side carries `min-width:0` for the same reason step-04's split does: a flex item
+    // The flow side carries `min-width:0` for the same reason 's split does: a flex item
     // refuses to shrink below its content, and without it the long step titles would push the right
     // page off the right edge instead of letting the chain use the scrollbar.
     var WF_CSS_PAGE = [
       ".wf-body{display:flex;flex-direction:row;align-items:stretch;gap:0;padding:0;overflow:hidden;min-height:0;flex:1 1 auto}",
       ".wf-body[data-kind='planning']{padding:10px}",
 
-      /* ---- the main flow ---- */
+     /* ---- the main flow ---- */
       ".wf-page{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;position:relative}",
       ".wf-page-head{display:flex;align-items:baseline;gap:8px;padding:8px 12px 6px;font-size:11px;font-weight:600;" +
         "letter-spacing:.02em;color:var(--dsw-alias-label-secondary,#9aa3b2)}",
       ".wf-page-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;" +
         "padding:8px " + WF_PAGE_PAD + "px 40px}",
-      // The chain is centred as a document: the column of units is at most 560 px wide and the
-      // satellites hang in the gutters the padding reserves. `margin:0 auto` is what makes the page
-      // read as "居中简洁" instead of a card glued to the left edge.
+     // The chain is centred as a document: the column of units is at most 560 px wide and the
+     // satellites hang in the gutters the padding reserves. `margin:0 auto` is what makes the page
+     // read as "centred and clean" instead of a card glued to the left edge.
       ".wf-units{list-style:none;margin:0 auto;padding:0;max-width:560px;display:flex;flex-direction:column;gap:0}",
 
-      /* ---- one unit: [left satellites][centre][right satellites] ---- */
+     /* ---- one unit: [left satellites][centre][right satellites] ---- */
       ".wf-unit{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr) minmax(0,1fr);" +
         "align-items:center;gap:0;column-gap:0;padding:0 " + (WF_SAT_LINK + WF_PAGE_PAD) + "px}",
       ".wf-unit-center{grid-column:2;min-width:0;display:flex;flex-direction:column;gap:8px;position:relative;z-index:2}",
       ".wf-sat-side{grid-row:1;display:flex;flex-direction:column;gap:14px;min-width:0;position:relative;z-index:1}",
       ".wf-sat-side[data-side='left']{grid-column:1;align-items:flex-end}",
       ".wf-sat-side[data-side='right']{grid-column:3;align-items:flex-start}",
-      // The horizontal interface: a 1.6 px straight run from the unit's edge to the circle. Left side
-      // reads `[circle][line]`, right side `[line][circle]` — the line always touches the circle.
+     // The horizontal interface: a 1.6 px straight run from the unit's edge to the circle. Left side
+     // reads `[circle][line]`, right side `[line][circle]` — the line always touches the circle.
       ".wf-sat-row{display:flex;align-items:center;gap:0;min-width:0}",
       ".wf-sat-line{flex:0 0 " + WF_SAT_LINK + "px;height:1.6px;background:var(--dsw-alias-border-l2,rgba(255,255,255,.22));" +
         "border-radius:1px}",
-      // 26 px is small: the label inside is a 4-character extension at most, so the circle needs
-      // `overflow:hidden`-grade discipline (no wrap, no overflow) and the count badge must sit fully
-      // inside the gutter the unit reserves, not on top of the interface line.
+     // 26 px is small: the label inside is a 4-character extension at most, so the circle needs
+     // `overflow:hidden`-grade discipline (no wrap, no overflow) and the count badge must sit fully
+     // inside the gutter the unit reserves, not on top of the interface line.
       ".wf-sat{position:relative;box-sizing:border-box;flex:0 0 auto;width:" + WF_SATELLITE + "px;height:" + WF_SATELLITE + "px;" +
         "border-radius:50%;border:1.6px solid var(--dsw-alias-border-l2,rgba(255,255,255,.26));background:var(--dsw-alias-bg-layer-2,#282d3a);" +
         "color:var(--dsw-alias-label-secondary,#9aa3b2);font:inherit;font-size:9px;line-height:1;cursor:pointer;" +
         "display:inline-flex;align-items:center;justify-content:center;padding:0;overflow:visible}",
       ".wf-sat:hover{border-color:var(--dsw-alias-brand-primary,#5b8cff);color:var(--dsw-alias-label-primary,#e9ecf3)}",
       ".wf-sat:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:2px}",
-      // Tone = the SIDE's meaning, so the two gutters never mix up: read (left, blue), edit (right,
-      // amber), tool (right, violet). The in-node chain chips use the same three hues.
+     // Tone = the SIDE's meaning, so the two gutters never mix up: read (left, blue), edit (right,
+     // amber), tool (right, violet). The in-node chain chips use the same three hues.
       ".wf-sat[data-tone='read']{color:var(--wf-chain-read,#5b8cff);border-color:currentColor}",
       ".wf-sat[data-tone='edit']{color:var(--wf-chain-edit,#e0a13a);border-color:currentColor}",
       ".wf-sat[data-tone='tool']{color:var(--wf-chain-tool,#8f7bea);border-color:currentColor}",
       ".wf-sat[data-open='true']{box-shadow:0 0 0 3px rgba(91,140,255,.28)}",
       ".wf-sat-glyph{display:block;max-width:100%;padding:0 2px;font-size:9px;font-weight:600;letter-spacing:-.02em;" +
         "white-space:nowrap;overflow:hidden;text-overflow:clip;text-align:center;pointer-events:none}",
-      // The count rides the circle's top-LEFT rim (towards the card), which is the one quadrant the
-      // interface line never crosses — so the badge never sits on the line it belongs to.
+     // The count rides the circle's top-LEFT rim (towards the card), which is the one quadrant the
+     // interface line never crosses — so the badge never sits on the line it belongs to.
       ".wf-sat-count{position:absolute;top:-6px;left:-6px;min-width:14px;height:14px;padding:0 3px;box-sizing:border-box;" +
         "border-radius:999px;background:var(--dsw-alias-bg-layer-1,#232733);border:1px solid currentColor;color:inherit;" +
         "font-size:8.5px;line-height:12px;text-align:center;font-variant-numeric:tabular-nums;pointer-events:none}",
-      // Being called RIGHT NOW: the flowing ring the panel already uses for a wrapped frame.
+     // Being called RIGHT NOW: the flowing ring the panel already uses for a wrapped frame.
       ".wf-sat[data-live='true']::after{content:'';position:absolute;inset:-3px;border-radius:50%;padding:2px;" +
         "background:" + WF_FX_RING + ";background-size:300% 100%;animation:wf-fx-wrap 2.6s linear infinite;" +
         "pointer-events:none;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);" +
         "-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);" +
         "mask-composite:exclude}",
-      // A live interface's straight line flows too — same rainbow, same 2 px, no second vocabulary.
+     // A live interface's straight line flows too — same rainbow, same 2 px, no second vocabulary.
       ".wf-sat-row[data-live='true'] .wf-sat-line{background:" + WF_FX_RING + ";background-size:300% 100%;" +
         "animation:wf-fx-wrap 2.6s linear infinite}",
 
-      /* ---- the unit card ---- */
+     /* ---- the unit card ---- */
       ".wf-unit-card{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:flex-start;gap:8px;" +
         "width:100%;padding:10px 12px;border-radius:10px;text-align:left;border:1px solid transparent;" +
         "background:var(--dsw-alias-bg-layer-2,#282d3a);color:inherit;font:inherit;cursor:pointer;" +
@@ -1074,22 +1074,22 @@ window.__ModuleLoader__.load({
       ".wf-unit[data-status='skipped'] .wf-unit-title{color:var(--dsw-alias-label-tertiary,#7d8798);text-decoration:line-through}",
       ".wf-unit-more{font-size:9.5px;line-height:1.4;color:var(--dsw-alias-label-tertiary,#7d8798)}",
 
-      // The straight connector down the middle, in the gap the units leave: 2 px wide, WF_UNIT_GAP
-      // tall, drawn ONLY between two units (never under the last one). Done steps get a solid line,
-      // everything else a dashed one, so the chain reads "how far the one-way run has got".
+     // The straight connector down the middle, in the gap the units leave: 2 px wide, WF_UNIT_GAP
+     // tall, drawn ONLY between two units (never under the last one). Done steps get a solid line,
+     // everything else a dashed one, so the chain reads "how far the one-way run has got".
       ".wf-unit-link{grid-column:2;grid-row:2;justify-self:center;width:" + WF_UNIT_LINK + "px;" +
         "height:" + WF_UNIT_GAP + "px;margin:0;background:var(--dsw-alias-border-l2,rgba(255,255,255,.2));" +
         "border-radius:1px}",
       ".wf-unit-link[data-done='false']{background:repeating-linear-gradient(180deg," +
         "var(--dsw-alias-border-l2,rgba(255,255,255,.2)) 0 5px,transparent 5px 10px)}",
       ".wf-unit-link[data-done='true']{background:var(--dsw-alias-state-success-primary,#45c07a);opacity:.65}",
-      // 会话6 · 分步之间的连接线现在**全部是同一套虚线**，不再有彩虹流光与滚动动画：整条主流程只用
-      // 一种线条语言（已完成=绿色实线，其余=灰色虚线），把“正在发生”的表达全部留给分步卡片上的
-      // 包裹虹环与唯一那一条进度条。`data-live` 仍然保留在 DOM 上（测试用），但不再影响外观。
+     // The connectors between steps are now ALL one dashed style - no rainbow gradient, no scrolling animation: the whole main flow uses
+     // one line language (done = solid green, everything else = grey dashed), leaving the expression of "what is happening" entirely to the
+     // wrapping ring on the card and the single progress rail. `data-live` stays on the DOM (for tests) but no longer affects appearance.
       ".wf-unit-link[data-live='true']{background:repeating-linear-gradient(180deg," +
         "var(--dsw-alias-border-l2,rgba(255,255,255,.2)) 0 5px,transparent 5px 10px);animation:none}",
 
-      /* ---- the right page ---- */
+     /* ---- the right page ---- */
       ".wf-right{flex:0 0 460px;min-width:0;min-height:0;display:flex;flex-direction:column;box-sizing:border-box;" +
         "border-left:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.12));" +
         "background:var(--dsw-alias-bg-layer-1,#232733)}",
@@ -1106,7 +1106,7 @@ window.__ModuleLoader__.load({
         "display:flex;flex-direction:column;gap:9px}",
       ".wf-page-sub{font-size:10.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#7d8798)}",
 
-      /* the step page's type summary */
+     /* the step page's type summary */
       ".wf-type-list{display:flex;flex-direction:column;gap:5px;min-width:0}",
       ".wf-type-rows{display:flex;flex-direction:column;gap:4px;min-width:0}",
       ".wf-type-row{display:flex;align-items:center;gap:7px;width:100%;padding:5px 7px;border-radius:7px;" +
@@ -1124,7 +1124,7 @@ window.__ModuleLoader__.load({
       ".wf-type-kind{flex:1;min-width:0;font-size:10px;color:var(--dsw-alias-label-tertiary,#7d8798)}",
       ".wf-type-count{font-size:10px;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary,#9aa3b2)}",
 
-      /* the type page's call list */
+     /* the type page's call list */
       ".wf-calls{display:flex;flex-direction:column;gap:6px;min-width:0}",
       ".wf-call-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;min-width:0}",
       ".wf-call{min-width:0;display:flex;flex-direction:column;gap:5px}",
@@ -1139,8 +1139,8 @@ window.__ModuleLoader__.load({
         "color:var(--dsw-alias-label-tertiary,#7d8798)}",
       ".wf-call[data-status='running'] .wf-call-main{color:var(--dsw-alias-brand-primary,#5b8cff)}",
 
-      // 会话6 · 正在进行的那个分步卡片**保留**彩色流光包裹（那是最重要的"当前"指示）；
-      // 去掉的只是**分步之间**的连接线虹彩——主流程的连线现在全部是同一套虚线。
+     // The running step card KEEPS its flowing colour wrap (that is the most important "current" cue);
+     // only the rainbow on the connectors BETWEEN steps is gone - main-flow connectors are now one dashed style.
       ".wf-unit[data-status='running']>.wf-unit-center>.wf-unit-card{position:relative;" +
         "box-shadow:0 0 0 1px rgba(143,123,234,.3),0 0 14px rgba(91,140,255,.26)}",
       ".wf-unit[data-status='running']>.wf-unit-center>.wf-unit-card::after{content:'';position:absolute;inset:-3px;" +
@@ -1148,9 +1148,9 @@ window.__ModuleLoader__.load({
         "animation:wf-fx-wrap 2.6s linear infinite;pointer-events:none;z-index:2;" +
         "-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;" +
         "mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}",
-      // 会话6 · 连接线的流光关键帧已随彩虹连线一并删除（只留一致虚线）。
-      // Narrow: the right page stacks UNDER the chain and the satellites fold into tighter gutters.
-      // The satellite line shrinks with them (a fixed 26 px run would push the circle off the edge).
+     // The connector's flowing keyframes were removed together with the rainbow connectors (only the uniform dashed style remains).
+     // Narrow: the right page stacks UNDER the chain and the satellites fold into tighter gutters.
+     // The satellite line shrinks with them (a fixed 26 px run would push the circle off the edge).
       "@container (max-width:900px){.wf-body[data-kind='ready']{flex-direction:column}" +
         ".wf-right{flex:0 0 auto;width:100%;max-height:46%;border-left:0;" +
         "border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.12))}" +
@@ -1159,7 +1159,7 @@ window.__ModuleLoader__.load({
         ".wf-sat-line{flex:0 0 10px}.wf-sat{width:22px;height:22px;font-size:8.5px}}",
     ].join("\n");
 
-    /* ===== 会话6 · the conversation-view seat hides the host's composer ===== */
+    /* ===== the conversation-view seat hides the host's composer ===== */
 
     // The panel is ONE child of the host's conversation column; the composer is a SIBLING the host
     // renders next to the selected view (measured in this host:
@@ -1168,8 +1168,8 @@ window.__ModuleLoader__.load({
     // (`data-dsh-workflow-map="conversation-view"`, see wfViewSeatRoot in panel.js) and this rule hides
     // the sibling seat while that marker is mounted — the todo dock and the input bar live inside it.
     //
-    // SCOPED BY `:has()` ON PURPOSE: the marker exists only while the host has THIS view selected (it
-    // unmounts the others), so the composer returns by itself on 对话 / 上下文 / 编队 — no state to keep in
+    // SCOPED BY `:has` ON PURPOSE: the marker exists only while the host has THIS view selected (it
+    // unmounts the others), so the composer returns by itself on chat / context / fleet - no state to keep in
     // sync, and no composer-chain takeover that would also swallow the host's plan-review composer.
     var WF_CSS_SEAT = [
       "[data-conversation-content]:has([data-dsh-workflow-map='conversation-view']) [data-composer-seat]{display:none!important}",
@@ -1193,7 +1193,7 @@ window.__ModuleLoader__.load({
      */
 
     /* ------------------------------------------------------------------------- */
-    /* numbers                                                                   */
+    /* numbers */
     /* ------------------------------------------------------------------------- */
 
     /** A finite number, or null. Used so a missing `percent` never becomes NaN. */
@@ -1213,12 +1213,12 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* preferences — step-13 keeps ONLY what the panel still owns                  */
+    /* preferences — keeps ONLY what the panel still owns */
     /* ------------------------------------------------------------------------- */
 
     /**
-     * step-13: `width` / `height` are no longer written by the UI — the layout owns both —
-     * but they are still READ and sanitised, because a record written by step-06..12 sits in
+     * `width` / `height` are no longer written by the UI — the layout owns both —
+     * but they are still READ and sanitised, because a record written by ..12 sits in
      * every user's localStorage. Keeping the two fields means an upgrade never throws away
      * `collapsed` / `selectedStep` / the presentation settings just because an old record
      * happens to carry a size.
@@ -1234,10 +1234,10 @@ window.__ModuleLoader__.load({
         motion: display.motion,
         detail: display.detail,
         nodeLimit: display.nodeLimit,
-        // 会话4 · the single-page layout's right-hand page. `rightOpen` says the page is shown (the
-        // user clicked a main-flow unit, a round satellite, or 热注入); `rightKind` / `rightKey` say
-        // WHAT it shows. A stale (kind, key) pair is harmless — the page finds no content and
-        // renders the empty hint — so nothing here is re-validated against the live view.
+     // the single-page layout's right-hand page. `rightOpen` says the page is shown (the
+     // user clicked a main-flow unit, a round satellite, or hot injection); `rightKind` / `rightKey` say
+     // WHAT it shows. A stale (kind, key) pair is harmless — the page finds no content and
+     // renders the empty hint — so nothing here is re-validated against the live view.
         rightOpen: false,
         rightKind: "step",
         rightKey: null,
@@ -1293,8 +1293,8 @@ window.__ModuleLoader__.load({
         if (!store || typeof store.getItem !== "function") return wfDefaultPrefs();
         return wfParsePrefs(store.getItem(WF_PREFS_KEY));
       } catch (error) {
-        // A disabled / quota-exhausted / partitioned localStorage is NOT an error the
-        // panel may die on: it just means "no memory this session".
+     // A disabled / quota-exhausted / partitioned localStorage is NOT an error the
+     // panel may die on: it just means "no memory this session".
         return wfDefaultPrefs();
       }
     }
@@ -1337,8 +1337,8 @@ window.__ModuleLoader__.load({
         motion: display.motion,
         detail: display.detail,
         nodeLimit: display.nodeLimit,
-        // 会话4 · the right page. `rightKey: null` means "keep whatever was open" — closing is
-        // expressed with `rightOpen: false`, so clearing the key is never ambiguous.
+     // the right page. `rightKey: null` means "keep whatever was open" — closing is
+     // expressed with `rightOpen: false`, so clearing the key is never ambiguous.
         rightOpen: typeof next.rightOpen === "boolean" ? next.rightOpen : base.rightOpen,
         rightKind: WF_RIGHT_KINDS.indexOf(next.rightKind) >= 0 ? next.rightKind : base.rightKind,
         rightKey:
@@ -1352,7 +1352,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* the poll request                                                          */
+    /* the poll request */
     /* ------------------------------------------------------------------------- */
 
     function wfPollUrl(sessionId) {
@@ -1364,7 +1364,7 @@ window.__ModuleLoader__.load({
      * always decide what to render and how long to wait.
      *
      * @returns {Promise<{status:number, etag:string, payload:any, error:string}>}
-     *   304 → keep the current view; 200 → new payload; anything else → `error`.
+     * 304 → keep the current view; 200 → new payload; anything else → `error`.
      */
     function wfPollOnce(fetchImpl, url, etag, signal) {
       var headers = {};
@@ -1402,9 +1402,9 @@ window.__ModuleLoader__.load({
           });
         })
         .catch(function (error) {
-          // An aborted request is NOT a failure: the caller cancelled it (visibility
-          // change or unmount). status -1 says "nothing to report" so the loop neither
-          // paints an offline badge nor schedules a duplicate poll.
+     // An aborted request is NOT a failure: the caller cancelled it (visibility
+     // change or unmount). status -1 says "nothing to report" so the loop neither
+     // paints an offline badge nor schedules a duplicate poll.
           var aborted = !!error && error.name === "AbortError";
           return {
             status: aborted ? -1 : 0,
@@ -1417,7 +1417,7 @@ window.__ModuleLoader__.load({
 
     /* ------------------------------------------------------------------------- */
     /* ------------------------------------------------------------------------- */
-    /* the write request (step-04-hot-inject)                                    */
+    /* the write request */
     /* ------------------------------------------------------------------------- */
 
     // `wfPostSteer` lives in HotInject.js (it is the inject column's own request shape, and the
@@ -1425,7 +1425,7 @@ window.__ModuleLoader__.load({
     // ONE write is defined exactly once in the bundle.
 
     /* ------------------------------------------------------------------------- */
-    /* session identity                                                          */
+    /* session identity */
     /* ------------------------------------------------------------------------- */
 
     /* ------------------------------------------------------------------------- */
@@ -1464,7 +1464,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* view → model                                                              */
+    /* view → model */
     /* ------------------------------------------------------------------------- */
 
     var WF_STATUS_KEYS = {
@@ -1494,7 +1494,7 @@ window.__ModuleLoader__.load({
     function wfTrimText(value, limit) {
       if (typeof value !== "string") return "";
       var text = value.replace(/\s+/g, " ").trim();
-      // The ellipsis counts toward the limit, so a 300-char budget stays 300 chars.
+     // The ellipsis counts toward the limit, so a 300-char budget stays 300 chars.
       if (typeof limit === "number" && text.length > limit) return text.slice(0, Math.max(0, limit - 1)) + "…";
       return text;
     }
@@ -1638,13 +1638,13 @@ window.__ModuleLoader__.load({
     /**
      * Build the render model, or null when the panel must not exist at all.
      *
-     * Empty state rules (step-06 contract §3):
-     *   - no steps and no PAE plan still being written  → null (NOTHING is rendered)
-     *   - plan.phase === "planning" with no steps yet    → a one-line "规划中…" card
-     *   - otherwise                                      → right/left two-column model
+     * Empty state rules ( contract §3):
+     * - no steps and no PAE plan still being written → null (NOTHING is rendered)
+     * - plan.phase === "planning" with no steps yet -> a one-line "planning..." card
+     * - otherwise → right/left two-column model
      */
     /* ------------------------------------------------------------------------- */
-    /* 会话4 · tool FILE TYPES (the satellites' data source)                        */
+    /* tool FILE TYPES (the satellites' data source) */
     /* ------------------------------------------------------------------------- */
 
     /**
@@ -1676,7 +1676,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* 会话5 · hot-inject history (pure shaping, no DOM)                          */
+    /* hot-inject history (pure shaping, no DOM) */
     /* ------------------------------------------------------------------------- */
 
     /** How many rows the composer page lists; the oldest fall off with a stated count. */
@@ -1688,9 +1688,9 @@ window.__ModuleLoader__.load({
      * Each row keeps the three facts the user asked for: WHAT was injected (the text), WHEN
      * (`at`, the splice's own event time — never a browser clock), and its STATUS, which is one
      * of two words with different meanings:
-     *   `pending`   — the message is in the session's inbox; the turn has not picked it up yet.
-     *   `picked`    — the session's own `user/message` with the same id is in the log, i.e. the
-     *                 running turn HAS taken it. This is measured, not assumed.
+     * `pending` — the message is in the session's inbox; the turn has not picked it up yet.
+     * `picked` — the session's own `user/message` with the same id is in the log, i.e. the
+     * running turn HAS taken it. This is measured, not assumed.
      *
      * A row without an id cannot be matched, so it is dropped rather than listed as status-less.
      */
@@ -1708,9 +1708,9 @@ window.__ModuleLoader__.load({
           pickedUpAt: wfFinite(row.pickedUpAt),
           target: typeof row.target === "string" ? row.target : "",
           text: wfTrimText(row.text, 300),
-          // 会话6 · three states, not two: a message the loop DISCARDED (durable cancel) is neither
-          // "waiting" nor "taken" — it will never be read. Only the host's own
-          // `agent/inbox/discarded` event sets this, so it is never inferred.
+     // three states, not two: a message the loop DISCARDED (durable cancel) is neither
+     // "waiting" nor "taken" — it will never be read. Only the host's own
+     // `agent/inbox/discarded` event sets this, so it is never inferred.
           status: row.pickedUp === true ? "picked" : row.canceled === true ? "canceled" : "pending",
           canceledAt: wfFinite(row.canceledAt),
         });
@@ -1721,7 +1721,7 @@ window.__ModuleLoader__.load({
       return rows;
     }
 
-    /** `step-06-client-shell.md` → `.md`; a path with no dot → `""` (the "no extension" bucket). */
+    /** `.md` → `.md`; a path with no dot → `""` (the "no extension" bucket). */
     function wfTypeOfPath(path) {
       if (typeof path !== "string" || path === "") return "";
       var flat = path.replace(/\\/g, "/");
@@ -1732,13 +1732,13 @@ window.__ModuleLoader__.load({
         if (base.length > compound.length && base.slice(-compound.length) === compound) return compound;
       }
       var at = base.lastIndexOf(".");
-      // A leading dot is a dotfile (`.gitignore`): its own type, not "no extension".
+     // A leading dot is a dotfile (`.gitignore`): its own type, not "no extension".
       if (at === 0) return base;
       if (at <= 0) return "";
       return base.slice(at);
     }
 
-    /** Which side a host file action lives on: 读/查 → left (input), 写/改 → right (output). */
+    /** Which side a host file action lives on: read/query -> left (input), write/edit -> right (output). */
     function wfTypeSide(action) {
       var label = typeof action === "string" ? action.trim().toLowerCase() : "";
       if (
@@ -1765,7 +1765,7 @@ window.__ModuleLoader__.load({
      * A type is a KEY: `file:.md` for a file extension, `tool:pwsh` for a call whose only evidence is
      * the tool name. A call that touched a file counts under that file's type only (its tool is
      * already visible in the call's own row); a call that touched nothing gets a tool circle on the
-     * right — that is where 「调用的工具」 lives.
+     * right - that is where "tools called" lives.
      */
     function wfTypeBuckets(nodes, activeNodeId) {
       var list = Array.isArray(nodes) ? nodes : [];
@@ -1875,7 +1875,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* the model                                                                 */
+    /* the model */
     /* ------------------------------------------------------------------------- */
 
     function wfBuildModel(view, prefs, nowMs) {
@@ -1888,10 +1888,10 @@ window.__ModuleLoader__.load({
       if (plan) task = wfTrimText(plan.taskTitle || plan.task, 300);
       if (task === "") task = wfTrimText(view.task, 300);
 
-      // 会话4 · the single page keeps ONE selected step: the unit the user last opened. The policy is
-      // unchanged (a remembered index wins, then the running step, then the active one, then the last
-      // done step, then the first) — what changed is only that the page no longer needs a second
-      // "selected" notion for the flow column, because the flow column is gone.
+     // the single page keeps ONE selected step: the unit the user last opened. The policy is
+     // unchanged (a remembered index wins, then the running step, then the active one, then the last
+     // done step, then the first) — what changed is only that the page no longer needs a second
+     // "selected" notion for the flow column, because the flow column is gone.
       var steps = view.steps;
       if (steps.length === 0) {
         if (!planning) return null;
@@ -1902,12 +1902,12 @@ window.__ModuleLoader__.load({
           progress: { done: 0, total: 0, percent: 0 },
           activeStep: null,
           selected: null,
-          // step-12: palette / motion / detail depth / node window travel with the model,
-          // so a preference change is one ordinary re-render (no second state channel).
+     // palette / motion / detail depth / node window travel with the model,
+     // so a preference change is one ordinary re-render (no second state channel).
           settings: wfSettingsOf(prefs),
-          // Is the session actually working? (step-10) The curve, both wrapped frames and the
-          // breathing dot all freeze when it is not — see pulse.js wfSessionRunning for the
-          // three signals and why the host's own `view.running` wins when it exists.
+     // Is the session actually working? The curve, both wrapped frames and the
+     // breathing dot all freeze when it is not — see pulse.js wfSessionRunning for the
+     // three signals and why the host's own `view.running` wins when it exists.
           running: wfSessionRunning(view, null, nowMs),
           steps: [],
           flow: {
@@ -1922,13 +1922,13 @@ window.__ModuleLoader__.load({
             hiddenBranches: 0,
             branchDropped: 0,
           },
-          // 会话4 · the single page has nothing to draw while the plan is still being written; the
-          // shape is present so the renderer never has to branch on "does page exist".
+     // the single page has nothing to draw while the plan is still being written; the
+     // shape is present so the renderer never has to branch on "does page exist".
           page: { units: [], runningIndex: null, toolTypes: [] },
           counts: view.counts && typeof view.counts === "object" ? view.counts : null,
           plan: wfPlanSummary(plan),
-          // 会话5 · the hot-inject history travels with the model, so the composer page can list
-          // what was sent and whether the session admitted it (see wfInjectRows).
+     // the hot-inject history travels with the model, so the composer page can list
+     // what was sent and whether the session admitted it (see wfInjectRows).
           injects: wfInjectRows(view.injects),
         };
       }
@@ -1963,8 +1963,8 @@ window.__ModuleLoader__.load({
           statusKey: wfStatusKey(status),
           percent: clampedPercent === null ? null : Math.round(clampedPercent),
           percentSource: typeof step.percentSource === "string" ? step.percentSource : "none",
-          // step-03: when the last progress estimate arrived (0 = never). The rail uses it for the
-          // "N 分钟前估计" segment and prints nothing at all when it is 0.
+     // when the last progress estimate arrived (0 = never). The rail uses it for the
+     // "estimated N minutes ago" segment and prints nothing at all when it is 0.
           lastEstimateAt: wfFinite(step.lastEstimateAt) === null ? 0 : Math.max(0, Math.round(wfFinite(step.lastEstimateAt))),
           nodeCount: wfFinite(step.nodeCount) === null ? 0 : step.nodeCount,
           planIndex: wfFinite(step.planIndex) === null ? null : step.planIndex,
@@ -1981,9 +1981,9 @@ window.__ModuleLoader__.load({
         });
       }
 
-      // The status policy (PAE > todo > anchorSeqs > host, see StepColumn.js) lives
-      // in the step column but is applied HERE, so the header's done-count, the
-      // running-step selection and every card's badge cannot disagree.
+     // The status policy (PAE > todo > anchorSeqs > host, see StepColumn.js) lives
+     // in the step column but is applied HERE, so the header's done-count, the
+     // running-step selection and every card's badge cannot disagree.
       rows = wfApplyDerivedStatuses(rows, planSummary, todos);
 
       var done = 0;
@@ -1992,22 +1992,22 @@ window.__ModuleLoader__.load({
       for (var r = 0; r < rows.length; r += 1) {
         if (rows[r].status === "done") done += 1;
         if (rows[r].status === "running" && runningIndex === null) runningIndex = r;
-        // Overall progress = the mean of every step's own estimate, so a long running
-        // step moves the header between completions instead of freezing at done/total.
+     // Overall progress = the mean of every step's own estimate, so a long running
+     // step moves the header between completions instead of freezing at done/total.
         percentSum += wfEffectivePercent(rows[r]);
       }
-      // 会话6 · ONE live row. The host already closes stray running rows (fold.mjs soleRunning);
-      // this is the browser's own guard, because the PAE/todo status policy applied just above can
-      // ALSO promote a row to 'running'. Everything that animates (ring, rail, connector, the
-      // flowing tool type) keys off `live`, so at most one of each can ever light up.
+     // ONE live row. The host already closes stray running rows (fold.mjs soleRunning);
+     // this is the browser's own guard, because the PAE/todo status policy applied just above can
+     // ALSO promote a row to 'running'. Everything that animates (ring, rail, connector, the
+     // flowing tool type) keys off `live`, so at most one of each can ever light up.
       var liveIndex = runningIndex;
       if (liveIndex === null && activeIndex !== null) liveIndex = activeIndex;
       for (var lr = 0; lr < rows.length; lr += 1) rows[lr].live = lr === liveIndex;
 
       var percentOverall = Math.round(wfClamp(percentSum / steps.length, 0, 100));
 
-      // Selection: remember the user's pick, drop it if it no longer exists, then fall
-      // back to the running step, the active step, the last done step, or the first.
+     // Selection: remember the user's pick, drop it if it no longer exists, then fall
+     // back to the running step, the active step, the last done step, or the first.
       var selected = null;
       var wanted = prefs && wfFinite(prefs.selectedStep) !== null ? Math.round(prefs.selectedStep) : null;
       if (wanted !== null && wanted >= 0 && wanted < rows.length) selected = wanted;
@@ -2039,12 +2039,12 @@ window.__ModuleLoader__.load({
           title: wfTrimText(found.title, 160) || wfTrimText(found.detail, 160) || "—",
           detail: wfTrimText(found.detail, 200),
           files: Array.isArray(found.files) ? found.files.length : 0,
-          // The first path is what the card titles itself with (「读 · x.js」): basename
-          // only, the full path stays in the tooltip.
+     // The first path is what the card titles itself with ("read · x.js"): basename
+     // only, the full path stays in the tooltip.
           path: firstFile && typeof firstFile.path === "string" ? firstFile.path : "",
-          // The detail block needs the whole file list (paths + host action labels) — the card
-          // above only counts them. `fileList` is a whitelist copy: `files` on the wire could
-          // carry anything, and only path/action ever reach the renderer.
+     // The detail block needs the whole file list (paths + host action labels) — the card
+     // above only counts them. `fileList` is a whitelist copy: `files` on the wire could
+     // carry anything, and only path/action ever reach the renderer.
           fileList: Array.isArray(found.files)
             ? found.files
                 .filter(function (file) {
@@ -2054,9 +2054,9 @@ window.__ModuleLoader__.load({
                   return { path: file.path, action: typeof file.action === "string" ? file.action : "" };
                 })
             : [],
-          // The args digest / result head / error text are bounded by the host (200 chars).
-          // They are copied verbatim — never flattened — because the detail renders them in a
-          // pre-wrap block and a command's newlines are part of what the user asked to see.
+     // The args digest / result head / error text are bounded by the host (200 chars).
+     // They are copied verbatim — never flattened — because the detail renders them in a
+     // pre-wrap block and a command's newlines are part of what the user asked to see.
           argsText: typeof found.argsText === "string" ? found.argsText.slice(0, 200) : "",
           resultLine: typeof found.resultHead === "string" ? found.resultHead.slice(0, 200) : "",
           errorText: typeof found.error === "string" ? found.error.slice(0, 200) : "",
@@ -2068,12 +2068,12 @@ window.__ModuleLoader__.load({
         });
       }
 
-      // The selected step's own detail (step-11): the report + statistics from the nodes above.
+     // The selected step's own detail : the report + statistics from the nodes above.
       var detail = wfBuildStepDetail(rows[selected], flowNodes, planSummary);
 
-      // Host fold records are copied field by field: they are only RANGES over the node
-      // list above (FlowColumn resolves them), so a group whose ids are missing here can
-      // never hide a node.
+     // Host fold records are copied field by field: they are only RANGES over the node
+     // list above (FlowColumn resolves them), so a group whose ids are missing here can
+     // never hide a node.
       var flowGroups = [];
       if (Array.isArray(step.groups)) {
         for (var g = 0; g < step.groups.length; g += 1) {
@@ -2091,11 +2091,11 @@ window.__ModuleLoader__.load({
         }
       }
 
-      // Branch lanes (step-09) — the parallel work of THIS step, reduced to what Branches.js
-      // draws. A lane that started before any step existed (stepIndex null) belongs to the
-      // first step. Only the newest WF_BRANCH_SHOWN lanes are drawn; the rest are counted by
-      // the renderer, and lanes the HOST dropped at its own cap are counted separately — the
-      // two numbers have different causes and must not be merged.
+     // Branch lanes — the parallel work of THIS step, reduced to what Branches.js
+     // draws. A lane that started before any step existed (stepIndex null) belongs to the
+     // first step. Only the newest WF_BRANCH_SHOWN lanes are drawn; the rest are counted by
+     // the renderer, and lanes the HOST dropped at its own cap are counted separately — the
+     // two numbers have different causes and must not be merged.
       var branchRows = [];
       var allBranches = Array.isArray(view.branches) ? view.branches : [];
       for (var bi = 0; bi < allBranches.length; bi += 1) {
@@ -2149,17 +2149,17 @@ window.__ModuleLoader__.load({
       }
       var branchDropped = wfFinite(view.droppedBranches) === null ? 0 : Math.max(0, view.droppedBranches);
 
-      // The pulsing node is only "current" while its OWN step is the selected one.
-      // The pulsing node is only "current" while its OWN step is the selected one.
+     // The pulsing node is only "current" while its OWN step is the selected one.
+     // The pulsing node is only "current" while its OWN step is the selected one.
       var activeNodeId = null;
       if (activeIndex !== null && activeIndex === selected && view.active && typeof view.active.nodeId === "string") {
         activeNodeId = view.active.nodeId;
       }
 
-      // 会话4 · the single page. EVERY step becomes one unit on the serial main flow, with its own
-      // satellites, so the page needs each step's nodes — not only the selected step's. The same
-      // whitelist copy is used (path/action only), so a satellite can never carry anything the
-      // selected step's flow would refuse to show.
+     // the single page. EVERY step becomes one unit on the serial main flow, with its own
+     // satellites, so the page needs each step's nodes — not only the selected step's. The same
+     // whitelist copy is used (path/action only), so a satellite can never carry anything the
+     // selected step's flow would refuse to show.
       var pageUnits = [];
       for (var u = 0; u < rows.length; u += 1) {
         var unitStep = steps[u] && typeof steps[u] === "object" ? steps[u] : {};
@@ -2193,7 +2193,7 @@ window.__ModuleLoader__.load({
               }),
           });
         }
-        // The running step's own active call lights its satellite; every other step gets none.
+     // The running step's own active call lights its satellite; every other step gets none.
         var unitActive = activeIndex === u && view.active && typeof view.active.nodeId === "string" ? view.active.nodeId : "";
         var unitSides = wfTypeSides(unitNodes, unitActive);
         pageUnits.push({
@@ -2204,7 +2204,7 @@ window.__ModuleLoader__.load({
           statusSource: rows[u].statusSource,
           planIndex: rows[u].planIndex,
           active: rows[u].active,
-          // 会话6 · the ONE flag every animated piece reads (ring, rail, connector, tool type).
+     // the ONE flag every animated piece reads (ring, rail, connector, tool type).
           live: rows[u].live === true,
           percent: rows[u].percent,
           percentSource: rows[u].percentSource,
@@ -2229,17 +2229,17 @@ window.__ModuleLoader__.load({
         progress: { done: done, total: steps.length, percent: percentOverall },
         activeStep: activeIndex,
         selected: selected,
-        // step-10: the one flag the living layer switches on. Derived AFTER activeNodeId, because
-        // "a node is mid-call right now" is the strongest non-host signal there is.
+     // the one flag the living layer switches on. Derived AFTER activeNodeId, because
+     // "a node is mid-call right now" is the strongest non-host signal there is.
         running: wfSessionRunning(view, activeNodeId, nowMs),
         steps: rows,
         flow: {
           stepTitle: rows[selected].title,
           nodes: flowNodes,
           total: flowNodes.length,
-          // 「已省略」 must cover EVERY missing node, not only the per-step cap: the
-          // global 1200-node cap also prunes a step's id list while leaving
-          // step.truncatedNodes at 0. The honest gap is nodeCount − drawn.
+     // "omitted" count must cover EVERY missing node, not only the per-step cap: the
+     // global 1200-node cap also prunes a step's id list while leaving
+     // step.truncatedNodes at 0. The honest gap is nodeCount − drawn.
           truncated: Math.max(
             wfFinite(step.truncatedNodes) === null ? 0 : step.truncatedNodes,
             (wfFinite(step.nodeCount) === null ? flowNodes.length : step.nodeCount) - flowNodes.length
@@ -2251,9 +2251,9 @@ window.__ModuleLoader__.load({
           hiddenBranches: hiddenBranches,
           branchDropped: branchDropped,
         },
-        // 会话4 · the single page: one unit per step, its satellites, and the index of the step the
-        // chain should bring to the middle. `types` is every bucket (not only the drawn ones), so the
-        // right page can show the ones the card could not fit.
+     // the single page: one unit per step, its satellites, and the index of the step the
+     // chain should bring to the middle. `types` is every bucket (not only the drawn ones), so the
+     // right page can show the ones the card could not fit.
         page: {
           units: pageUnits,
           runningIndex: pageRunningIndex,
@@ -2261,12 +2261,12 @@ window.__ModuleLoader__.load({
         },
         counts: view.counts && typeof view.counts === "object" ? view.counts : null,
         plan: planSummary,
-        // step-11: the selected step's report + statistics, or null for the planning card.
+     // the selected step's report + statistics, or null for the planning card.
         detail: detail,
         settings: wfSettingsOf(prefs),
         todos: todos,
-        // 会话5 · the hot-inject history (the host's own fold of `agent/inbox/spliced` + the
-        // admitting `user/message`). Oldest first, bounded, never invented.
+     // the hot-inject history (the host's own fold of `agent/inbox/spliced` + the
+     // admitting `user/message`). Oldest first, bounded, never invented.
         injects: wfInjectRows(view.injects),
         asOf: wfFinite(view.asOf),
         now: wfFinite(nowMs),
@@ -2275,7 +2275,7 @@ window.__ModuleLoader__.load({
 
     // ===== src/client/Settings.js =====
     /**
-     * Settings.js — step-12: presentation preferences and the in-panel settings card.
+     * Settings.js — presentation preferences and the in-panel settings card.
      *
      * Everything here is display-only. A setting never reaches the host half, never
      * changes a snapshot, and never writes anything except the one localStorage record
@@ -2289,7 +2289,7 @@ window.__ModuleLoader__.load({
      * Pure: `h` and `say` are injected. Inlined into client.js by tools/build-client.mjs.
      */
 
-    /** The documented defaults («恢复默认» resets to exactly these values). */
+    /** The documented defaults ("Reset to defaults" restores exactly these values). */
     function wfDefaultSettings() {
       return {
         palette: "rainbow",
@@ -2308,7 +2308,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * 60 / 30 / 120 / 0 — 0 is 「全部」. The string "all" is accepted on read so a
+     * 60 / 30 / 120 / 0 - 0 means "all". The string "all" is accepted on read so a
      * hand-edited record cannot strand the panel, but it is persisted as 0.
      */
     function wfSanitizeNodeLimit(value, fallback) {
@@ -2432,7 +2432,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * The whole in-panel settings section. It replaces the step-06 diagnostic strip:
+     * The whole in-panel settings section. It replaces the diagnostic strip:
      * the endpoint / counts / rev remain at the bottom, but the top is now the actual
      * four preferences plus the two export pairs.
      */
@@ -2489,37 +2489,38 @@ window.__ModuleLoader__.load({
 
     // ===== src/client/pulse.js =====
     /**
-     * pulse.js — 「正在干的事」的呼吸/闪烁层（step-10）。
+     * pulse.js - the breathing / blinking layer for "what is happening right now".
      *
-     * 三件事，全部可以脱离浏览器测：
-     *   wfMotionMode   matchMedia 的包装 → "css" | "static"（系统开启「减少动效」时 static）
-     *   wfSessionRunning  会话是否真的在跑：宿主给了布尔值就用它，否则按「有活动节点 / 最近有事件」推断
-     *   wfRenderLive  「● 正在 …」小挂件：6 px 呼吸点 + 三点省略号（纯 markup，`h`/`say` 注入）
+     * Three things, all testable without a browser:
+     * wfMotionMode - a matchMedia wrapper -> "css" | "static" ("static" when the OS requests reduced motion)
+     * wfSessionRunning - is the session actually working: prefer the host boolean when present; otherwise infer it with two fallbacks (an active node, or a recent event)
+     * wfRenderLive - the "● working ..." widget: a 6 px breathing dot plus a three-dot ellipsis (pure markup, `h`/`say` injected)
      *
-     * 为什么 idle 判定要有三条腿：宿主视图现在有了 `view.running`（step-10 由 `turn/start` /
-     * `turn/end` 折叠而来），它是最准的那条；但旧检查点、以及尚未跑到 turn 事件的老视图里没有它，
-     * 所以还要两层兜底——「有节点正在调用」（active.nodeId）和「刚刚还有事件」（asOf 距今 <
-     * WF_IDLE_AFTER_MS）。一个布尔值优先，后两条只在它缺席时生效。分步的 running 状态在 turn
-     * 结束后不会被 PAE 立刻改写，所以它永远不参与这个判断。
+     * Why the idle decision needs three legs: the host view now carries `view.running` (folded from `turn/start` /
+     * `turn/end`), which is the most accurate signal; but old checkpoints and views that have not reached a turn event do not carry it,
+     * so two fallbacks remain - "a node is being called" (active.nodeId) and "there was an event recently" (asOf within <
+     * WF_IDLE_AFTER_MS). The boolean wins; the other two apply only when it is absent. A step's running status is
+     * not rewritten by PAE right after a turn ends, so it never participates in this decision.
      *
-     * 纯函数、无 import/export：由 tools/build-client.mjs 内联进 client.js（单文件浏览器半）。
+     * Pure, no import/export: inlined into client.js by tools/build-client.mjs (single-file browser half).
      */
 
-    /** DSH 思考指示的节奏：1.2 s 一个呼吸周期（与 step-07/08 的 1.6 s 状态点故意不同：
-     *  1.2 s 只给「当前正在做的事」，1.6 s 给「进行中的一行」，两者同屏也不会同步成一闪一闪）。 */
+    /** The rhythm of the thinking indicator: one breathing cycle every 1.2 s (deliberately different
+     * from the 1.6 s status dot: 1.2 s is for "what is happening now", 1.6 s for "the running row",
+     * so on the same screen they do not pulse in sync). */
     var WF_PULSE_PERIOD = "1.2s";
     var WF_PULSE_MS = 1200;
 
-    /** 最后一个事件距今超过这么久、且没有活动节点 ⇒ 会话空闲。15 s 覆盖一次工具调用的正常间隔，
-     *  又能在用户回完话后很快让动画停下来（不持续占 GPU）。 */
+    /** The last event older than this, with no active node => the session is idle. 15 s covers a normal tool-call gap
+     * while still stopping the animation soon after the user replies (no continuous GPU use). */
     var WF_IDLE_AFTER_MS = 15000;
 
-    /** 省略号的点数（三个点，逐个点亮）。 */
+    /** Number of dots in the ellipsis (three, lit one after another). */
     var WF_LIVE_DOTS = 3;
 
     /**
-     * 系统的「减少动效」开关。`matchMediaFn` 注入而不是直接读 window，Node 里的自测才能
-     * 同时覆盖「有 matchMedia / 没有 matchMedia / matchMedia 抛错」三种环境。
+     * The OS "reduced motion" switch. `matchMediaFn` is injected rather than read off window, so the Node self-test can
+     * cover three environments: matchMedia present / absent / throwing.
      */
     function wfMotionMode(matchMediaFn) {
       if (typeof matchMediaFn !== "function") return "css";
@@ -2527,19 +2528,19 @@ window.__ModuleLoader__.load({
         var query = matchMediaFn("(prefers-reduced-motion: reduce)");
         return query && query.matches === true ? "static" : "css";
       } catch (error) {
-        // 一个抛错的 matchMedia 不是「用户要求减少动效」，只能是环境不支持 → 照常动。
+      // A throwing matchMedia is not a request for reduced motion - the environment simply cannot answer -> animate as usual.
         return "css";
       }
     }
 
     /**
-     * 会话是否在跑。
-     *   1. 宿主的 `view.running`（step-10 的 turn 标志）→ 就是它，其余三条都不再参与。
-     *   2. 有活动节点（active.nodeId） → 正在调用，无论事件多久以前。
-     *   3. 最后一个事件在 WF_IDLE_AFTER_MS 之内 → 正在干活。
-     *   4. 其余 → 空闲。
-     * `nowMs` 不可用时（离线自测、模拟时钟缺失）返回「在跑」：宁可多动一帧，也不要把一个
-     * 正在工作的会话误判成空闲（那会让曲线和外框看起来坏掉）。
+     * Is the session working.
+     * 1. The host's `view.running` (the turn flag) -> use it as-is; the other three no longer participate.
+     * 2. An active node (active.nodeId) -> it is calling right now, regardless of how old the last event is.
+     * 3. The last event is within WF_IDLE_AFTER_MS -> still working.
+     * 4. Anything else -> idle.
+     * When `nowMs` is unavailable (offline self-test, no clock) return "working": better to animate one extra frame than to treat a
+     * working session as idle (which would make the curve and the frame look broken).
      */
     function wfSessionRunning(view, activeNodeId, nowMs) {
       if (view && typeof view.running === "boolean") return view.running;
@@ -2551,7 +2552,7 @@ window.__ModuleLoader__.load({
       return now - asOf < WF_IDLE_AFTER_MS;
     }
 
-    /** 组件用的 motion 模式：随系统偏好变化更新（卸载时摘掉监听）。 */
+    /** The component's motion mode: follows the OS preference, listener removed on unmount. */
     function wfUseMotion() {
       var pair = React.useState(function () {
         return wfMotionMode(typeof window !== "undefined" && window ? window.matchMedia : null);
@@ -2572,7 +2573,7 @@ window.__ModuleLoader__.load({
         function onChange() {
           setMode(wfMotionMode(window.matchMedia));
         }
-        // 老 Safari 只有 addListener；两个都试，能摘就摘。
+      // Old Safari only has addListener; try both and remove whichever was used.
         if (typeof query.addEventListener === "function") {
           query.addEventListener("change", onChange);
           return function () {
@@ -2592,9 +2593,9 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * 「● 正在 …」——当前活动的标记。`scope` 只是给测试/样式用的标签（step / node），
-     * 三个点用独立元素而不是 animation 里的 content：content 在 keyframes 里是离散跳变，
-     * 而且无头浏览器里读不到中间态。
+     * "● working ..." - the marker for current activity. `scope` is just a tag for tests and styling (step / node);
+     * the three dots are separate elements rather than keyframe `content`, which jumps discretely
+     * and whose intermediate state cannot be read in a headless browser.
      */
     function wfRenderLive(h, say, scope) {
       var word = typeof say === "function" ? say("panel.live") : "";
@@ -2618,36 +2619,36 @@ window.__ModuleLoader__.load({
     /**
      * ProgressUnder.js — the rail that hangs UNDER a step card's frame.
      *
-     * Contract (step-07):
-     *   - exactly WF_STEP_GAP (8 px) of air between the card's bottom border and the
-     *     rail: the rail belongs to the card but must not be glued to its frame;
-     *   - a WF_STEP_RAIL (6 px) track whose fill is coloured by state — running
-     *     flows, done is solid, failed is red, not started leaves the track empty;
-     *   - the number on the right says WHICH KIND of number it is:
-     *       "~62% 估算"  a time-baseline extrapolation (percentSource "baseline", and its cold-start
-     *                    sub-variant "baseline:steps", which keeps the same visible flavour)
-     *       "62% 自报"   the model's own report    (percentSource "model")
-     *       "62% 实测"   the todo table's measured completion ratio (percentSource "todos")
-     *       "100%"       a closed step's pinned value
-     *   - a step that has NOT started never shows a percentage, even when the wire
-     *     payload carries a stale one. No number is better than a fake number.
+     * Contract :
+     * - exactly WF_STEP_GAP (8 px) of air between the card's bottom border and the
+     * rail: the rail belongs to the card but must not be glued to its frame;
+     * - a WF_STEP_RAIL (6 px) track whose fill is coloured by state — running
+     * flows, done is solid, failed is red, not started leaves the track empty;
+     * - the number on the right says WHICH KIND of number it is:
+     * "~62% estimated" a time-baseline extrapolation (percentSource "baseline", and its cold-start
+     * sub-variant "baseline:steps", which keeps the same visible flavour)
+     * "62% self-reported" the model's own report (percentSource "model")
+     * "62% measured" the todo table's measured completion ratio (percentSource "todos")
+     * "100%" a closed step's pinned value
+     * - a step that has NOT started never shows a percentage, even when the wire
+     * payload carries a stale one. No number is better than a fake number.
      *
-     * step-03 adds a SECOND line under the rail — one secondary fact about the
+     * adds a SECOND line under the rail — one secondary fact about the
      * number, never about the work:
-     *   - `ago`: how long ago that number was estimated (`view.asOf − step.lastEstimateAt`).
-     *     Data freshness: a 40-minute-old estimate on a still-running step is not a
-     *     lie, but the user deserves to know it is stale. `lastEstimateAt` is 0 when
-     *     no estimate ever arrived, and then the segment is NOT rendered at all —
-     *     "0 秒前" would be a fabricated number, which is exactly what this plugin
-     *     refuses to print.
+     * - `ago`: how long ago that number was estimated (`view.asOf − step.lastEstimateAt`).
+     * Data freshness: a 40-minute-old estimate on a still-running step is not a
+     * lie, but the user deserves to know it is stale. `lastEstimateAt` is 0 when
+     * no estimate ever arrived, and then the segment is NOT rendered at all —
+     * "0 seconds ago" would be a fabricated number, which is exactly what this plugin
+     * refuses to print.
      *
-     * 会话6 (2026-10-26) · the projected REMAINING half is GONE by user request. It used to be shipped
+     * (2026-10-26) · the projected REMAINING half is GONE by user request. It used to be shipped
      * by the host as a derived millisecond field (median of the finished steps, hard-bounded) and
-     * rendered as 「剩余 ≈N 分钟」; the host no longer computes it and this rail no longer renders it.
+     * rendered as "remaining ~N minutes"; the host no longer computes it and this rail no longer renders it.
      * One line, one fact, no consumer-less field — and a payload that still carries that field (an
      * older host) is simply not read.
      *
-     * Layout (step-03): two right-aligned lines. Line 1 = track + percent (unchanged).
+     * Layout : two right-aligned lines. Line 1 = track + percent (unchanged).
      * Line 2 = ago, one font step and one colour step down, so it reads as
      * secondary. With no age to show the whole line is omitted — never a placeholder.
      * In the narrow container (`data-detail='title'`) only line 1 exists — the host
@@ -2664,21 +2665,21 @@ window.__ModuleLoader__.load({
     function wfProgressLabel(percent, source, status, say) {
       var value = wfFinite(percent);
       if (value === null) return null;
-      // A step that has not started has no progress to report. Showing a number here
-      // would be the exact lie the acceptance criterion forbids.
+     // A step that has not started has no progress to report. Showing a number here
+     // would be the exact lie the acceptance criterion forbids.
       if (status === "pending" || status === "skipped") return null;
       var rounded = Math.round(wfClamp(value, 0, 100));
-      // step-02 · the cold-start sub-variant of the baseline keeps the SAME visible flavour (~N% 估算):
-      // the sub-division is machine-readable (`baseline:steps`), and falling through to the closed
-      // flavour would print it as a pinned 100 %-style number, which it is not.
+      // the cold-start sub-variant of the baseline keeps the SAME visible flavour (~N% estimated):
+     // the sub-division is machine-readable (`baseline:steps`), and falling through to the closed
+     // flavour would print it as a pinned 100 %-style number, which it is not.
       if (source === "baseline" || source === "baseline:steps") {
         return { kind: "estimate", percent: rounded, text: say("panel.percent.estimate", { percent: rounded }) };
       }
       if (source === "model") {
         return { kind: "self", percent: rounded, text: say("panel.percent.self", { percent: rounded }) };
       }
-      // 会话6 · a MEASURED number (the todo table's own completion ratio). It must read differently
-      // from both "self-reported" and "estimated", or the user cannot tell a fact from a guess.
+     // a MEASURED number (the todo table's own completion ratio). It must read differently
+     // from both "self-reported" and "estimated", or the user cannot tell a fact from a guess.
       if (source === "todos") {
         return { kind: "real", percent: rounded, text: say("panel.percent.real", { percent: rounded }) };
       }
@@ -2703,9 +2704,9 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * step-03: 180_000 → "3 分钟", 5_400 → "54 秒", 3_720_000 → "62 分钟".
+     * 180_000 -> "3 minutes", 5_400 -> "54 seconds", 3_720_000 -> "62 minutes".
      * One decimal below ten seconds, integers above — a clock's precision, not a
-     * stopwatch's. 0 or less returns "" (never "0 秒": see the caller).
+     * stopwatch's. 0 or less returns "" (never "0 seconds": see the caller).
      */
     function wfProgressDurationText(ms) {
       var value = wfFinite(ms);
@@ -2723,23 +2724,23 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * step-03: the ONE secondary fact left — how stale the number being quoted is — or null. Pure
+     * the ONE secondary fact left — how stale the number being quoted is — or null. Pure
      * arithmetic on the row the host already shipped; no clock is read here (the caller passes `asOf`).
      *
      * `ago` needs a real `lastEstimateAt` AND an `asOf` after it: a step that has never carried a
      * number gets no segment, and a future stamp (a re-ordered event log) is clamped to nothing
      * rather than shown as a negative duration. A missing field produces NO segment — never a
-     * fabricated 0 or "—" (会话6: the ETA half went with the host's derived field).
+     * fabricated 0 or "—" (the ETA half went with the host's derived field).
      */
     function wfProgressTiming(row, asOf) {
       var status = row && typeof row.status === "string" ? row.status : "pending";
       var now = wfFinite(asOf);
       var estimateAt = wfFinite(row ? row.lastEstimateAt : null);
-      // The gate mirrors the percent label's: only a step that HAS a live progress number can read
-      // "N 分钟前估计", because the sentence is about that number. A pending row with a leftover stamp
-      // (a re-plan that reset a step, say) would otherwise advertise an estimate it never made — the
-      // same "no number beats a fake number" rule the percent label already follows. `ago` is a fact
-      // about the PAST, so it only needs a number to have existed at all: percent > 0.
+     // The gate mirrors the percent label's: only a step that HAS a live progress number can read
+     // "estimated N minutes ago", because the sentence is about that number. A pending row with a leftover stamp
+     // (a re-plan that reset a step, say) would otherwise advertise an estimate it never made — the
+     // same "no number beats a fake number" rule the percent label already follows. `ago` is a fact
+     // about the PAST, so it only needs a number to have existed at all: percent > 0.
       var livePercent = wfFinite(row ? row.percent : null);
       var hasAnyNumber = livePercent !== null && livePercent > 0 && status !== "pending";
       var ago = null;
@@ -2772,9 +2773,9 @@ window.__ModuleLoader__.load({
         trackProps["aria-valuetext"] = label.text;
       }
 
-      // step-03: the second line — ONE fact (the age of the number), so there is no bits array and
-      // no separator any more. 会话6: the projected remainder is gone, so `data-timing` converged to
-      // none|one; nothing at all renders when there is no age (never a placeholder).
+     // the second line — ONE fact (the age of the number), so there is no bits array and
+     // no separator any more. the projected remainder is gone, so `data-timing` converged to
+     // none|one; nothing at all renders when there is no age (never a placeholder).
       var subline = ago === null
         ? null
         : h(
@@ -2809,8 +2810,8 @@ window.__ModuleLoader__.load({
             className: "wf-prog-fill",
             key: "fill",
             "data-indeterminate": indeterminate ? "true" : "false",
-            // 会话6 · 有且只有一个分步的进度条带彩色流光：由调用方给的 row.live 决定（host 只标记
-            // 唯一的 running 行），而不是“凡是 running 都动”。没有这个字段时退回旧行为（running 即动）。
+      // Exactly one step's rail carries the flowing gradient: decided by the caller's row.live (the host marks only
+      // the single running row), not "everything running animates". Without that field it falls back to the old behaviour.
             "data-live": (row && row.live === true) || (row && row.live === undefined && status === "running") ? "true" : "false",
             style: { width: width + "%" },
           })),
@@ -2834,17 +2835,17 @@ window.__ModuleLoader__.load({
 
     // ===== src/client/StepDetail.js =====
     /**
-     * StepDetail.js — 「这一步交了什么」: the PAE step report plus the step's own statistics,
+     * StepDetail.js - "what did this step deliver": the PAE step report plus the step's own statistics,
      * inline under the selected step card (and a one-line summary in the column header).
      *
      * Two sources, deliberately kept apart:
-     *   report  plan.stepReports[stepIndex] — summary / artifacts / exit_code / status. PAE
-     *           rewrites this after every step; a step that has not reported yet says so.
-     *   stats   the step's own nodes (tool count, distinct files, first/last clock) — the
-     *           counts come from the nodes the host actually sent, and when the host's
-     *           300-node cap bit, the block says how many nodes it could not count.
+     * report plan.stepReports[stepIndex] — summary / artifacts / exit_code / status. PAE
+     * rewrites this after every step; a step that has not reported yet says so.
+     * stats the step's own nodes (tool count, distinct files, first/last clock) — the
+     * counts come from the nodes the host actually sent, and when the host's
+     * 300-node cap bit, the block says how many nodes it could not count.
      *
-     * There is NO "blank" state: a step without a report renders 「这一步还没交报告」.
+     * There is NO "blank" state: a step without a report renders "no report for this step yet".
      *
      * Pure: `h` and `say` are injected. The open/closed state is a plain number (the step whose
      * detail the user closed) so it survives re-renders without React state in the renderer.
@@ -2902,7 +2903,7 @@ window.__ModuleLoader__.load({
       return { selectedStep: Math.round(stepIndex), closedStep: null };
     }
 
-    /** The one-line summary pinned in the left column's header (「头部显示」). */
+    /** The one-line summary pinned in the left column's header. */
     function wfRenderStepHead(h, detail, say) {
       if (!detail) return null;
       return h(
@@ -2919,7 +2920,7 @@ window.__ModuleLoader__.load({
     /**
      * The block under the selected card. `detail` is built by store.js wfBuildStepDetail:
      * {index, planIndex, title, status, statusKey, tools, files, nodes, truncated,
-     *  startedAt, endedAt, report|null}.
+     * startedAt, endedAt, report|null}.
      */
     function wfRenderStepDetail(h, detail, say, actions, ctx) {
       if (!detail || wfFinite(detail.index) === null) return null;
@@ -3094,8 +3095,8 @@ window.__ModuleLoader__.load({
      * air, so the card still reads as a card and the bar as an annotation of it.
      *
      * STATUS POLICY (the one rule this file exists for):
-     *   PAE `plan.statuses`  >  the todo table  >  `plan.anchorSeqs` inference  >
-     *   the host's event-derived status  >  "pending".
+     * PAE `plan.statuses` > the todo table > `plan.anchorSeqs` inference >
+     * the host's event-derived status > "pending".
      *
      * Why the browser re-derives what the host already merged: the host may see a
      * PAE-opened row's event status before PAE rewrites `statuses`, and the plan file
@@ -3110,7 +3111,7 @@ window.__ModuleLoader__.load({
      */
 
     /** PAE / todo status vocabulary → this plugin's five card states. A Map, so a
-     *  crafted "constructor" key cannot resolve through Object.prototype. */
+     * crafted "constructor" key cannot resolve through Object.prototype. */
     var WF_STATUS_ALIASES = new Map([
       ["completed", "done"],
       ["complete", "done"],
@@ -3175,11 +3176,11 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* matching a step to its todo row                                           */
+    /* matching a step to its todo row */
     /* ------------------------------------------------------------------------- */
 
-    /** "5. 装入 desktop profile…" → "装入 desktop profile…" (the ordinal is not part
-     *  of the name). Also strips a trailing run of list punctuation. */
+    /** "5. install into the desktop profile..." -> "install into the desktop profile..." (the ordinal is not part
+     * of the name). Also strips a trailing run of list punctuation. */
     function wfStripStepOrdinal(text) {
       if (typeof text !== "string") return "";
       return text.replace(/^\s*\d+\s*[.、)．:：]\s*/, "");
@@ -3227,7 +3228,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* status derivation                                                         */
+    /* status derivation */
     /* ------------------------------------------------------------------------- */
 
     function wfHasKey(object, key) {
@@ -3244,14 +3245,14 @@ window.__ModuleLoader__.load({
       var planIndex = row && wfFinite(row.planIndex) !== null ? Math.round(row.planIndex) : null;
 
       if (plan && planIndex !== null) {
-        // 1. PAE's own statuses are the published truth.
+     // 1. PAE's own statuses are the published truth.
         var label = wfHasKey(plan.statuses, String(planIndex)) ? plan.statuses[String(planIndex)] : null;
         var fromPae = wfCanonicalStatus(label);
         var skipped = Array.isArray(plan.skipped) && plan.skipped.indexOf(planIndex) >= 0;
         if (skipped && (fromPae === null || fromPae === "pending")) return { status: "skipped", source: "pae" };
         if (fromPae !== null) return { status: fromPae, source: "pae" };
 
-        // 2. The todo table (what the model wrote into its own checklist).
+     // 2. The todo table (what the model wrote into its own checklist).
         var fromTodo = null;
         if (todoIndex) {
           if (todoIndex.byOrdinal.has(planIndex)) fromTodo = wfCanonicalStatus(todoIndex.byOrdinal.get(planIndex));
@@ -3262,8 +3263,8 @@ window.__ModuleLoader__.load({
         }
         if (fromTodo !== null) return { status: fromTodo, source: "todo" };
 
-        // 3. An anchored step has been opened. The plan's own cursor decides whether
-        //    it is behind us (done), here (running) or still ahead (pending).
+     // 3. An anchored step has been opened. The plan's own cursor decides whether
+     // it is behind us (done), here (running) or still ahead (pending).
         if (wfHasKey(plan.anchorSeqs, String(planIndex))) {
           if (currentPlanIndex !== null && planIndex < currentPlanIndex) return { status: "done", source: "anchor" };
           if (currentPlanIndex !== null && planIndex === currentPlanIndex) return { status: "running", source: "anchor" };
@@ -3271,8 +3272,8 @@ window.__ModuleLoader__.load({
           return { status: "running", source: "anchor" };
         }
       } else if (todoIndex) {
-        // A row with no plan ordinal (planning-phase work) can still be in the todo
-        // table; match it by name only.
+     // A row with no plan ordinal (planning-phase work) can still be in the todo
+     // table; match it by name only.
         var fallbackTitle = wfNormalizeStepTitle(row && row.title);
         if (fallbackTitle !== "" && todoIndex.byTitle.has(fallbackTitle)) {
           var named = wfCanonicalStatus(todoIndex.byTitle.get(fallbackTitle));
@@ -3280,7 +3281,7 @@ window.__ModuleLoader__.load({
         }
       }
 
-      // 4. The host's event-derived status, then the honest floor.
+     // 4. The host's event-derived status, then the honest floor.
       var fromHost = wfCanonicalStatus(row && row.status);
       if (fromHost !== null) return { status: fromHost, source: "host" };
       return { status: "pending", source: "none" };
@@ -3310,20 +3311,20 @@ window.__ModuleLoader__.load({
           rawStatus: row.status,
           percent: row.percent,
           percentSource: row.percentSource,
-          // step-03: carried through the status rewrite so every row keeps the stamp the host
-          // shipped, whichever policy decided its status.
+     // carried through the status rewrite so every row keeps the stamp the host
+     // shipped, whichever policy decided its status.
           lastEstimateAt: wfFinite(row.lastEstimateAt) === null ? 0 : Math.max(0, Math.round(wfFinite(row.lastEstimateAt))),
           nodeCount: row.nodeCount,
           planIndex: row.planIndex,
           anchorSeq: row.anchorSeq,
           requiresConfirmation: requiresConfirmation,
-          // 会话5 · carried through the status rewrite: the rows the host folded for this step (an
-          // open approval, an unanswered question). Bounded to the same limit the host applies, so a
-          // damaged record cannot flood the badge row.
+     // carried through the status rewrite: the rows the host folded for this step (an
+     // open approval, an unanswered question). Bounded to the same limit the host applies, so a
+     // damaged record cannot flood the badge row.
           pendingConfirm: Array.isArray(row.pendingConfirm) ? row.pendingConfirm.slice(0, 8) : [],
           reportSummary: row.reportSummary,
-          // step-11: the step detail needs the clock and the report; both are carried here so
-          // every row has the same shape whether or not it is the selected one.
+     // the step detail needs the clock and the report; both are carried here so
+     // every row has the same shape whether or not it is the selected one.
           startedAt: wfFinite(row.startedAt),
           endedAt: wfFinite(row.endedAt),
           outcome: typeof row.outcome === "string" ? row.outcome : "",
@@ -3336,7 +3337,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* rendering                                                                 */
+    /* rendering */
     /* ------------------------------------------------------------------------- */
 
     function wfPad2(value) {
@@ -3354,7 +3355,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * The ONE disclosure triangle (step-02), shared by a step card and a folded run.
+     * The ONE disclosure triangle , shared by a step card and a folded run.
      *
      * It is a real <button>, not a ::before glyph: a pseudo-element is not a hit
      * target, cannot be Tab-reached and cannot carry aria-expanded. It is also a
@@ -3364,8 +3365,8 @@ window.__ModuleLoader__.load({
      * band the row reserves with padding-left.
      *
      * `extra` carries what only the caller knows:
-     *   {label, controls, data, key}  the aria-label/title, aria-controls target,
-     *                                 the data-dsh-workflow-map tag and the React key.
+     * {label, controls, data, key} the aria-label/title, aria-controls target,
+     * the data-dsh-workflow-map tag and the React key.
      */
     function wfTri(h, expanded, onToggle, extra) {
       var open = expanded === true;
@@ -3393,7 +3394,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * One `<li>`: card (+ its 「i」) + rail + (step-11) the step detail + (unless last) the
+     * One `<li>`: card (+ its 「i」) + rail + the step detail + (unless last) the
      * 14 px connector to the next card. `info` carries {detail, open} for THIS row only.
      */
     function wfRenderStepItem(h, row, position, total, say, actions, info) {
@@ -3401,9 +3402,9 @@ window.__ModuleLoader__.load({
       var fire = actions || {};
       var glyph = wfStatusGlyph(status);
       var detail = info && info.detail && info.detail.index === row.index ? info.detail : null;
-      // step-03: `asOf` is the ONE moment every timing segment is measured against. The host
-      // ships it in the view; passing it down keeps the renderer clock-free and the numbers
-      // reproducible in a self-test with a fixed stamp.
+     // `asOf` is the ONE moment every timing segment is measured against. The host
+     // ships it in the view; passing it down keeps the renderer clock-free and the numbers
+     // reproducible in a self-test with a fixed stamp.
       var compact = !!(info && info.compact === true);
       var open = detail !== null && info.open === true && !compact;
 
@@ -3446,9 +3447,9 @@ window.__ModuleLoader__.load({
                 )
               : null
           ),
-          // 「正在 …」 only on the step that is running right now (step-10): a 6 px breathing dot
-          // plus a three-dot ellipsis. It sits under the title line, so a running card never
-          // reflows the two-line clamp of `.wf-step-title`.
+     // "working ..." only on the step that is running right now: a 6 px breathing dot
+     // plus a three-dot ellipsis. It sits under the title line, so a running card never
+     // reflows the two-line clamp of `.wf-step-title`.
           status === "running" ? wfRenderLive(h, say, "step") : null
         ),
         h("span", { className: "wf-step-seq", key: "seq" }, wfPad2(position + 1) + "/" + wfPad2(total))
@@ -3464,11 +3465,11 @@ window.__ModuleLoader__.load({
           "data-selected": row.selected ? "true" : "false",
           "data-detail": compact ? "title" : "summary",
         },
-        // step-02: the disclosure triangle is a real <button>, a SIBLING of the card (a
-        // button inside a button is invalid HTML and unreachable by keyboard). The <li> is a
-        // one-column grid, so the triangle and the card share cell 1/1: the triangle spans the
-        // card's full height in the 20 px band the card reserves with padding-left, and the
-        // card stays a DIRECT child (the running-frame ring and FlowEffects query it that way).
+     // the disclosure triangle is a real <button>, a SIBLING of the card (a
+     // button inside a button is invalid HTML and unreachable by keyboard). The <li> is a
+     // one-column grid, so the triangle and the card share cell 1/1: the triangle spans the
+     // card's full height in the 20 px band the card reserves with padding-left, and the
+     // card stays a DIRECT child (the running-frame ring and FlowEffects query it that way).
         compact
           ? null
           : wfTri(h, open, function () {
@@ -3480,9 +3481,9 @@ window.__ModuleLoader__.load({
               controls: "wf-step-detail-" + row.index,
             }),
         card,
-        // The 「i」 is a SIBLING of the card too (same reason as the triangle): it is absolutely
-        // positioned inside the 26 px right band the card reserves, so the title never runs
-        // underneath it. step-02 keeps it — two entry points, one state source.
+     // The 「i」 is a SIBLING of the card too (same reason as the triangle): it is absolutely
+     // positioned inside the 26 px right band the card reserves, so the title never runs
+     // underneath it. keeps it — two entry points, one state source.
         compact ? null : h(
           "button",
           {
@@ -3502,8 +3503,8 @@ window.__ModuleLoader__.load({
           },
           "i"
         ),
-        // step-03: the rail carries the number, its age and its projection. `compact` is passed on
-        // the row because the dock renders the two-line layout only when there is room for it.
+     // the rail carries the number, its age and its projection. `compact` is passed on
+     // the row because the dock renders the two-line layout only when there is room for it.
         wfRenderProgressDock(h, compact ? { ...row, compact: true } : row, say, info && info.asOf),
         open ? wfRenderStepDetail(h, detail, say, actions) : null,
         position + 1 < total
@@ -3519,12 +3520,12 @@ window.__ModuleLoader__.load({
 
     /**
      * The whole left column: a sticky header inside an internally scrolling list, so
-     * a 15-step plan keeps its "总任务分步 · 5/15" caption while the cards move.
+     * a 15-step plan keeps its "total steps · 5/15" caption while the cards move.
      */
     function wfRenderStepColumn(h, model, say, actions, ui) {
       var total = model.steps.length;
-      // `ui` is the closed step index (number) or null; the detail itself is built by store.js
-      // for the selected step only, so a stale index can never render another step's report.
+     // `ui` is the closed step index (number) or null; the detail itself is built by store.js
+     // for the selected step only, so a stale index can never render another step's report.
       var detail = model.detail && model.detail.index === model.selected ? model.detail : null;
       var header = h(
         "div",
@@ -3554,9 +3555,9 @@ window.__ModuleLoader__.load({
                 detail: detail,
                 open: detail !== null && !(model.settings && model.settings.detail === "title") && wfStepDetailOpen(ui, model.selected),
                 compact: !!(model.settings && model.settings.detail === "title"),
-                // step-03: the shared "now" for every rail's age arithmetic. `view.asOf` is the
-                // host's own stamp (the ONE honest clock in the plugin); `model.now` is the render
-                // moment the panel passed in and is only a fallback for a view that carries none.
+     // the shared "now" for every rail's age arithmetic. `view.asOf` is the
+     // host's own stamp (the ONE honest clock in the plugin); `model.now` is the render
+     // moment the panel passed in and is only a fallback for a view that carries none.
                 asOf: model.asOf === null || model.asOf === undefined ? model.now : model.asOf,
               });
             })
@@ -3567,18 +3568,18 @@ window.__ModuleLoader__.load({
 
     // ===== src/client/NodeDetail.js =====
     /**
-     * NodeDetail.js — 「这个节点到底干了什么」, inline under the selected node card.
+     * NodeDetail.js - "what did this node actually do", inline under the selected node card.
      *
      * The card (NodeCard.js) answers what / how / how did it in one line; a click expands
      * this block, which is the only place the panel shows:
-     *   head     tool name · category chip (file / command / skill / subagent / CAD / other) · status
-     *   args     the host's argsText digest (≤ ARGS_CAP, monospace, pre-wrap) — a single-line
-     *            preview plus a <details> that opens the whole stored text
-     *   files    grouped by action: 读取 📖 / 修改 ✏️ / 写入 💾 / 查询 🔎; each row copies the path
-     *   result   the first line; on an error the stored error text is shown in full
-     *   meta     start clock · duration ms · event seq
+     * head tool name · category chip (file / command / skill / subagent / CAD / other) · status
+     * args the host's argsText digest (≤ ARGS_CAP, monospace, pre-wrap) — a single-line
+     * preview plus a <details> that opens the whole stored text
+     * files grouped by action: read / edited / written / queried; each row copies the path
+     * result the first line; on an error the stored error text is shown in full
+     * meta start clock · duration ms · event seq
      *
-     * PRIVACY (step-11 §3): the panel never shows file CONTENT. That is structural, not a
+     * PRIVACY ( §3): the panel never shows file CONTENT. That is structural, not a
      * promise: the host's fold drops `content` / `old_str` / `new_str` when it builds argsText
      * (src/fold.mjs argsDigest), and store.js copies node fields through an explicit whitelist —
      * so a body can neither reach this renderer nor be printed by it. tools/selftest-detail.mjs
@@ -3675,7 +3676,7 @@ window.__ModuleLoader__.load({
 
     /**
      * File rows grouped by action, first occurrence of a path winning within its group.
-     * A node with no files yields [] — the renderer prints 「未涉及文件」 itself.
+     * A node with no files yields [] - the renderer prints "no files touched" itself.
      */
     function wfDetailFileGroups(node) {
       var list = node && Array.isArray(node.fileList) ? node.fileList : [];
@@ -3743,9 +3744,9 @@ window.__ModuleLoader__.load({
             }
           },
         },
-        // Two spans, never a bare text node: the 1.5 s 「已复制」 repaints the status span only,
-        // so a file row keeps its basename + directory (a textContent write would erase them and
-        // React would not restore children it thinks are unchanged).
+     // Two spans, never a bare text node: the 1.5 s "Copied" repaints the status span only,
+     // so a file row keeps its basename + directory (a textContent write would erase them and
+     // React would not restore children it thinks are unchanged).
         h("span", { className: "wf-copy-label", key: "label" }, label),
         h("span", { className: "wf-copy-status", key: "status", "aria-live": "polite" }, "")
       );
@@ -3765,7 +3766,7 @@ window.__ModuleLoader__.load({
           "div",
           { className: "wf-detail-rows", key: "rows" },
           group.files.map(function (file, position) {
-            // The whole row is the copy button: basename in the foreground, directory grey.
+     // The whole row is the copy button: basename in the foreground, directory grey.
             return h(
               "button",
               {
@@ -3840,8 +3841,8 @@ window.__ModuleLoader__.load({
         )
       );
 
-      // The expansion is a native <details>: keyboard-operable, no React state, and the opened
-      // text is the WHOLE stored argsText (the host's 200-char digest, not the file body).
+     // The expansion is a native <details>: keyboard-operable, no React state, and the opened
+     // text is the WHOLE stored argsText (the host's 200-char digest, not the file body).
       var argsChildren = [
         h(
           "div",
@@ -3946,7 +3947,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* clipboard                                                                  */
+    /* clipboard */
     /* ------------------------------------------------------------------------- */
 
     /**
@@ -4002,14 +4003,14 @@ window.__ModuleLoader__.load({
       try {
         if (area.parentNode) area.parentNode.removeChild(area);
       } catch (error) {
-        /* an unremovable node is still harmless: it is offscreen and empty */
+     /* an unremovable node is still harmless: it is offscreen and empty */
       }
       return copied;
     }
 
     /**
      * Repaint ONE copy control for its 1.5 s acknowledgement. Pure DOM mutation, so the
-     * renderers stay state-free and a React re-render cannot strand a 「已复制」 label.
+     * renderers stay state-free and a React re-render cannot strand a "Copied" label.
      */
     function wfSetCopyState(element, state, say) {
       if (!element || typeof element !== "object") return false;
@@ -4020,14 +4021,14 @@ window.__ModuleLoader__.load({
             ? say("panel.detail.copyfailed")
             : null;
       if (typeof element.setAttribute === "function") element.setAttribute("data-copy-state", state);
-      // Preferred: the dedicated status span. The button's label (and a file row's basename +
-      // directory) stay in place; CSS hides the label while the status is showing.
+     // Preferred: the dedicated status span. The button's label (and a file row's basename +
+     // directory) stay in place; CSS hides the label while the status is showing.
       var status = typeof element.querySelector === "function" ? element.querySelector(".wf-copy-status") : null;
       if (status && typeof status.textContent === "string") {
         status.textContent = label === null ? "" : label;
         return true;
       }
-      // Fallback for a plain element (a test double, or a future copy control without the span).
+     // Fallback for a plain element (a test double, or a future copy control without the span).
       if (typeof element.textContent === "string") {
         if (label !== null) element.textContent = label;
         else if (typeof element.getAttribute === "function") {
@@ -4060,11 +4061,11 @@ window.__ModuleLoader__.load({
       });
     }
 
-    /** How long 「已复制」 stays on the button (step-11 §4). */
+    /** How long "Copied" stays on the button. */
     var WF_COPY_FEEDBACK_MS = 1500;
 
     /* ------------------------------------------------------------------------- */
-    /* keyboard + layout wiring                                                   */
+    /* keyboard + layout wiring */
     /* ------------------------------------------------------------------------- */
 
     /** Escape, and not while the user is composing (IME) or holding a modifier. */
@@ -4076,7 +4077,7 @@ window.__ModuleLoader__.load({
 
     /**
      * Document-level Escape: collapse the details, not the panel. `actions.onEscapeDetail`
-     * is fired once per Escape; returns a handle with destroy() so the hook can unmount it.
+     * is fired once per Escape; returns a handle with destroy so the hook can unmount it.
      */
     function wfBindEscape(doc, actions) {
       if (!doc || typeof doc.addEventListener !== "function") return { destroy: function () {} };
@@ -4094,7 +4095,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * Details change the height of the scrolling columns, and the step-10 curve measures the
+     * Details change the height of the scrolling columns, and the curve measures the
      * two cards' rects. A <details> toggle does not resize any observed box, so the curve
      * would keep the old endpoints: nudge the layer through its existing resize listener
      * once the browser has laid the new height out.
@@ -4105,14 +4106,14 @@ window.__ModuleLoader__.load({
       var timer = typeof scope.setTimeout === "function" ? scope.setTimeout : null;
       function nudge() {
         if (!timer) return;
-        // One task later: the <details> content exists and the column has scrolled if it had to.
+     // One task later: the <details> content exists and the column has scrolled if it had to.
         timer(function () {
           try {
             if (typeof scope.dispatchEvent === "function" && typeof scope.Event === "function") {
               scope.dispatchEvent(new scope.Event("resize"));
             }
           } catch (error) {
-            /* a closed window has nothing to re-measure */
+     /* a closed window has nothing to re-measure */
           }
         }, 40);
       }
@@ -4140,11 +4141,11 @@ window.__ModuleLoader__.load({
     /**
      * NodeCard.js — one flow node (a tool call, a skill, a file operation…) as a card.
      *
-     * The card answers four questions at a glance (step-08 §2):
-     *   what kind  → a glyph per category (file / command / skill / subagent / other)
-     *   what       → 「读 · step-06-client-shell.md」 — verb · target, not the raw tool name
-     *   how        → subline: kind chip · tool · duration · file count
-     *   how did it → a status dot: running pulses, done is green, error is red
+     * The card answers four questions at a glance ( §2):
+     * what kind → a glyph per category (file / command / skill / subagent / other)
+     * what -> "read · .md" - verb · target, not the raw tool name
+     * how → subline: kind chip · tool · duration · file count
+     * how did it → a status dot: running pulses, done is green, error is red
      *
      * Everything here is PURE and locale-injected: `h` (React.createElement) and `say`
      * are parameters, so tools/selftest-panel.mjs drives the exact tree the frame mounts
@@ -4234,8 +4235,8 @@ window.__ModuleLoader__.load({
       var tool = node && typeof node.tool === "string" ? node.tool : "";
       var key = category === "file" ? WF_TOOL_VERB_KEY[tool] : WF_NODE_VERB_KEY[category];
       if (typeof key === "string" && typeof say === "function") return say(key);
-      // An unknown tool keeps its own name as the verb: "plugin_manager · install_bundle…"
-      // says more than a generic "工具".
+     // An unknown tool keeps its own name as the verb: "plugin_manager · install_bundle…"
+     // says more than a generic "tool".
       if (category === "tool" && tool !== "") return tool;
       return "";
     }
@@ -4252,8 +4253,8 @@ window.__ModuleLoader__.load({
       if (category === "skill") return wfStripToolPrefix(title, "skill") || detail || "—";
       if (category === "subagent") return wfStripToolPrefix(title, tool) || detail || "—";
       if (category === "tool") {
-        // When the verb already IS the tool name, the target must add something: the
-        // argument summary, else the title if the host gave a different one.
+     // When the verb already IS the tool name, the target must add something: the
+     // argument summary, else the title if the host gave a different one.
         var rest = wfStripToolPrefix(title, tool);
         if (rest !== "") return rest;
         if (detail !== "") return detail;
@@ -4264,7 +4265,7 @@ window.__ModuleLoader__.load({
 
     /**
      * The two halves of the title. A localized verb is followed by " · " only when
-     * there IS a verb: a message's own text must not read "消息 · 消息".
+     * there IS a verb: a message's own text must not read "message · message".
      */
     function wfNodeTitleParts(node, category, say) {
       var verb = wfNodeVerb(node, category, say);
@@ -4320,10 +4321,10 @@ window.__ModuleLoader__.load({
       return bits;
     }
     /**
-     * step-05 · the three round-icon categories of a branch, and their glyph + locale key.
+     * the three round-icon categories of a branch, and their glyph + locale key.
      *
-     * WHY THREE AND NOT ONE PER TOOL: the step asks for 「读取 / 修改 / 调用的工具」, which is exactly
-     * the split the host's `files[].action` labels already carry (read/写/改/查) plus the plain tool
+     * WHY THREE AND NOT ONE PER TOOL: the step asks for "files read / files changed / tools called", which is exactly
+     * the split the host's `files[].action` labels already carry (read/write/edit/query) plus the plain tool
      * call. Deriving them from fields the host ALREADY sends means no new wire field and no host
      * round-trip: a browser-only change (F5), which is what the step promised.
      */
@@ -4342,8 +4343,8 @@ window.__ModuleLoader__.load({
     };
 
     /**
-     * A host file action label → the icon category. The host writes Chinese labels (读/写/改/查,
-     * src/fold.mjs filesFor) and step-11's wfDetailAction reads the same four; the English spellings
+     * A host file action label -> the icon category. The host writes Chinese labels (read/write/edit/query,
+     * src/fold.mjs filesFor) and 's wfDetailAction reads the same four; the English spellings
      * are accepted too so a re-labelled payload does not silently lose a branch.
      */
     function wfChainActionKind(action) {
@@ -4394,7 +4395,7 @@ window.__ModuleLoader__.load({
         bucket.items.push({ path: file.path, base: wfBaseName(file.path), action: typeof file.action === "string" ? file.action : "" });
       }
 
-      // The call itself is always worth a branch: 「调用的工具」 is the third category the step names.
+     // The call itself is always worth a branch: "tools called" is the third category the step names.
       if (tool !== "") {
         var toolBucket = slot("tool");
         toolBucket.items.push({ path: "", base: tool, action: "" });
@@ -4417,8 +4418,8 @@ window.__ModuleLoader__.load({
      * draws between the two columns, so the whole panel's curves come from one idea.
      */
     /** Two decimals, the same rounding the curve layer writes into its `d`. Local on purpose: this
-     *  chunk is inlined BEFORE FlowEffects.js, and a helper that only exists later in the file would
-     *  work only through hoisting — a dependency the reader cannot see is a bug waiting to ship. */
+     * chunk is inlined BEFORE FlowEffects.js, and a helper that only exists later in the file would
+     * work only through hoisting — a dependency the reader cannot see is a bug waiting to ship. */
     function wfChainRound(value) {
       var n = wfFinite(value);
       return n === null ? 0 : Math.round(n * 100) / 100;
@@ -4437,7 +4438,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * Round icon, one per branch category (step-05 §4). `<circle>` in the stroke layer plus this
+     * Round icon, one per branch category ( §4). `<circle>` in the stroke layer plus this
      * button as the glyph on top: 22 px (WF_CHAIN_ICON), the step allows 20–24.
      *
      * The click is `actions.onChainBranch(kind)`, NOT onSelectNode: the circle is not a node, it opens
@@ -4461,8 +4462,8 @@ window.__ModuleLoader__.load({
           "data-count": String(count),
           "data-live": context.chainLive === true ? "true" : "false",
         },
-        // The dash: the layer is an SVG so the path is a real `d` (the browser measurement reads the
-        // `C` out of it), and it is pointer-events:none so it can never eat the icon's click.
+     // The dash: the layer is an SVG so the path is a real `d` (the browser measurement reads the
+     // `C` out of it), and it is pointer-events:none so it can never eat the icon's click.
         h(
           "svg",
           {
@@ -4502,7 +4503,7 @@ window.__ModuleLoader__.load({
 
     /**
      * The node the opened circle's detail renders. It is NOT a new renderer (the step forbids a second
-     * one): it is the SAME node, narrowed to the observations of ONE category, so step-11's
+     * one): it is the SAME node, narrowed to the observations of ONE category, so 's
      * wfRenderNodeDetail draws its usual blocks — head, args, file rows, result, meta — from fields
      * that already exist on the wire. Nothing is invented: the paths come from the host's fileList and
      * the args/result are the call's own.
@@ -4563,7 +4564,7 @@ window.__ModuleLoader__.load({
     }
     /**
      * One node card. `ctx` carries `{activeNodeId, selectedNodeId}`; `actions.onSelectNode`
-     * is called with the node id; step-11 opens the inline detail for the selected id, and the
+     * is called with the node id; opens the inline detail for the selected id, and the
      * card itself keeps its one-line summary (no popover, no second window).
      */
     function wfRenderNodeCard(h, node, say, actions, ctx) {
@@ -4574,8 +4575,8 @@ window.__ModuleLoader__.load({
       var parts = wfNodeTitleParts(node, category, say);
       var bits = wfNodeMetaBits(node, say);
       var selected = context.selectedNodeId !== null && context.selectedNodeId === node.id;
-      // step-12 「只看标题」: no meta line, no live chip, no inline detail. The card keeps
-      // its icon/title/status so the flow is still scannable.
+     // "Title only": no meta line, no live chip, no inline detail. The card keeps
+     // its icon/title/status so the flow is still scannable.
       var compact = context.detail === "title";
 
       var titleChildren = [];
@@ -4584,18 +4585,18 @@ window.__ModuleLoader__.load({
         titleChildren.push(" · ");
       }
       titleChildren.push(h("span", { className: "wf-node-target", key: "target" }, parts.target));
-      // step-05 §4: the branch strip exists ONLY under the node that is being called right now.
-      // `status` already answers that question (wfNodeStatus: active && no result → running), so a
-      // finished card and a not-yet-started card both render `null` here — no branch DOM at all,
-      // which is what the acceptance check looks for rather than a hidden-but-present element.
+     // §4: the branch strip exists ONLY under the node that is being called right now.
+     // `status` already answers that question (wfNodeStatus: active && no result → running), so a
+     // finished card and a not-yet-started card both render `null` here — no branch DOM at all,
+     // which is what the acceptance check looks for rather than a hidden-but-present element.
       var branches = status === "running" && !compact ? wfChainBranches(node) : [];
       var branching =
         branches.length > 0
           ? h(
               "div",
               {
-                // NOT "chain": that name belongs to the measured curve layer, and two elements with
-                // the same anchor would make every querySelector('chain') ambiguous.
+     // NOT "chain": that name belongs to the measured curve layer, and two elements with
+     // the same anchor would make every querySelector('chain') ambiguous.
                 "data-dsh-workflow-map": "chain-strip",
                 key: "branching",
                 "data-node-id": node.id,
@@ -4654,8 +4655,8 @@ window.__ModuleLoader__.load({
                     return h("span", { key: "bit-" + position }, bit);
                   })
                 ),
-            // 「正在 …」 on the node that is being called this instant (step-10). Only the active
-            // node gets it: every finished card stays quiet, so a long flow does not blink all over.
+     // "working ..." on the node that is being called this instant. Only the active
+     // node gets it: every finished card stays quiet, so a long flow does not blink all over.
             status === "running" && !compact ? wfRenderLive(h, say, "node") : null
           ),
           h("span", {
@@ -4674,18 +4675,18 @@ window.__ModuleLoader__.load({
             ),
           })
         ),
-        // step-11: the selected node opens its detail INLINE, inside the same <li>, so the
-        // spine dot and the card stay where the eye left them (no popover, no new window).
+     // the selected node opens its detail INLINE, inside the same <li>, so the
+     // spine dot and the card stay where the eye left them (no popover, no new window).
         selected && !compact ? wfRenderNodeDetail(h, node, say, actions, context) : null,
-        // The branch strip hangs under the CARD but inside the same <li>, so the link drawn by
-        // FlowColumn's channel (or the spine) still points at the cards, never at the branches.
+     // The branch strip hangs under the CARD but inside the same <li>, so the link drawn by
+     // FlowColumn's channel (or the spine) still points at the cards, never at the branches.
         branching
       );
     }
 
     // ===== src/client/export.js =====
     /**
-     * export.js — step-12: the workflow snapshot (Markdown / JSON) and its two delivery
+     * export.js — the workflow snapshot (Markdown / JSON) and its two delivery
      * paths (clipboard, Blob download).
      *
      * Source of truth is the SAME wire view the panel renders plus the already-derived
@@ -4776,8 +4777,8 @@ window.__ModuleLoader__.load({
         category: category,
         title: title,
         detail: wfSnapshotFlat(node.detail).slice(0, 300),
-        // The host already capped argsText at 200 chars; preserve its newlines because a
-        // command's shape is part of what the snapshot is for (the panel shows it pre-wrap).
+     // The host already capped argsText at 200 chars; preserve its newlines because a
+     // command's shape is part of what the snapshot is for (the panel shows it pre-wrap).
         argsText: typeof node.argsText === "string" ? node.argsText.slice(0, 200) : "",
         status: status,
         seq: wfFinite(node.seq),
@@ -4944,7 +4945,7 @@ window.__ModuleLoader__.load({
             URLImpl.revokeObjectURL(WF_SNAPSHOT_URLS[i]);
             revoked += 1;
           } catch (error) {
-            /* an already-revoked URL is not an error */
+     /* an already-revoked URL is not an error */
           }
         }
       }
@@ -4969,25 +4970,25 @@ window.__ModuleLoader__.load({
     /**
      * FlowColumn.js — the right column: the selected step's flow, node by node.
      *
-     * Structure of the column (step-08):
-     *   header   「分步流程 · 第 8 步 · 标题」 — OUTSIDE the scroller, so it never moves
-     *   scroller one independently scrolling area (`overflow:auto`)
-     *     strip  「更早 n 个被折叠」 + 「展开全部」 — only when the cap bites
-     *     list   every item hangs off one vertical spine (the tree脊)
-     *            item = ONE node card (NodeCard.js) or ONE folded run of same-tool calls
+     * Structure of the column :
+     * header "step flow · step 8 · title" - OUTSIDE the scroller, so it never moves
+     * scroller one independently scrolling area (`overflow:auto`)
+     * strip "n earlier rows folded" + "expand all" - only when the cap bites
+     * list - every item hangs off one vertical spine (the tree spine)
+     * item = ONE node card (NodeCard.js) or ONE folded run of same-tool calls
      *
-     * The fold: `view.steps[i].groups` (host, step-02) is authoritative when it resolves
+     * The fold: `view.steps[i].groups` (host, ) is authoritative when it resolves
      * against the node list; otherwise the browser folds consecutive same-tool calls
      * itself with the same threshold (WF_GROUP_MIN = the host's GROUP_THRESHOLD). A group
      * hit by the 300-node host cap loses its missing members but never invents one.
      *
-     * Branches (step-09): `wfRenderBranches` (Branches.js) draws the selected step's subagent /
+     * Branches : `wfRenderBranches` (Branches.js) draws the selected step's subagent /
      * workflow / background-job lanes under the list, from `model.flow.branches`. A lane is NOT
      * a node: the node count, the fold, the node window and the current-activity highlight all
      * ignore it — only the lane's own status dot breathes.
      *
      * The cap: by default only the NEWEST WF_FLOW_CAP nodes are drawn (the list opens at
-     * its bottom); a group is never split at the boundary. 「展开全部」 lifts the cap until
+     * its bottom); a group is never split at the boundary. "expand all" lifts the cap until
      * the step changes — that reset is `wfFlowUiFor`, keyed by step index, so it is a pure
      * function and tools/selftest-panel.mjs can prove it.
      *
@@ -4997,7 +4998,7 @@ window.__ModuleLoader__.load({
      */
 
     /* ------------------------------------------------------------------------- */
-    /* grouping                                                                  */
+    /* grouping */
     /* ------------------------------------------------------------------------- */
 
     /** Fold consecutive same-tool calls with the host's threshold. */
@@ -5128,7 +5129,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* the cap                                                                   */
+    /* the cap */
     /* ------------------------------------------------------------------------- */
 
     function wfFlowItemSize(item) {
@@ -5167,7 +5168,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* per-step UI state (expanded groups · show-all · selected node)            */
+    /* per-step UI state (expanded groups · show-all · selected node) */
     /* ------------------------------------------------------------------------- */
 
     function wfFlowEmptyUi(stepIndex) {
@@ -5177,9 +5178,9 @@ window.__ModuleLoader__.load({
         showAll: false,
         selectedNode: null,
         closedBranches: [],
-        // step-05: which round branch icon is open under the running node (null = none). It is per
-        // step, like everything else here, so switching steps closes it instead of leaving a detail
-        // hanging under a card the user did not click.
+     // which round branch icon is open under the running node (null = none). It is per
+     // step, like everything else here, so switching steps closes it instead of leaving a detail
+     // hanging under a card the user did not click.
         openChain: null,
       };
     }
@@ -5187,7 +5188,7 @@ window.__ModuleLoader__.load({
     /**
      * Read the UI state AS IT APPLIES to `stepIndex`. A state from another step is not
      * "merged" or reused: switching steps starts from the defaults, which is exactly the
-     * `收起 + 展开全部失效 + 选中清空` reset the step asks for (and it happens on the
+     * "collapse + expand-all cleared + selection cleared" reset the step asks for (and it happens on the
      * first render of the new step, not one frame later).
      */
     function wfFlowUiFor(ui, stepIndex) {
@@ -5201,8 +5202,8 @@ window.__ModuleLoader__.load({
           if (typeof ui.expanded[i] === "string" && expanded.indexOf(ui.expanded[i]) === -1) expanded.push(ui.expanded[i]);
         }
       }
-      // Branch lanes are open by default (their whole point is to show the parallel work),
-      // so the remembered list is the FOLDED ones. Both lists are per step and reset together.
+     // Branch lanes are open by default (their whole point is to show the parallel work),
+     // so the remembered list is the FOLDED ones. Both lists are per step and reset together.
       var closedBranches = [];
       if (Array.isArray(ui.closedBranches)) {
         for (var c = 0; c < ui.closedBranches.length; c += 1) {
@@ -5217,8 +5218,8 @@ window.__ModuleLoader__.load({
         showAll: ui.showAll === true,
         selectedNode: typeof ui.selectedNode === "string" && ui.selectedNode !== "" ? ui.selectedNode : null,
         closedBranches: closedBranches,
-        // A category name, never an arbitrary string: anything else collapses to null, so a hand-edited
-        // state cannot open a detail block that has no branch behind it.
+     // A category name, never an arbitrary string: anything else collapses to null, so a hand-edited
+     // state cannot open a detail block that has no branch behind it.
         openChain: WF_CHAIN_KINDS.indexOf(ui.openChain) >= 0 ? ui.openChain : null,
       };
     }
@@ -5273,12 +5274,12 @@ window.__ModuleLoader__.load({
         showAll: base.showAll,
         selectedNode: null,
         closedBranches: base.closedBranches,
-        // Escape closes the branch detail too: it is the same "put the flow back" gesture.
+     // Escape closes the branch detail too: it is the same "put the flow back" gesture.
         openChain: null,
       };
     }
 
-    /** Fold / unfold one branch lane. The click target is the lane's HEAD (step-09 §5). */
+    /** Fold / unfold one branch lane. The click target is the lane's HEAD ( §5). */
     function wfFlowToggleBranch(ui, stepIndex, branchId) {
       var base = wfFlowUiFor(ui, stepIndex);
       if (typeof branchId !== "string" || branchId === "") return base;
@@ -5301,7 +5302,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * step-05 · open / close one round branch icon's detail. `kind` is one of WF_CHAIN_KINDS; clicking
+     * open / close one round branch icon's detail. `kind` is one of WF_CHAIN_KINDS; clicking
      * the same circle again closes it (a toggle, like every other disclosure in the panel), and an
      * unknown kind is a no-op rather than an error.
      */
@@ -5319,7 +5320,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* rendering                                                                 */
+    /* rendering */
     /* ------------------------------------------------------------------------- */
 
     /** A folded run's dot: error beats running beats pending beats done. */
@@ -5348,9 +5349,9 @@ window.__ModuleLoader__.load({
         ? wfNodeCategory(members[0])
         : "tool";
 
-      // step-02: the disclosure triangle is a real <button>, a SIBLING of the row button
-      // (a button inside a button is invalid HTML). The wrapper is a one-column grid, so the
-      // triangle and the row share cell 1/1 and the whole 20 px band down the row is clickable.
+     // the disclosure triangle is a real <button>, a SIBLING of the row button
+     // (a button inside a button is invalid HTML). The wrapper is a one-column grid, so the
+     // triangle and the row share cell 1/1 and the whole 20 px band down the row is clickable.
       var headRow = h(
         "div",
         { className: "wf-group-row", key: "row" },
@@ -5370,8 +5371,8 @@ window.__ModuleLoader__.load({
             "data-dsh-workflow-map": "group",
             "data-group-key": item.key,
             "aria-expanded": reopened ? "true" : "false",
-            // Mirrored on the head too: the head is the element carrying
-            // data-dsh-workflow-map="group", so a selector or a test sees the state here.
+     // Mirrored on the head too: the head is the element carrying
+     // data-dsh-workflow-map="group", so a selector or a test sees the state here.
             "data-expanded": reopened ? "true" : "false",
             title: say(reopened ? "panel.flow.collapseGroup" : "panel.flow.expandGroup"),
             onClick: function () {
@@ -5430,8 +5431,8 @@ window.__ModuleLoader__.load({
       var stepIndex = model && wfFinite(model.selected) !== null ? Math.round(model.selected) : 0;
       var state = wfFlowUiFor(ui, stepIndex);
       var items = wfFlowItems(nodes, wfFlowGroups(nodes, flow ? flow.groups : null));
-      // step-12: the node window is a display pref (30 / 60 / 120 / all). 0 means all,
-      // and 「展开全部」 still lifts any finite cap for this step.
+     // the node window is a display pref (30 / 60 / 120 / all). 0 means all,
+     // and "expand all" still lifts any finite cap for this step.
       var cap = model && model.settings && wfFinite(model.settings.nodeLimit) !== null
         ? Math.max(0, Math.round(model.settings.nodeLimit))
         : WF_FLOW_CAP;
@@ -5442,9 +5443,9 @@ window.__ModuleLoader__.load({
         activeNodeId: flow && typeof flow.activeNodeId === "string" ? flow.activeNodeId : null,
         selectedNodeId: state.selectedNode,
         detail: model && model.settings && model.settings.detail === "title" ? "title" : "summary",
-        // step-05: which branch category the user opened under the running node, and whether that
-        // strip is allowed to animate. `chainLive` is the same `running` flag the living layer uses,
-        // so an idle session freezes the dashes with everything else (CSS pauses them).
+     // which branch category the user opened under the running node, and whether that
+     // strip is allowed to animate. `chainLive` is the same `running` flag the living layer uses,
+     // so an idle session freezes the dashes with everything else (CSS pauses them).
         openChain: state.openChain,
         chainLive: !!(model && model.running === true),
       };
@@ -5461,9 +5462,9 @@ window.__ModuleLoader__.load({
         h("span", { className: "wf-count", key: "count" }, say("panel.nodes", { count: total }))
       );
 
-      // The strip is a SIBLING of the scroller: pinned under the header, so 「展开全部」
-      // stays reachable exactly while the list is open at its bottom. It also carries
-      // the host-cap note, which 「展开全部」 CANNOT undo (those nodes were never sent).
+     // The strip is a SIBLING of the scroller: pinned under the header, so "expand all"
+     // stays reachable exactly while the list is open at its bottom. It also carries
+     // the host-cap note, which "expand all" CANNOT undo (those nodes were never sent).
       var stripText = view.hiddenNodes > 0 ? say("panel.flow.more", { count: view.hiddenNodes }) : "";
       if (truncated > 0) stripText = stripText === "" ? say("panel.truncated", { count: truncated }) : stripText + " · " + say("panel.truncated", { count: truncated });
       var more =
@@ -5502,9 +5503,9 @@ window.__ModuleLoader__.load({
             "data-empty": "false",
             "data-truncated": truncated > 0 ? "true" : "false",
             "data-items": view.items.length,
-            // step-05: the chain layer is a child of the LIST (so its user space is the list's box and
-            // its links follow the cards on every scroll/resize — FlowEffects measures it) and it is
-            // FIRST, so it paints under the cards instead of over their text.
+     // the chain layer is a child of the LIST (so its user space is the list's box and
+     // its links follow the cards on every scroll/resize — FlowEffects measures it) and it is
+     // FIRST, so it paints under the cards instead of over their text.
             "data-chain": "curve",
           },
           wfRenderChain(h),
@@ -5531,9 +5532,9 @@ window.__ModuleLoader__.load({
           "div",
           { className: "wf-scroll wf-flow-scroll", key: "list", "data-dsh-workflow-map": "flow-scroll" },
           body,
-          // Branch lanes (Branches.js) hang off the same track AFTER the nodes: they are
-          // parallel work, not part of the step's own sequence. NULL when nothing runs in
-          // parallel, so a plain session renders no branch shell at all.
+     // Branch lanes (Branches.js) hang off the same track AFTER the nodes: they are
+     // parallel work, not part of the step's own sequence. NULL when nothing runs in
+     // parallel, so a plain session renders no branch shell at all.
           wfRenderBranches(h, model, say, actions, state),
         )
       );
@@ -5541,17 +5542,17 @@ window.__ModuleLoader__.load({
 
     // ===== src/client/Branches.js =====
     /**
-     * Branches.js — the parallel lanes beside a step's flow (step-09).
+     * Branches.js — the parallel lanes beside a step's flow.
      *
      * What a lane is: a subagent, a workflow run or a background job started by this plan
      * step. Its activity runs IN PARALLEL with the step, so it is drawn as a branch off the
      * main flow track instead of being mixed into the node list:
      *
-     *   main track (FlowColumn)          lane (this file)
-     *   ─ ● 读 · a.js                    ┌ ⧉ 子代理 · review the fold module   ●
-     *   ─ ● 改 · b.js          ──────6px─┤   ▸ 子代理启动          21:03:07
-     *   ─ ● 命令 · npm test              │   ▪ 完成                21:04:12
-     *                                    └ (click the head to fold the lane)
+     * main track (FlowColumn) lane (this file)
+     * ─ ● read · a.js ┌ ⧉ subagent · review the fold module ●
+     * ─ ● edit · b.js ──────6px─┤ ▸ subagent started 21:03:07
+     * ─ ● command · npm test │ ▪ done 21:04:12
+     * └ (click the head to fold the lane)
      *
      * The lane data comes from `view.branches` (src/fold.mjs): branches NEVER enter
      * `state.nodes`, so the main flow's node count, its same-tool groups, both caps and the
@@ -5564,7 +5565,7 @@ window.__ModuleLoader__.load({
 
     /**
      * One hue per lane (index into this list), so two adjacent lanes never read as one.
-     * Deliberately not kind-based: the badge text already says 子代理 / 工作流 / 后台任务.
+     * Deliberately not kind-based: the badge text already says subagent / workflow / background job.
      */
     var WF_BRANCH_HUES = [268, 196, 152, 32, 340, 224];
 
@@ -5593,7 +5594,7 @@ window.__ModuleLoader__.load({
       return "running";
     }
 
-    /** Lane kind → the locale key of its badge (子代理 / 工作流 / 后台任务). */
+    /** Lane kind -> the locale key of its badge (subagent / workflow / background job). */
     function wfBranchBadgeKey(kind) {
       if (kind === "workflow") return "panel.branch.workflow";
       if (kind === "job") return "panel.branch.job";
@@ -5619,7 +5620,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * One activity row. It is a BUTTON because step-11 mounts the same detail view for any
+     * One activity row. It is a BUTTON because mounts the same detail view for any
      * row; until then the click only reports the id through `actions.onSelectNode`.
      */
     function wfRenderBranchRow(h, node, say, actions, ctx) {
@@ -5701,8 +5702,8 @@ window.__ModuleLoader__.load({
         {
           className: "wf-branch",
           key: "branch-" + branch.id,
-          // Concrete colours, not a CSS colour function: the panel must not depend on the
-          // Electron build supporting the space-separated hsl() syntax.
+     // Concrete colours, not a CSS colour function: the panel must not depend on the
+     // Electron build supporting the space-separated hsl syntax.
           style: {
             "--wf-branch-h": String(hue),
             "--wf-branch-line": `hsl(${hue}, 78%, 62%)`,
@@ -5728,7 +5729,7 @@ window.__ModuleLoader__.load({
               "data-dsh-workflow-map": "branch-head",
               "data-branch-id": branch.id,
               "aria-expanded": collapsed ? "false" : "true",
-              // Mirrored on the card (data-expanded) as well, so a test can read either.
+     // Mirrored on the card (data-expanded) as well, so a test can read either.
               title: say(collapsed ? "panel.branch.expand" : "panel.branch.collapse"),
               onClick: function () {
                 if (typeof fire.onToggleBranch === "function") fire.onToggleBranch(branch.id);
@@ -5784,43 +5785,43 @@ window.__ModuleLoader__.load({
 
     // ===== src/client/FlowEffects.js =====
     /**
-     * FlowEffects.js — 彩色流光曲线层（step-10）。
+     * FlowEffects.js - the flowing-gradient curve layer (legacy two-column layout).
      *
-     * 面板里最有识别度的一条：**正在进行的那个分步**（左列发光外框）与它**正在进行的那个流程节点**
-     * （右列发光外框）之间，有一条彩虹流光曲线连着。
+     * The most recognisable element of that design: the running step (left column, glowing frame) and
+     * the running node (right column, glowing frame) were joined by a rainbow curve.
      *
-     * 结构：
-     *   wfFxRound / wfFxBounds      几何小工具（四舍五入到 0.01 px、把 DOMRect 归一化）
-     *   wfFxCurve                   纯几何：两点 → 三次贝塞尔 `M x1 y1 C …`
-     *   wfFxGeometry                纯几何：两张卡片 + 视口 → {visible, d, from, to, reason}
-     *   wfFxQuery / wfFxApply       DOM：找元素、算、把 `d`/端点写回 SVG，并留 `data-endpoints` 证据
-     *   wfFxBind                    DOM：ResizeObserver + scroll(capture) + resize，rAF 节流重算
-     *   wfUseFlowEffects            React 封装：每次「视觉签名」变化就重建一次绑定
-     *   wfRenderFlowEffects         纯 markup：<svg> + 两个渐变 + 两条路径 + 两个端点圆
-     *   wfFxSignature               模型 → 一句短签名（变了才重绑，不是每个 800 ms 轮询都重绑）
+     * Structure:
+     * wfFxRound / wfFxBounds - geometry helpers (round to 0.01 px, normalise a DOMRect)
+     * wfFxCurve - pure geometry: two points -> a cubic Bezier `M x1 y1 C ...`
+     * wfFxGeometry - pure geometry: two cards + viewport -> {visible, d, from, to, reason}
+     * wfFxQuery / wfFxApply - DOM: find elements, compute, write `d`/endpoints back into the SVG, leaving `data-endpoints` as evidence
+     * wfFxBind - DOM: ResizeObserver + scroll(capture) + resize, recomputed on a rAF throttle
+     * wfUseFlowEffects - React wrapper: rebinds once per "visual signature" change
+     * wfRenderFlowEffects - pure markup: <svg> + two gradients + two paths + two endpoint circles
+     * wfFxSignature - model -> a short signature (rebind only when it changes, not on every 800 ms poll)
      *
-     * 为什么用「绝对定位 + 无 viewBox 的 SVG」：曲线要在两列之间的空隙里画，而两列各自是
-     * 独立滚动的。SVG 铺满 .wf-body（position:relative），坐标 = 卡片 rect − SVG rect，
-     * 所以不需要任何 viewBox 缩放，1 用户单位就是 1 px，端点误差只来自一次取整。
+     * Why "absolutely positioned SVG with no viewBox": the curve was drawn in the gap between the two
+     * columns, each scrolling independently. The SVG covers .wf-body (position:relative); coordinates = card rect - SVG rect,
+     * so no viewBox scaling is needed: 1 user unit is 1 px, and endpoint error comes only from one rounding step.
      *
-     * 端点规矩：**两张卡片都完整落在各自滚动视口内**才画曲线，否则隐藏（data-visible=false）。
-     * 与其把端点夹到视口边缘（那就不再「贴合卡片边缘」，验收的 2 px 容差也没意义），
-     * 不如诚实地不画。
+     * Endpoint rule: the curve is drawn only when BOTH cards are fully inside their own scroll viewport; otherwise hidden (data-visible=false).
+     * Clamping endpoints to the viewport edge would stop them hugging the card edge, making the 2 px tolerance meaningless,
+     * so drawing nothing is the honest option.
      *
-     * 纯函数、无 import/export：由 tools/build-client.mjs 内联进 client.js（单文件浏览器半）。
+     * Pure, no import/export: inlined into client.js by tools/build-client.mjs (single-file browser half).
      */
 
-    /** 两列之间至少要留这么宽的空隙才画得下一条曲线（再窄就是两列贴在一起了）。 */
+    /** Minimum column gap needed to fit a curve (below this the columns would touch). */
     var WF_FX_MIN_GAP = 10;
 
-    /** 曲线在两端各留的余量：控制点的水平偏移按空隙宽度取 45 %，夹在这个区间。 */
+    /** Endpoint margin: the control point horizontal offset is 45 % of the gap, clamped to this range. */
     var WF_FX_BOW_MIN = 8;
     var WF_FX_BOW_MAX = 140;
 
-    /** 写进 SVG 的占位端点（未测量时两个圆藏在画布外，不闪一下）。 */
+    /** Placeholder endpoints written into the SVG (before measuring, both circles sit outside the canvas so nothing flashes). */
     var WF_FX_OFFSCREEN = -99;
 
-    /** 排队后最多等这么久就从定时器量一次（rAF 永不触发的环境，例如无头 --dump-dom）。 */
+    /** After queueing, wait at most this long before measuring from a timer (environments where rAF never fires, e.g. headless --dump-dom). */
     var WF_FX_FALLBACK_MS = 40;
 
     /**
@@ -5838,7 +5839,7 @@ window.__ModuleLoader__.load({
       return n === null ? 0 : Math.round(n * 100) / 100;
     }
 
-    /** DOMRect（或任何 {left, top, width, height}）→ 归一化矩形；不可用则 null。 */
+    /** DOMRect (or any {left, top, width, height}) -> a normalised rect; null when unusable. */
     function wfFxBounds(rect) {
       if (!rect || typeof rect !== "object") return null;
       var left = wfFinite(rect.left);
@@ -5854,7 +5855,7 @@ window.__ModuleLoader__.load({
       return { left: left, top: top, width: width, height: height, right: left + width, bottom: top + height };
     }
 
-    /** 矩形是否完整落在视口里（允许 0.5 px 的取整误差，不允许露出半张卡片）。 */
+    /** Is the rect fully inside the viewport (0.5 px rounding allowed, half a card not allowed). */
     function wfFxInside(rect, view) {
       if (!rect || !view) return false;
       return (
@@ -5866,9 +5867,9 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * 两点之间的三次贝塞尔。控制点只在水平方向偏移（经典的「S 形连线」）：
+     * A cubic Bezier between two points. Control points offset horizontally only (the classic "S bend"):
      *   M x1 y1 C x1+bow y1, x2-bow y2, x2 y2
-     * 空隙太窄（< WF_FX_MIN_GAP）或坐标不合法 → null，调用方据此隐藏整层。
+     * Gap too narrow (< WF_FX_MIN_GAP) or invalid coordinates -> null, and the caller hides the whole layer.
      *
      * @returns {{d:string, from:{x:number,y:number}, to:{x:number,y:number}, dx:number, bow:number}|null}
      */
@@ -5898,10 +5899,10 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * 两张卡片 + 各自滚动视口 → 这一帧该不该画、画在哪。
+     * Two cards + their own scroll viewports -> whether to draw this frame, and where.
      *
-     * `origin` 是 SVG 的 rect（不是 .wf-body 的 border box：绝对定位元素的包含块是 padding box，
-     * 用 SVG 自己的 rect 当原点，坐标才和它内部的用户坐标系一一对应）。
+     * `origin` is the SVG rect (not the .wf-body border box: an absolutely positioned element's containing block is the padding box,
+     * so using the SVG's own rect keeps coordinates aligned with its internal user coordinate system).
      *
      * reason: ok | no-origin | no-step | no-node | step-clipped | node-clipped | no-gap
      */
@@ -5938,7 +5939,7 @@ window.__ModuleLoader__.load({
     /* DOM                                                                       */
     /* ------------------------------------------------------------------------- */
 
-    /** 一次查询拿全：容器、SVG、两张卡片、两个滚动视口。缺任何一个都不猜。 */
+    /** One query returns everything: container, SVG, both cards, both scroll viewports. Missing any of them means no guessing. */
     function wfFxQuery(doc) {
       if (!doc || typeof doc.querySelector !== "function") return null;
       var body = doc.querySelector('[data-dsh-workflow-map="body"]');
@@ -5946,9 +5947,9 @@ window.__ModuleLoader__.load({
       return {
         body: body,
         svg: body.querySelector('[data-dsh-workflow-map="fx"]'),
-        // 左列：正在进行的那个分步卡片（li 带 data-status，卡片是它的直接子元素）
+        // Left column: the running step card (the li carries data-status; the card is its direct child)
         stepCard: body.querySelector('.wf-step-item[data-status="running"] > .wf-step-card'),
-        // 右列：正在调用的那个节点卡片（同一个 li 上的 data-status 是唯一的 running）
+        // Right column: the node card being called (the same li's data-status is the only running one)
         nodeCard: body.querySelector('.wf-flow-item[data-status="running"] > .wf-node'),
         stepClip: body.querySelector(".wf-steps-scroll"),
         nodeClip: body.querySelector(".wf-flow-scroll"),
@@ -5970,7 +5971,7 @@ window.__ModuleLoader__.load({
     /**
      * Two node cards + the list's own rect → ONE cubic that links them.
      *
-     * The shape is the step's 「竖向中点 + 水平外扩」: the path leaves the upper card's bottom edge and
+     * The shape is the step's "vertical midpoint + horizontal bulge": the path leaves the upper card's bottom edge and
      * arrives at the lower card's top edge, with both control points pulled to the VERTICAL midpoint
      * and pushed sideways by `bow`. Sideways is what makes it an S without a corner: a straight
      * vertical hop with a single control point in the middle would still kink at both ends.
@@ -5996,7 +5997,7 @@ window.__ModuleLoader__.load({
       // put a stray mark on a card's edge, so the link is simply absent — an honest hole, not a lie.
       if (!(dy > 0)) return { visible: false, reason: "too-close", d: null };
 
-      // The sideways bow (「水平外扩」): a share of the horizontal offset plus a fixed 10 px, clamped so
+      // The sideways bow ("horizontal bulge"): a share of the horizontal offset plus a fixed 10 px, clamped so
       // an aligned pair still bulges into a readable S instead of collapsing into a straight line.
       var bow = wfClamp(Math.abs(toX - fromX) * 0.6 + 10, 8, 40);
       // Both control points sit on the VERTICAL MIDPOINT of the gap, so the path leaves and arrives
@@ -6151,9 +6152,9 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * 量一次并把结果写进 DOM。返回几何结果（tool 与自测都读它）。
-     * 写进 DOM 的三样东西：path 的 `d`、两个端点圆的 cx/cy、以及 `data-visible` /
-     * `data-endpoints`（JSON，供无头浏览器自检直接取证，不需要猜）。
+     * Measure once and write the result into the DOM. Returns the geometry (read by the tool and the self-test).
+     * Three things written into the DOM: the path's `d`, the two endpoint circles' cx/cy, and `data-visible` /
+     * `data-endpoints` (JSON, so a headless self-check takes evidence directly instead of guessing).
      */
     function wfFxApply(doc) {
       var found = wfFxQuery(doc);
@@ -6194,11 +6195,11 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * 把测量挂到页面生命周期上：窗口 resize、任意滚动（capture，两列的内部滚动都能收到）、
-     * 以及容器尺寸变化（ResizeObserver）。全部走 rAF 节流，一帧最多算一次。
+     * Bind measurement to the page lifecycle: window resize, any scroll (capture, so both columns' inner scrolling is seen),
+     * and container size changes (ResizeObserver). Everything goes through a rAF throttle, at most one computation per frame.
      *
-     * 返回 { refresh, schedule, destroy, measures }：`refresh` 同步量一次，`measures` 回读
-     * 已经量过多少次（无头自检用它证明「滚动/缩放之后真的重算了」，而不是只有首帧）。
+     * Returns { refresh, schedule, destroy, measures }: `refresh` measures synchronously, `measures` reports
+     * how many measurements happened (the headless check uses it to prove recomputation after scroll/resize, not just the first frame).
      */
     function wfFxBind(doc, win) {
       if (!doc || !win) return null;
@@ -6285,7 +6286,7 @@ window.__ModuleLoader__.load({
         schedule();
       }
 
-      // capture=true：两列各自是 overflow:auto 的内部滚动容器，scroll 不冒泡到 window。
+      // capture=true: each column is its own overflow:auto scroller, so scroll does not bubble to window.
       doc.addEventListener("scroll", onScroll, true);
       win.addEventListener("resize", onScroll);
 
@@ -6330,7 +6331,7 @@ window.__ModuleLoader__.load({
       };
     }
 
-    /** 视觉签名：只有「该重算的东西」变了才重绑（轮询导致的同形模型不会每 800 ms 抖一次）。 */
+    /** Visual signature: rebind only when something that matters changed (an unchanged polled model does not jitter every 800 ms). */
     function wfFxSignature(model) {
       if (!model) return "none";
       var flow = model.flow && typeof model.flow === "object" ? model.flow : {};
@@ -6356,7 +6357,7 @@ window.__ModuleLoader__.load({
       ].join("|");
     }
 
-    /** 组件里的挂载点：签名变化 → 重建绑定；卸载 → 全部摘掉（不留监听器）。 */
+    /** The component mount point: signature change -> rebind; unmount -> remove everything (no listeners left behind). */
     function wfUseFlowEffects(model) {
       var signature = wfFxSignature(model);
       React.useEffect(
@@ -6377,11 +6378,11 @@ window.__ModuleLoader__.load({
     /* ------------------------------------------------------------------------- */
 
     /**
-     * 曲线层本体。放在 .wf-body 里（两列之后、绝对定位覆盖整个 body），
-     * 未测量前 data-visible="false"（CSS 里 display:none），量到才显形。
+     * The curve layer itself. Lives in .wf-body (after the two columns, absolutely positioned over the whole body);
+     * before measuring it carries data-visible="false" (display:none in CSS) and appears only once measured.
      *
-     * 渐变用 CSS 类给 stop 上色（stop-color 在 Chrome 里是 CSS 属性）：
-     * React 与自测里的假 `h` 都能原样通过，不需要额外转换属性名。
+     * Stop colours come from CSS classes (stop-color is a CSS property in Chrome):
+     * both React and the self-test's fake `h` pass it through unchanged, with no extra attribute mapping.
      */
     function wfRenderFlowEffects(h) {
       var rainbow = [];
@@ -6463,7 +6464,7 @@ window.__ModuleLoader__.load({
 
     // ===== src/client/MainFlow.js =====
     /**
-     * MainFlow.js — 会话4 · the single page: ONE serial main flow, satellites on both sides.
+     * MainFlow.js — the single page: ONE serial main flow, satellites on both sides.
      *
      * The layout the user asked for, in one sentence: the steps run serially down the middle, each
      * step's core unit carries a few parallel "interfaces" off its left and right edges, every
@@ -6475,9 +6476,9 @@ window.__ModuleLoader__.load({
      * target; clicking it opens the right-hand page with the calls of exactly that type (RightPage.js).
      *
      * Division of labour, so nothing is computed twice:
-     *   store.js  wfTypeBuckets()   pure derivation of the buckets from raw host nodes (ONE place)
-     *   this file                    only draws what the buckets already say
-     *   RightPage.js                 the same buckets, with their calls, for the opened page
+     * store.js wfTypeBuckets pure derivation of the buckets from raw host nodes (ONE place)
+     * this file only draws what the buckets already say
+     * RightPage.js the same buckets, with their calls, for the opened page
      *
      * Pure: `h` and `say` are injected, no React import, no DOM. tools/selftest-panel.mjs drives the
      * exact tree the frame mounts.
@@ -6486,7 +6487,7 @@ window.__ModuleLoader__.load({
      */
 
     /* ------------------------------------------------------------------------- */
-    /* geometry helpers                                                          */
+    /* geometry helpers */
     /* ------------------------------------------------------------------------- */
 
     /**
@@ -6523,7 +6524,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* rendering                                                                 */
+    /* rendering */
     /* ------------------------------------------------------------------------- */
 
     /**
@@ -6610,7 +6611,7 @@ window.__ModuleLoader__.load({
      * anything in place (user decision), so the serial line keeps its rhythm no matter what is open.
      */
     // ---------------------------------------------------------------------------
-    // 会话5 · 【需确认】 — the union of the plan's own flag and the waiting-on-human state
+    // NEEDS-CONFIRM - the union of the plan's own flag and the waiting-on-human state
     // ---------------------------------------------------------------------------
 
     /**
@@ -6654,13 +6655,13 @@ window.__ModuleLoader__.load({
       var row = unit && typeof unit === "object" ? unit : {};
       var index = wfFinite(row.index) === null ? position : Math.round(row.index);
       var status = typeof row.status === "string" ? row.status : "pending";
-      // Two different facts, deliberately kept apart:
-      //   selected  the step the panel remembers (the last one opened) — the chain's highlight
-      //   open      the step whose page is on the right right now — the card's aria-pressed
+     // Two different facts, deliberately kept apart:
+     // selected the step the panel remembers (the last one opened) — the chain's highlight
+     // open the step whose page is on the right right now — the card's aria-pressed
       var selected = context.selectedStep === index;
       var open = context.openStep === index;
-      // The satellites' context: the SAME facts, plus THIS unit's index — a circle's click reports
-      // (stepIndex, typeKey), and without the index every circle of every step would open step null.
+     // The satellites' context: the SAME facts, plus THIS unit's index — a circle's click reports
+     // (stepIndex, typeKey), and without the index every circle of every step would open step null.
       var unitContext = Object.assign({}, context, { stepIndex: index });
       var dropped = row.dropped && typeof row.dropped === "object" ? row.dropped : {};
       var leftDropped = wfFinite(dropped.left) === null ? 0 : dropped.left;
@@ -6701,14 +6702,14 @@ window.__ModuleLoader__.load({
             metaBits.map(function (bit, at) {
               return h("span", { key: "bit-" + at }, bit);
             }),
-            // 「需确认」 used to live in StepColumn's meta row; the unit keeps it (and the badge order
-            // the self-test asserts) so the flag is not lost with that file.
-            // 会话5 · 「需确认」 is now the UNION of two sources, both derived:
-            //        · the plan's own `requiresConfirmation` (the step was marked as a confirm point),
-            //        · the step being WAITING on a human right now — the host folds an open approval
-            //          or an unanswered question into `row.pendingConfirm`.
-            // The flag names WHY when the row carries a reason, so the user can tell "this step was
-            // marked" from "this step is asking you something right now".
+     // "needs confirm" used to live in StepColumn's meta row; the unit keeps it (and the badge order
+     // the self-test asserts) so the flag is not lost with that file.
+     // "needs confirm" is now the UNION of two sources, both derived:
+     // · the plan's own `requiresConfirmation` (the step was marked as a confirm point),
+     // · the step being WAITING on a human right now — the host folds an open approval
+     // or an unanswered question into `row.pendingConfirm`.
+     // The flag names WHY when the row carries a reason, so the user can tell "this step was
+     // marked" versus "this step is asking you something right now".
             wfConfirmRows(row).length > 0 || row.requiresConfirmation
               ? h(
                   "span",
@@ -6739,8 +6740,8 @@ window.__ModuleLoader__.load({
           "data-step-index": index,
           "data-status": status,
           "data-selected": selected ? "true" : "false",
-          // 会话5 · 「需确认」 on the row itself, so the card's left edge and the ring can be styled
-          // without the badge row having to be in view.
+     // "needs confirm" on the row itself, so the card's left edge and the ring can be styled
+     // without the badge row having to be in view.
           "data-confirm": wfConfirmRows(row).length > 0 || row.requiresConfirmation === true ? "true" : "false",
         },
         wfRenderSatSide(h, row.left, "left", say, actions, unitContext),
@@ -6751,8 +6752,8 @@ window.__ModuleLoader__.load({
             key: "center",
           },
           card,
-          // step-12 「只看标题」 still means ONE line under the card: the rail keeps its number and drops
-          // the second (timing) line, exactly as it did in the two-column layout.
+     // "Title only" still means ONE line under the card: the rail keeps its number and drops
+     // the second (timing) line, exactly as it did in the two-column layout.
           wfRenderProgressDock(h, context.compact ? Object.assign({}, row, { compact: true }) : row, say, context.asOf),
           droppedNote
         ),
@@ -6763,8 +6764,8 @@ window.__ModuleLoader__.load({
               key: "link",
               "aria-hidden": "true",
               "data-done": status === "done" ? "true" : "false",
-              // 会话6 · 只有「直接指向唯一正在进行的那个分步」的那一条连接线跑彩色流光。
-              // row.live 由 store 从 host 的 runningIndex 派生，所以最多一条。
+     // Only the one connector that points directly at the single running step carries the flowing gradient.
+     // row.live is derived by the store from the host's runningIndex, so at most one row qualifies.
               "data-live": row.live === true ? "true" : "false",
             })
           : null
@@ -6780,8 +6781,8 @@ window.__ModuleLoader__.load({
       var rows = model && Array.isArray(model.steps) ? model.steps : [];
       var units = model && model.page && Array.isArray(model.page.units) ? model.page.units : [];
       var context = {
-        // `openStep` is the step whose page is on the right; `selectedStep` is the panel's remembered
-        // selection (they are usually the same, but the header can open a page without re-selecting).
+     // `openStep` is the step whose page is on the right; `selectedStep` is the panel's remembered
+     // selection (they are usually the same, but the header can open a page without re-selecting).
         openStep: wfFinite(ui.openStep) === null ? null : Math.round(ui.openStep),
         selectedStep: wfFinite(model && model.selected) === null ? null : Math.round(model.selected),
         openType: typeof ui.openType === "string" && ui.openType !== "" ? ui.openType : null,
@@ -6824,19 +6825,19 @@ window.__ModuleLoader__.load({
 
     // ===== src/client/RightPage.js =====
     /**
-     * RightPage.js — 会话4 · the RIGHT-HAND page, opened by a click on the main flow or on a circle.
+     * RightPage.js — the RIGHT-HAND page, opened by a click on the main flow or on a circle.
      *
      * One page, three kinds of content, decided by the click that opened it:
      *
-     *   kind "step"  → that step's full record. The report / artifacts / statistics block is the
-     *                  EXISTING step-11 renderer (wfRenderStepDetail); what this file adds is the
-     *                  per-type list above it — "this step touched .md ×3, pwsh ×2 …" — each row a
-     *                  button that switches the page to that type. That is how a main-flow click can
-     *                  walk into a type without going back to the circle.
-     *   kind "type"  → every call of ONE file type (a step's circle, or the whole session when the
-     *                  click came from the header's type strip). Each call expands IN PLACE into
-     *                  step-11's node detail, so the page never grows a second detail vocabulary.
-     *   kind "inject"→ the hot-inject composer (HotInject.js), mounted here instead of a third column.
+     * kind "step" → that step's full record. The report / artifacts / statistics block is the
+     * EXISTING renderer (wfRenderStepDetail); what this file adds is the
+     * per-type list above it — "this step touched .md ×3, pwsh ×2 …" — each row a
+     * button that switches the page to that type. That is how a main-flow click can
+     * walk into a type without going back to the circle.
+     * kind "type" → every call of ONE file type (a step's circle, or the whole session when the
+     * click came from the header's type strip). Each call expands IN PLACE into
+     * 's node detail, so the page never grows a second detail vocabulary.
+     * kind "inject"→ the hot-inject composer (HotInject.js), mounted here instead of a third column.
      *
      * Nothing is invented: a type that no call supports renders the empty hint, and a step whose
      * nodes the host never sent says so (the count comes from the host, the list from the wire).
@@ -6846,7 +6847,7 @@ window.__ModuleLoader__.load({
      * Inlined into client.js by tools/build-client.mjs (single-file browser half).
      */
 
-    /** The title line: 第 N 步 · 标题 / .md · 3 处 / 热注入. */
+    /** The title line: step N · title / .md · 3 calls / hot injection. */
     function wfPageTitle(kind, say, ctx) {
       var context = ctx || {};
       if (kind === "inject") return say("panel.page.inject");
@@ -6880,9 +6881,9 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * A call row of the type page. It is a <button> that opens step-11's node detail under itself —
+     * A call row of the type page. It is a <button> that opens 's node detail under itself —
      * the SAME wfRenderNodeDetail the flow column uses, fed the SAME node, so the privacy rule and the
-     * 200-character caps are whatever step-11 already guarantees.
+     * 200-character caps are whatever already guarantees.
      */
     function wfRenderCallRow(h, node, say, actions, ctx) {
       var context = ctx || {};
@@ -6963,7 +6964,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * The step page's body: the type summary, then step-11's own detail block.
+     * The step page's body: the type summary, then 's own detail block.
      *
      * The type summary is the ONLY new thing, and it exists because the page is reached by clicking a
      * unit, not a circle: without it the circles would be the only way into a type. Each row is a
@@ -7014,10 +7015,10 @@ window.__ModuleLoader__.load({
 
     /**
      * The whole right page. `extras` carries the decided content:
-     *   {kind, stepIndex, unit, detail, typeKey, bucket, nodes, stepDetail, openType, openCall,
-     *    activeNodeId, inject:{...}}
+     * {kind, stepIndex, unit, detail, typeKey, bucket, nodes, stepDetail, openType, openCall,
+     * activeNodeId, inject:{...}}
      *
-     * `detail` is the step-11 record built by store.js for the SELECTED step; a page about another
+     * `detail` is the record built by store.js for the SELECTED step; a page about another
      * step falls back to the unit's own numbers and says the report is not loaded, rather than
      * showing the selected step's report under a different step's title.
      */
@@ -7049,7 +7050,7 @@ window.__ModuleLoader__.load({
           text: ui.injectText,
           reason: ui.injectReason,
           history: ui.injectHistory,
-          // step-03-unsteer · the one row being revoked (if any) plus the host's reason when it said no.
+     // the one row being revoked (if any) plus the host's reason when it said no.
           revokeId: ui.injectRevokeId,
           revokeState: ui.injectRevokeState,
           revokeReason: ui.injectRevokeReason,
@@ -7093,9 +7094,9 @@ window.__ModuleLoader__.load({
           wfPageClose(h, say, actions)
         ),
         h("div", { className: "wf-right-scroll", key: "scroll", "data-dsh-workflow-map": "right-scroll" }, body),
-        // step-04-inject-prominence · the persistent dock. Every page kind that is NOT the composer
-        // gets it at the foot, so a prompt can be typed WITHOUT opening the composer first; the
-        // composer itself does not repeat it. It reads the SAME inject state the composer reads.
+     // the persistent dock. Every page kind that is NOT the composer
+     // gets it at the foot, so a prompt can be typed WITHOUT opening the composer first; the
+     // composer itself does not repeat it. It reads the SAME inject state the composer reads.
         kind === "inject"
           ? null
           : wfRenderInjectDock(h, say, fire, {
@@ -7110,8 +7111,8 @@ window.__ModuleLoader__.load({
 
     // ===== src/client/HotInject.js =====
     /**
-     * HotInject.js — step-04-hot-inject: the right-hand column that hot-injects a prompt.
-     * step-03-unsteer adds its undo: the 「撤回」 button on a history row (`POST /dsh-workflow/unsteer`).
+     * HotInject.js — the right-hand column that hot-injects a prompt.
+     * adds its undo: the "revoke" button on a history row (`POST /dsh-workflow/unsteer`).
      *
      * WHY THIS FILE EXISTS. The panel's other chunks are pure renderers of data the host already
      * folded. This one owns the plugin's TWO writes: a `POST /dsh-workflow/steer` that puts one
@@ -7122,35 +7123,35 @@ window.__ModuleLoader__.load({
      *
      * THE SEND STATE MACHINE (four states, one source of truth):
      *
-     *   idle ──send──▶ sending ──{ok:true}──▶ sent ──1.5 s──▶ idle
-     *                     │                     ▲
-     *                     └──{ok:false}──▶ failed ──1.5 s──▶ idle
+     * idle ──send──▶ sending ──{ok:true}──▶ sent ──1.5 s──▶ idle
+     * │ ▲
+     * └──{ok:false}──▶ failed ──1.5 s──▶ idle
      *
      * `sent` and `failed` are ACKNOWLEDGEMENTS, not resting states: they clear themselves after
-     * WF_INJECT_ACK_MS so the panel never sits on a stale "已注入". The textarea is never cleared
-     * by the machine — only the user's own 取消 does that — so a failed send keeps what was typed.
+     * WF_INJECT_ACK_MS so the panel never sits on a stale "injected" state. The textarea is never cleared
+     * by the machine — only the user's own cancel does that — so a failed send keeps what was typed.
      *
      * THE REVOKE STATE MACHINE (a second, separate one — one revocation at a time):
      *
-     *   idle ──click──▶ revoking ──{ok:true}──▶ revoked ──(the folded row stops being pending)──▶ gone
-     *                        │
-     *                        └──{ok:false}──▶ failed  (the host's own reason, under that row)
+     * idle ──click──▶ revoking ──{ok:true}──▶ revoked ──(the folded row stops being pending)──▶ gone
+     * │
+     * └──{ok:false}──▶ failed (the host's own reason, under that row)
      *
      * `revoked` is deliberately NOT optimistic: the host's 200 means the message left the inbox, and
-     * the row turns 「已撤销」 on the next poll, from the host's own durable
-     * `agent/inbox/spliced { outcome: 'canceled' }`. Until then the button reads 撤回中… and is dead,
+     * the row turns "revoked" on the next poll, from the host's own durable
+     * `agent/inbox/spliced { outcome: 'canceled' }`. Until then the button reads "revoking..." and is disabled,
      * which is what stops a second click from becoming a second post.
      *
      * HONESTY RULES (each one has an assertion):
-     *   1. Sending is refused while `state === "sending"` — no double post, ever.
-     *   2. Empty text is refused before any request leaves (the host would answer 400 anyway, but a
-     *      round trip for something the browser already knows is not honest either).
-     *   3. A success is claimed ONLY on `{ok:true}` from the host. On anything else the panel shows
-     *      the host's OWN reason verbatim — never "注入失败" invented here.
-     *   4. A 409 carries the host's text ("会话未在运行，热注入不可用"), and it is rendered as a
-     *      failure with that text, not silently swallowed.
-     *   5. `sessionId` is required: without one there is no session to address, so the button is
-     *      disabled rather than posting something the host will reject.
+     * 1. Sending is refused while `state === "sending"` — no double post, ever.
+     * 2. Empty text is refused before any request leaves (the host would answer 400 anyway, but a
+     * round trip for something the browser already knows is not honest either).
+     * 3. A success is claimed ONLY on `{ok:true}` from the host. On anything else the panel shows
+     * the host's OWN reason verbatim - never an invented "injection failed".
+     * 4. A 409 carries the host's text ("session is not running, hot injection unavailable"), and it is rendered as a
+     * failure with that text, not silently swallowed.
+     * 5. `sessionId` is required: without one there is no session to address, so the button is
+     * disabled rather than posting something the host will reject.
      *
      * Pure: `h` and `say` are injected. Inlined into client.js by tools/build-client.mjs.
      */
@@ -7158,7 +7159,7 @@ window.__ModuleLoader__.load({
     /** The text bound, mirroring the host's STEER_TEXT_LIMIT (src/route.js). */
     var WF_INJECT_LIMIT = 2000;
 
-    /** How long 「已注入」/ a failure line stays on screen (the step-11 copy receipt's rhythm). */
+    /** How long "injected" / a failure line stays on screen (the copy receipt's rhythm). */
     var WF_INJECT_ACK_MS = 1500;
 
     /** The four states. Anything else is treated as idle: a corrupted record cannot wedge the UI. */
@@ -7218,12 +7219,12 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* step-03-unsteer · the revoke state machine                                 */
+    /* the revoke state machine */
     /* ------------------------------------------------------------------------- */
 
     /**
      * The four states of ONE revocation. `idle` = nothing in flight, `revoking` = the POST is out,
-     * `revoked` = the host said 200 and the row is waiting for the next poll to say 「已撤销」,
+     * `revoked` = the host said 200 and the row is waiting for the next poll to say "revoked",
      * `failed` = the host refused and its own reason is on screen. `revoked` does NOT disappear by
      * itself: it disappears when the folded row stops being `pending`, which is the host's own
      * durable proof that the message really left the inbox.
@@ -7267,7 +7268,7 @@ window.__ModuleLoader__.load({
       return fire("panel.inject.counter", { used: used, left: left, max: WF_INJECT_LIMIT });
     }
 
-    /** step-04-inject-prominence · how many rows still wait for the turn — the header badge's only input. */
+    /** how many rows still wait for the turn — the header badge's only input. */
     function wfPendingInjectCount(rows) {
       if (!Array.isArray(rows)) return 0;
       var n = 0;
@@ -7287,7 +7288,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* the request                                                               */
+    /* the request */
     /* ------------------------------------------------------------------------- */
 
     /**
@@ -7307,7 +7308,7 @@ window.__ModuleLoader__.load({
     /**
      * One `POST /dsh-workflow/unsteer` — the SAME transport, one different body field.
      *
-     * This is the round trip the history row's 「撤回」 button makes. It answers 200 only when the
+     * This is the round trip the history row's "revoke" button makes. It answers 200 only when the
      * message was still in the inbox; 409 means the running turn already took it (or it never was
      * there), and that reason is printed verbatim in the row.
      *
@@ -7327,9 +7328,9 @@ window.__ModuleLoader__.load({
       return Promise.resolve()
         .then(function () {
           if (typeof fetchImpl !== "function") throw new Error("fetch unavailable");
-          // 会话6 · 发送前可取消：请求还没落地时用户点“取消发送”，fetch 立即中止。
-          // 这只能拦住**还在路上**的请求；一旦宿主已经返回 200（消息已入收件箱），
-          // 抽回就不再靠中止请求，而是靠 step-03 的 `POST /dsh-workflow/unsteer`（宿主收件箱撤销）。
+      // Cancellable before send: while the request is in flight the user can press cancel and the fetch aborts immediately.
+      // This only stops requests that are STILL IN FLIGHT; once the host has returned 200 (the message is in the inbox),
+      // pulling it back relies on `POST /dsh-workflow/unsteer` (host inbox revoke) instead of aborting the request.
           return fetchImpl(url, {
             method: "POST",
             cache: "no-store",
@@ -7341,8 +7342,8 @@ window.__ModuleLoader__.load({
         .then(function (response) {
           var status = response && wfFinite(response.status) !== null ? response.status : 0;
           if (!response || response.ok !== true) {
-            // The host answers JSON on every failure branch, so read it: its `error` is the reason
-            // the panel must print verbatim (rule 3).
+     // The host answers JSON on every failure branch, so read it: its `error` is the reason
+     // the panel must print verbatim (rule 3).
             return Promise.resolve()
               .then(function () {
                 return response && typeof response.json === "function" ? response.json() : null;
@@ -7384,7 +7385,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* the renderer                                                              */
+    /* the renderer */
     /* ------------------------------------------------------------------------- */
 
     /**
@@ -7400,8 +7401,8 @@ window.__ModuleLoader__.load({
       var state = wfInjectState(ui.state);
       var text = typeof ui.text === "string" ? ui.text : "";
       var reason = typeof ui.reason === "string" ? ui.reason : "";
-      // step-03-unsteer · the ONE revocation currently on screen. `revokeId` names the history row it
-      // belongs to, so a failure line lands under ITS row and never under a neighbour's.
+     // the ONE revocation currently on screen. `revokeId` names the history row it
+     // belongs to, so a failure line lands under ITS row and never under a neighbour's.
       var revokeId = typeof ui.revokeId === "string" ? ui.revokeId : "";
       var revokeState = wfRevokeState(ui.revokeState);
       var revokeReason = typeof ui.revokeReason === "string" ? ui.revokeReason : "";
@@ -7417,9 +7418,9 @@ window.__ModuleLoader__.load({
               : reason
             : "";
 
-      // 会话5 · the HISTORY rows (newest last in the model, drawn newest first so the latest send is
-      // the one the user sees without scrolling). Purely derived from the fold: nothing here talks
-      // to the host, and an empty list renders the honest "none yet" line instead of a blank block.
+     // the HISTORY rows (newest last in the model, drawn newest first so the latest send is
+     // the one the user sees without scrolling). Purely derived from the fold: nothing here talks
+     // to the host, and an empty list renders the honest "none yet" line instead of a blank block.
       var history = [];
       if (Array.isArray(ui.history)) history = ui.history.slice().reverse();
 
@@ -7490,8 +7491,8 @@ window.__ModuleLoader__.load({
             },
             sending ? say("panel.inject.sending") : say("panel.inject.send")
           ),
-          // 会话6 · 发送中显示“取消发送”：中止还在路上的请求（fetch signal）。
-          // 已经返回 200（宿主已入收件箱）后不出现这个按钮，因为那时无法抽回。
+      // While sending, show "cancel": abort the in-flight request (fetch signal).
+      // After a 200 (message already in the inbox) this button disappears, because it can no longer be pulled back.
           sending
             ? h(
                 "button",
@@ -7509,8 +7510,8 @@ window.__ModuleLoader__.load({
               )
             : null
         ),
-        // The acknowledgement: one line, present only while the state is sent/failed. It carries
-        // `aria-live` so a screen reader hears the host's own reason, not just a colour change.
+     // The acknowledgement: one line, present only while the state is sent/failed. It carries
+     // `aria-live` so a screen reader hears the host's own reason, not just a colour change.
         note === ""
           ? null
           : h(
@@ -7524,9 +7525,9 @@ window.__ModuleLoader__.load({
               },
               note
             ),
-        // 会话5 · the history block. It sits UNDER the acknowledgement so the composer's shape does
-        // not change; the newest row is first, and each row states the one thing the user asked to
-        // know: was this one taken by the running turn, or is it still waiting.
+     // the history block. It sits UNDER the acknowledgement so the composer's shape does
+     // not change; the newest row is first, and each row states the one thing the user asked to
+     // know: was this one taken by the running turn, or is it still waiting.
         h(
           "div",
           { className: "wf-inject-history", key: "history", "data-dsh-workflow-map": "inject-history", "data-count": history.length },
@@ -7537,12 +7538,12 @@ window.__ModuleLoader__.load({
                 "ul",
                 { className: "wf-inject-list", key: "list", role: "list" },
                 history.map(function (row) {
-                  // 会话6 · 三态：已接下 / 待拾取 / 已撤销。第三态只来自宿主自己的日志事件
-                  // （step-03 起：`agent/inbox/spliced` 的 `outcome: 'canceled'`，即撤回成功的持久记录）。
+      // Three states: picked up / awaiting pickup / revoked. The third comes only from the host's own log event
+      // (`agent/inbox/spliced` with `outcome: 'canceled'`, the durable record of a successful revoke).
                   var status = wfInjectStatusKey(row.status);
-                  // step-03-unsteer · 「撤回」 exists for exactly one window: a row the turn has NOT
-                  // claimed yet. A `picked` row cannot be un-read, and a `canceled` row has nothing
-                  // left to take back, so neither renders the button (not a disabled one — none).
+      // "revoke" exists for exactly one window: a row the turn has NOT
+     // claimed yet. A `picked` row cannot be un-read, and a `canceled` row has nothing
+     // left to take back, so neither renders the button (not a disabled one — none).
                   var pending = row.status === "pending";
                   var mine = pending && revokeId === row.id;
                   var inFlight = mine && (revokeState === "revoking" || revokeState === "revoked");
@@ -7574,8 +7575,8 @@ window.__ModuleLoader__.load({
                             className: "wf-link wf-inject-row-revoke",
                             "data-inject": "revoke",
                             "data-inject-id": row.id,
-                            // Two clicks must not become two posts: the button is dead from the moment
-                            // the request leaves until the row stops being `pending`.
+     // Two clicks must not become two posts: the button is dead from the moment
+     // the request leaves until the row stops being `pending`.
                             disabled: inFlight ? true : undefined,
                             title: say("panel.inject.revoke.hint"),
                             "aria-label": say("panel.inject.revoke"),
@@ -7586,8 +7587,8 @@ window.__ModuleLoader__.load({
                           inFlight ? say("panel.inject.revoking") : say("panel.inject.revoke")
                         )
                       : null,
-                    // The host's own words, verbatim, under the row that failed (rule 3). The stylesheet
-                    // makes it span the row so it never reads as a fourth column.
+     // The host's own words, verbatim, under the row that failed (rule 3). The stylesheet
+     // makes it span the row so it never reads as a fourth column.
                     mine && revokeState === "failed"
                       ? h(
                           "span",
@@ -7609,7 +7610,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * step-04-inject-prominence · the PERSISTENT dock: one row at the right page's foot, rendered for
+     * the PERSISTENT dock: one row at the right page's foot, rendered for
      * every page kind that is NOT the composer, so a prompt can be typed without opening it first.
      *
      * It shares ONE piece of state with the full composer (`inject.text`): both render the same
@@ -7629,7 +7630,7 @@ window.__ModuleLoader__.load({
       var sending = state === "sending";
       var canSend = wfInjectCanSend(state, sessionId, text);
       var history = Array.isArray(ui.history) ? ui.history : [];
-      // The model keeps the newest LAST (wfInjectRows), so the newest row is the last element.
+     // The model keeps the newest LAST (wfInjectRows), so the newest row is the last element.
       var latest = history.length > 0 ? history[history.length - 1] : null;
 
       var note =
@@ -7684,9 +7685,9 @@ window.__ModuleLoader__.load({
               var value = event && event.target ? event.target.value : "";
               wfFire(fire.onInjectText, value);
             },
-            // Enter is the dock's whole point: one line, no reaching for the button. The gate is the
-            // SAME wfInjectCanSend the full composer uses, so an empty / over-long / session-less text
-            // simply does nothing instead of posting something the host would reject.
+     // Enter is the dock's whole point: one line, no reaching for the button. The gate is the
+     // SAME wfInjectCanSend the full composer uses, so an empty / over-long / session-less text
+     // simply does nothing instead of posting something the host would reject.
             onKeyDown: function (event) {
               if (!event || event.key !== "Enter") return;
               if (typeof event.preventDefault === "function") event.preventDefault();
@@ -7720,8 +7721,8 @@ window.__ModuleLoader__.load({
               )
             : null
         ),
-        // The acknowledgement, verbatim: the host's own reason on failure, 「已注入」 only on a real
-        // {ok:true}. It sits inside the bar, under the row, so a 409 is never silent.
+     // The acknowledgement, verbatim: the host's own reason on failure, "injected" only on a real
+     // {ok:true}. It sits inside the bar, under the row, so a 409 is never silent.
         note === ""
           ? null
           : h(
@@ -7743,16 +7744,16 @@ window.__ModuleLoader__.load({
      * panel.js — the React component, its hooks and the pure renderer.
      *
      * Structure:
-     *   wfMakeSay        dictionary lookup with {placeholder} interpolation + fallback
-     *   wfUseSessionId   props.useSessions → the active session id
-     *   wfUsePrefs       localStorage-backed {width, height, collapsed, selectedStep}
-     *   wfUseSnap        the 800 ms / 3 s conditional poll loop
-     *   wfUseStyle       <style id="dsh-workflow-map-css">, removed on unmount
-     *   wfUseAltW        Alt+W toggles collapsed
-     *   wfUseSessionReset  drops a remembered step selection when the session changes
-     *   WorkflowMapPanel   the overlay occupant
-     *   wfRenderPanel    PURE: (model, prefs, say, actions, ui) → element tree | null
-     *   apply            registration
+     * wfMakeSay dictionary lookup with {placeholder} interpolation + fallback
+     * wfUseSessionId props.useSessions → the active session id
+     * wfUsePrefs localStorage-backed {width, height, collapsed, selectedStep}
+     * wfUseSnap the 800 ms / 3 s conditional poll loop
+     * wfUseStyle <style id="dsh-workflow-map-css">, removed on unmount
+     * wfUseAltW Alt+W toggles collapsed
+     * wfUseSessionReset drops a remembered step selection when the session changes
+     * WorkflowMapPanel the overlay occupant
+     * wfRenderPanel PURE: (model, prefs, say, actions, ui) → element tree | null
+     * apply registration
      *
      * `wfRenderPanel` is deliberately hook-free so tools/selftest-panel.mjs can drive it
      * with a fake `createElement` and assert the exact tree the frame will mount.
@@ -7761,7 +7762,7 @@ window.__ModuleLoader__.load({
      */
 
     /* ------------------------------------------------------------------------- */
-    /* locale                                                                    */
+    /* locale */
     /* ------------------------------------------------------------------------- */
 
     // Flat dotted keys (the dsh-context convention). zh/en must carry IDENTICAL key
@@ -7791,9 +7792,9 @@ window.__ModuleLoader__.load({
       "panel.flow.showAll": "展开全部",
       "panel.flow.expandGroup": "展开分组",
       "panel.flow.collapseGroup": "收起分组",
-      // step-05 · the round branch icons. The ARIA label says WHAT each circle is (read / edit / the
-      // tool being called), because a bare glyph is not a name; the visible label under it is the
-      // short form of the same fact.
+     // the round branch icons. The ARIA label says WHAT each circle is (read / edit / the
+     // tool being called), because a bare glyph is not a name; the visible label under it is the
+     // short form of the same fact.
       "panel.flow.icon.read": "读取",
       "panel.flow.icon.edit": "修改",
       "panel.flow.icon.tool": "工具",
@@ -7835,17 +7836,17 @@ window.__ModuleLoader__.load({
       "panel.kind.other": "其他",
       "panel.percent.estimate": "~{percent}% 估算",
       "panel.percent.self": "{percent}% 自报",
-      // 会话6 · 实测口径（待办清单完成比例）。与“自报/估算”用词严格区分。
+     // Measured basis (todo-list completion ratio), kept strictly distinct from the self-reported value / "estimated".
       "panel.percent.real": "{percent}% 实测",
-      // step-03: the rail's second line. {duration} is already formatted ("3 分钟"), and the
-      // wording says where the number came from — an estimate, not a measurement.
+     // the rail's second line. {duration} is already formatted ("3 minutes"), and the
+     // wording says where the number came from — an estimate, not a measurement.
       "panel.percent.ago": "{duration}前估计",
       "panel.percent.unknown": "时间未知",
       "panel.live": "正在",
       "panel.step.confirm": "需确认",
       "panel.step.progress": "{title} 进度",
-      // step-11 — node detail + step detail. Keep these suffixes LOWERCASE: build-client
-      // counts `panel.*` keys to prove zh/en carry the same set, and the pattern is [a-z.]+.
+     // — node detail + step detail. Keep these suffixes LOWERCASE: build-client
+     // counts `panel.*` keys to prove zh/en carry the same set, and the pattern is [a-z.]+.
       "panel.detail.aria": "节点详情：{tool}",
       "panel.detail.category.file": "文件",
       "panel.detail.category.command": "命令",
@@ -7921,9 +7922,9 @@ window.__ModuleLoader__.load({
       "panel.settings.export.downloadmarkdown": "下载 .md",
       "panel.settings.export.downloadjson": "下载 .json",
       "panel.stale": "离线（显示上次数据）",
-      // step-04-hot-inject: the inject column. `sent` is the ONLY success word — a failure prints
-      // the HOST's own reason, so no failure string of ours is ever shown instead of it.
-      // 会话4 · the single page and its right-hand page.
+     // the inject column. `sent` is the ONLY success word — a failure prints
+     // the HOST's own reason, so no failure string of ours is ever shown instead of it.
+     // the single page and its right-hand page.
       "panel.page.main": "主流程",
       "panel.page.step": "第 {n} 步详情",
       "panel.page.types": "这一步用到的工具文件",
@@ -7943,8 +7944,8 @@ window.__ModuleLoader__.load({
       "panel.page.noReport": "这一步的详情还没有随视图发送",
       "panel.page.inject": "热注入",
       "panel.inject.banner": "⚡ 热注入",
-      // step-04-inject-prominence · the badge on the header button. {count} is the number of rows
-      // the SESSION has not taken yet — never a number this side invents.
+     // the badge on the header button. {count} is the number of rows
+     // the SESSION has not taken yet — never a number this side invents.
       "panel.inject.pending.badge": "{count} 条待会话拾取",
       "panel.inject.open": "热注入提示词",
       "panel.inject.title": "热注入",
@@ -7956,15 +7957,15 @@ window.__ModuleLoader__.load({
       "panel.inject.sent": "已注入",
       "panel.inject.unknown": "注入失败（宿主未给出原因）",
       "panel.inject.counter": "{used}/{max}",
-      // 会话5 · the history rows. `picked` and `pending` are the two status words; they are NOT
-      // synonyms — the first is measured evidence, the second is "still waiting".
+     // the history rows. `picked` and `pending` are the two status words; they are NOT
+     // synonyms — the first is measured evidence, the second is "still waiting".
       "panel.inject.history": "热注入历史",
       "panel.inject.history.empty": "还没有热注入记录",
       "panel.inject.row.picked": "会话已接下",
       "panel.inject.row.pending": "待会话拾取",
-      // 会话6 · 撤回相关的字符串；step-03 起宿主开了真正的收件箱撤销接口，文案随之改为事实：
-      // 按钮做的事 = `POST /dsh-workflow/unsteer` → 宿主 `inbox.remove`，成功后才由日志里的
-      // `agent/inbox/spliced { outcome: 'canceled' }` 把这一行变成“已撤销”。
+     // Revoke-related strings. The host now exposes a real inbox revoke API, so the wording states the fact:
+     // what the button does = `POST /dsh-workflow/unsteer` -> host `inbox.remove`; only after that does the log's
+     // `agent/inbox/spliced { outcome: 'canceled' }` turn the row into "revoked".
       "panel.inject.row.canceled": "已撤销",
       "panel.inject.revoke": "撤回",
       "panel.inject.revoke.hint": "这条还在收件箱里、当前轮次尚未取用，所以可以撤回。撤回后它不会进入会话；一旦被轮次接下，就只能等它执行。",
@@ -8001,7 +8002,7 @@ window.__ModuleLoader__.load({
       "panel.flow.showAll": "Show all",
       "panel.flow.expandGroup": "Expand group",
       "panel.flow.collapseGroup": "Collapse group",
-      // step-05 · the round branch icons.
+     // the round branch icons.
       "panel.flow.icon.read": "Read",
       "panel.flow.icon.edit": "Edit",
       "panel.flow.icon.tool": "Tool",
@@ -8043,14 +8044,14 @@ window.__ModuleLoader__.load({
       "panel.kind.other": "Other",
       "panel.percent.estimate": "~{percent}% est.",
       "panel.percent.self": "{percent}% self",
-      // 会话6 · measured (todo-table completion ratio), distinct from self/estimate.
+     // measured (todo-table completion ratio), distinct from self/estimate.
       "panel.percent.real": "{percent}% measured",
       "panel.percent.ago": "{duration} ago",
       "panel.percent.unknown": "time unknown",
       "panel.live": "Working",
-      // step-04-hot-inject: same keys as the zh dictionary — the shape self-test asserts the two
-      // key sets are identical.
-      // 会话4 · the single page and its right-hand page (same keys as the zh dictionary).
+     // same keys as the zh dictionary — the shape self-test asserts the two
+     // key sets are identical.
+     // the single page and its right-hand page (same keys as the zh dictionary).
       "panel.page.main": "Main flow",
       "panel.page.step": "Step {n} details",
       "panel.page.types": "Tool files this step used",
@@ -8211,12 +8212,12 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* hooks                                                                     */
+    /* hooks */
     /* ------------------------------------------------------------------------- */
 
     /** The active session id, or null. `useSessions` is a standard prop of BOTH seats this
-     *  plugin occupies (`main` and `sidebar.panellist`), so the panel keeps reading it the
-     *  same way it did on the overlay. */
+     * plugin occupies (`main` and `sidebar.panellist`), so the panel keeps reading it the
+     * same way it did on the overlay. */
     function wfUseSessionId(props) {
       var useSessions = props && props.useSessions;
       if (typeof useSessions !== "function") return null;
@@ -8256,7 +8257,7 @@ window.__ModuleLoader__.load({
      * hook does: no writes, no host calls, no projections.
      *
      * The snapshot is dropped to `loading` the moment the session id changes, so a
-     * switch can never show the previous session's steps (step-06 §4 acceptance).
+     * switch can never show the previous session's steps ( §4 acceptance).
      */
     function wfUseSnap(sessionId) {
       var pair = React.useState(function () {
@@ -8295,15 +8296,15 @@ window.__ModuleLoader__.load({
               try {
                 controller.abort();
               } catch (error) {
-                /* an already-settled request has nothing to abort */
+     /* an already-settled request has nothing to abort */
               }
             }
             controller = typeof AbortController === "function" ? new AbortController() : null;
             var signal = controller ? controller.signal : undefined;
             wfPollOnce(window.fetch, wfPollUrl(sessionId), etag, signal).then(function (result) {
               if (stopped) return;
-              // -1 = this request was aborted by a newer one (visibility change): the
-              // newer tick already owns the loop, so stay silent and do not re-arm.
+     // -1 = this request was aborted by a newer one (visibility change): the
+     // newer tick already owns the loop, so stay silent and do not re-arm.
               if (result.status === -1) return;
               if (result.status === 304) {
                 setSnap(function (prev) {
@@ -8346,7 +8347,7 @@ window.__ModuleLoader__.load({
               try {
                 controller.abort();
               } catch (error) {
-                /* ignore */
+     /* ignore */
               }
             }
             document.removeEventListener("visibilitychange", onVisibilityChange);
@@ -8417,7 +8418,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* the two writes: the inject send and its undo (step-04 + step-03-unsteer)  */
+    /* the two writes: the inject send and its undo ( + ) */
     /* ------------------------------------------------------------------------- */
 
     var WF_INJECT_PATH = "/dsh-workflow/steer";
@@ -8440,20 +8441,20 @@ window.__ModuleLoader__.load({
         return { open: prev ? prev.open : true, state: "sending", text: trimmed, reason: "" };
       });
 
-      // 会话6 · 发送前可取消：controller 存到 window 上，供面板“取消发送”按钮取用。
-      // 只对“还在路上”的请求有效；一旦返回 200，宿主已入收件箱，插件无法抽回。
+     // Cancellable before send: the controller is stored on window for the panel's "cancel send" button.
+     // Only takes effect while the request is still in flight; once it returns 200 the host has it in the inbox and the plugin cannot pull it back.
       var controller = typeof AbortController === "function" ? new AbortController() : null;
       window.__dshWorkflowMapAbort = controller;
 
       wfPostSteer(window.fetch, WF_INJECT_PATH, sessionId, trimmed, controller ? controller.signal : undefined).then(function (result) {
-        // The acknowledgement's wording comes from the panel's OWN dictionary: `say` here is the
-        // component's, and wfInjectOutcome only needs it for the one fallback string.
+     // The acknowledgement's wording comes from the panel's OWN dictionary: `say` here is the
+     // component's, and wfInjectOutcome only needs it for the one fallback string.
         var outcome = wfInjectOutcome(result && result.payload, wfMakeSay());
         var next = {
           open: true,
           state: outcome.kind === "sent" ? "sent" : "failed",
           text: trimmed,
-          // A failure carries the HOST's own reason verbatim (the honesty rule).
+     // A failure carries the HOST's own reason verbatim (the honesty rule).
           reason: outcome.kind === "sent" ? "" : outcome.text,
         };
         setInject(next);
@@ -8473,7 +8474,7 @@ window.__ModuleLoader__.load({
      * running turn has not claimed yet.
      *
      * WHY IT IS NOT OPTIMISTIC. The host's 200 means the message LEFT the inbox — the fold will say
-     * 「已撤销」 on the next poll, from the host's own `agent/inbox/spliced { outcome: 'canceled' }`.
+     * "revoked" on the next poll, from the host's own `agent/inbox/spliced { outcome: 'canceled' }`.
      * So this function never rewrites the history row: it only records that THIS row is being revoked,
      * which greys its button (no second post) and carries the host's reason back when it refuses.
      *
@@ -8502,14 +8503,14 @@ window.__ModuleLoader__.load({
         setRevoke({
           id: messageId,
           state: outcome.kind === "revoked" ? "revoked" : "failed",
-          // A failure carries the HOST's own reason verbatim (the same honesty rule as the send).
+     // A failure carries the HOST's own reason verbatim (the same honesty rule as the send).
           reason: outcome.kind === "revoked" ? "" : outcome.text,
         });
       });
     }
 
     /* ------------------------------------------------------------------------- */
-    /* detail wiring (step-11)                                                    */
+    /* detail wiring */
     /* ------------------------------------------------------------------------- */
 
     /**
@@ -8542,7 +8543,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* 会话4 · the single page's behaviour                                            */
+    /* the single page's behaviour */
     /* ------------------------------------------------------------------------- */
 
     /**
@@ -8551,7 +8552,7 @@ window.__ModuleLoader__.load({
      * produce `null` (the page closes) rather than somebody else's record.
      *
      * The return value is the page's WHOLE content decision, so the renderer never re-derives it:
-     *   {kind, stepIndex, unit, stepDetail, typeKey, label, scopeStep, bucket, nodes, openType}
+     * {kind, stepIndex, unit, stepDetail, typeKey, label, scopeStep, bucket, nodes, openType}
      */
     function wfRightPageSpec(model, prefs) {
       if (!model || !prefs || prefs.rightOpen !== true) return null;
@@ -8573,13 +8574,13 @@ window.__ModuleLoader__.load({
         if (typeKey === "") return null;
         var scopeStep = scopeRaw === "session" ? null : wfFinite(Number(scopeRaw));
         if (scopeRaw !== "session" && (scopeStep === null || !isFinite(scopeStep))) return null;
-        // The bucket is looked up in the units the model actually has: a type from another session's
-        // stored key simply does not resolve.
+     // The bucket is looked up in the units the model actually has: a type from another session's
+     // stored key simply does not resolve.
         var seen = null;
         var owner = null;
         if (scopeStep === null) {
-          // Whole session: merge every unit's bucket of this key. The count is the sum of the units',
-          // which is exactly what each circle already claims, so the page cannot contradict the chain.
+     // Whole session: merge every unit's bucket of this key. The count is the sum of the units',
+     // which is exactly what each circle already claims, so the page cannot contradict the chain.
           var merged = { key: typeKey, kind: "file", label: "", side: "left", count: 0, running: false, error: false, nodes: [] };
           for (var u = 0; u < units.length; u += 1) {
             var types = units[u] && Array.isArray(units[u].types) ? units[u].types : [];
@@ -8608,9 +8609,9 @@ window.__ModuleLoader__.load({
           if (!seen) return null;
           owner = units[scopeStep];
         }
-        // The calls themselves: every node of that type, resolved through the SELECTED step's flow only
-        // when the scope IS the selected step (the wire only ships that step's nodes). A session-wide
-        // type therefore lists ids it cannot dereference — the page says so rather than inventing rows.
+     // The calls themselves: every node of that type, resolved through the SELECTED step's flow only
+     // when the scope IS the selected step (the wire only ships that step's nodes). A session-wide
+     // type therefore lists ids it cannot dereference — the page says so rather than inventing rows.
         var calls = [];
         var flowNodes = model.flow && Array.isArray(model.flow.nodes) ? model.flow.nodes : [];
         if (scopeStep !== null && model.selected === scopeStep) {
@@ -8633,7 +8634,7 @@ window.__ModuleLoader__.load({
         };
       }
 
-      // kind === "step": the key is `step:<index>`; a keyless page follows the selection.
+     // kind === "step": the key is `step:<index>`; a keyless page follows the selection.
       var wanted = null;
       if (key.indexOf("step:") === 0) {
         var parsed = wfFinite(Number(key.slice(5)));
@@ -8647,7 +8648,7 @@ window.__ModuleLoader__.load({
         stepIndex: wanted,
         openType: null,
         unit: row,
-        // Only the selected step's detail is on the wire; a page about another step says so.
+     // Only the selected step's detail is on the wire; a page about another step says so.
         stepDetail: model.selected === wanted && model.detail ? model.detail : null,
         scopeStep: wanted,
       };
@@ -8658,17 +8659,17 @@ window.__ModuleLoader__.load({
      * scrolled since.
      *
      * Two rules make this honest rather than helpful-looking:
-     *   1. it runs once per running step (`centeredStep`), so a poll cannot keep re-centring a reader;
-     *   2. any manual scroll in the page defeats it — `userScrolled` is set by the FIRST wheel / touch /
-     *      keydown on the scroller, and after that this hook does nothing for that step.
+     * 1. it runs once per running step (`centeredStep`), so a poll cannot keep re-centring a reader;
+     * 2. any manual scroll in the page defeats it — `userScrolled` is set by the FIRST wheel / touch /
+     * keydown on the scroller, and after that this hook does nothing for that step.
      */
     /**
      * The centring DECISION, as a pure function: run the auto-centring for `runningIndex` only
-     *   · when there IS a running step,
-     *   · when it has not already been centred once (`centeredStep`), and
-     *   · when the user has not scrolled the chain by hand (`scrolled`).
+     * · when there IS a running step,
+     * · when it has not already been centred once (`centeredStep`), and
+     * · when the user has not scrolled the chain by hand (`scrolled`).
      *
-     * The third clause is the user's 「除非用户手动滑动」. Note the trap this function exists to avoid:
+     * The third clause is the user's "unless the user scrolls by hand". Note the trap this function exists to avoid:
      * passing a sentinel like -1 as `centeredStep` would mean "never centred" and RE-CENTRE after every
      * manual scroll — the exact opposite of the request.
      */
@@ -8721,8 +8722,8 @@ window.__ModuleLoader__.load({
       );
       if (offset === null) return { applied: false, reason: "bad-geometry" };
       scroller.scrollTop = offset;
-      // Re-read after the write: the honest error is what the user now sees, not what the arithmetic
-      // predicted (a smooth-scroll or a sub-pixel layout shift would otherwise be papered over).
+     // Re-read after the write: the honest error is what the user now sees, not what the arithmetic
+     // predicted (a smooth-scroll or a sub-pixel layout shift would otherwise be papered over).
       var after = unit.getBoundingClientRect();
       return {
         applied: true,
@@ -8758,7 +8759,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* the component                                                             */
+    /* the component */
     /* ------------------------------------------------------------------------- */
 
     function WorkflowMapPanel(props) {
@@ -8770,21 +8771,21 @@ window.__ModuleLoader__.load({
       var settingsPair = React.useState(false);
       var settingsOpen = settingsPair[0];
       var setSettingsOpen = settingsPair[1];
-      // step-04-hot-inject: the composer's four-state machine and what was typed. It deliberately
-      // lives in React state, NOT in localStorage: an in-flight send and a draft prompt are
-      // per-session, per-moment facts, and reviving a stale "已注入" would be a lie.
+     // the composer's four-state machine and what was typed. It deliberately
+     // lives in React state, NOT in localStorage: an in-flight send and a draft prompt are
+     // per-session, per-moment facts, and reviving a stale "injected" would be a lie.
       var injectPair = React.useState({ state: "idle", text: "", reason: "" });
       var inject = injectPair[0];
       var setInject = injectPair[1];
-      // step-03-unsteer · which history row is being revoked right now, and (on failure) the host's
-      // own reason for that row. Deliberately NOT in the inject record above: the send's four-state
-      // machine clears itself on a timer, while a revocation stays on screen until the FOLDED row
-      // stops being `pending` — two different lifetimes, two different pieces of state.
+     // which history row is being revoked right now, and (on failure) the host's
+     // own reason for that row. Deliberately NOT in the inject record above: the send's four-state
+     // machine clears itself on a timer, while a revocation stays on screen until the FOLDED row
+     // stops being `pending` — two different lifetimes, two different pieces of state.
       var revokePair = React.useState({ id: "", state: "idle", reason: "" });
       var injectRevoke = revokePair[0];
       var setInjectRevoke = revokePair[1];
-      // 会话4 · which call the type page has expanded, and whether the chain has already brought the
-      // running unit to the middle (once per step — the user's own scrolling must never be undone).
+     // which call the type page has expanded, and whether the chain has already brought the
+     // running unit to the middle (once per step — the user's own scrolling must never be undone).
       var callPair = React.useState(null);
       var openCall = callPair[0];
       var setOpenCall = callPair[1];
@@ -8796,22 +8797,22 @@ window.__ModuleLoader__.load({
       wfUseSessionReset(sessionId, updatePrefs);
 
       var say = wfMakeSay(props && props.t);
-      // `Date.now()` is passed in (the store stays clock-free) because step-10 needs one honest
-      // judgement the event log alone cannot make: is this session still working right now?
+     // `Date.now` is passed in (the store stays clock-free) because needs one honest
+     // judgement the event log alone cannot make: is this session still working right now?
       var model = wfBuildModel(snap.view, prefs, Date.now());
       var systemMotion = wfUseMotion();
       var motionPref = wfSettingsOf(prefs).motion;
       var motion = systemMotion === "static" || motionPref === "static" ? "static" : "css";
-      // The curve is measured from the DOM, so it must be re-measured whenever the two endpoint
-      // cards could have moved — the effect's dependency is a cheap string, not the whole model.
-      // 会话4 · the old two-column curve (step ↔ node) is gone with the columns: there is no second
-      // column to connect to. The living layer's CSS (ring, breathing dot, dashed branch) is reused;
-      // only its measurement is no longer needed.
-      // Resolve the per-step flow state BEFORE rendering: a state left over from another
-      // step reads as the defaults (collapsed groups · no show-all · no highlight).
-      // 会话4 · the right page's content is DERIVED from the prefs (kind + key) and the model, so a
-      // stale key can never show another step's record: every branch below re-resolves against the
-      // live view and falls back to the unit's own numbers.
+     // The curve is measured from the DOM, so it must be re-measured whenever the two endpoint
+     // cards could have moved — the effect's dependency is a cheap string, not the whole model.
+     // the old two-column curve (step ↔ node) is gone with the columns: there is no second
+     // column to connect to. The living layer's CSS (ring, breathing dot, dashed branch) is reused;
+     // only its measurement is no longer needed.
+     // Resolve the per-step flow state BEFORE rendering: a state left over from another
+     // step reads as the defaults (collapsed groups · no show-all · no highlight).
+     // the right page's content is DERIVED from the prefs (kind + key) and the model, so a
+     // stale key can never show another step's record: every branch below re-resolves against the
+     // live view and falls back to the unit's own numbers.
       var page = wfRightPageSpec(model, prefs);
       var scrolledPair = React.useState(0);
       var scrolled = scrolledPair[0];
@@ -8819,9 +8820,9 @@ window.__ModuleLoader__.load({
       wfUseManualScrollGuard(function () {
         setScrolled(1);
       });
-      // 会话4 · centring: once per running step, defeated permanently by the FIRST manual scroll.
+     // centring: once per running step, defeated permanently by the FIRST manual scroll.
       wfUsePageCenter(model, centeredStep, scrolled === 1, setCenteredStep);
-      // step-12: object URLs created by exports are revoked when this panel unmounts.
+     // object URLs created by exports are revoked when this panel unmounts.
       wfUseSnapshotUrls();
 
       var actions = {
@@ -8831,8 +8832,8 @@ window.__ModuleLoader__.load({
         onExpand: function () {
           updatePrefs({ collapsed: false });
         },
-        // 会话4 · 热注入 is a PAGE, not a split: opening it replaces whatever the right page was
-        // showing; closing it closes the page (the composer's draft stays in React state).
+     // Hot injection is a PAGE, not a split: opening it replaces whatever the right page was
+     // showing; closing it closes the page (the composer's draft stays in React state).
         onToggleInject: function () {
           updatePrefs(function (prev) {
             var open = prev.rightOpen === true && prev.rightKind === "inject";
@@ -8849,13 +8850,13 @@ window.__ModuleLoader__.load({
         onInjectSend: function (text) {
           wfSendInject(text, sessionId, setInject);
         },
-        // step-03-unsteer · the history row's 「撤回」: one POST, then wait for the fold to say
-        // 「已撤销」. The row's id comes from the model (the host returned it on the steer 200 and the
-        // fold carried it into the rows), never from a DOM lookup.
+     // the history row's "Revoke": one POST, then wait for the fold to say
+     // "revoked". The row's id comes from the model (the host returned it on the steer 200 and the
+     // fold carried it into the rows), never from a DOM lookup.
         onInjectRevoke: function (messageId) {
           wfRevokeInject(messageId, sessionId, setInjectRevoke);
         },
-        // 会话6 · “取消发送”：只中止还在路上的请求。已经 200 的无法抽回（宿主未开放收件箱撤销）。
+     // "cancel send": abort only in-flight requests. A 200 cannot be pulled back (the host exposes no inbox revoke for it).
         onInjectAbort: function () {
           var controller = typeof window !== "undefined" ? window.__dshWorkflowMapAbort : null;
           if (controller && typeof controller.abort === "function") controller.abort();
@@ -8865,9 +8866,9 @@ window.__ModuleLoader__.load({
         onToggleSettings: function () {
           setSettingsOpen(!settingsOpen);
         },
-        // Clicking a main-flow unit: it becomes the SELECTED step (store.js builds its detail) and the
-        // right page opens on it. It deliberately does not expand anything in place.
-        // right page opens on it. It deliberately does not expand anything in place.
+     // Clicking a main-flow unit: it becomes the SELECTED step (store.js builds its detail) and the
+     // right page opens on it. It deliberately does not expand anything in place.
+     // right page opens on it. It deliberately does not expand anything in place.
         onOpenStep: function (index) {
           setOpenCall(null);
           updatePrefs({
@@ -8877,8 +8878,8 @@ window.__ModuleLoader__.load({
             rightKey: "step:" + index,
           });
         },
-        // A round satellite (or a type row inside the step page): the type page, scoped to that step
-        // when it came from a unit's gutter, or to the whole session when it came from the header.
+     // A round satellite (or a type row inside the step page): the type page, scoped to that step
+     // when it came from a unit's gutter, or to the whole session when it came from the header.
         onOpenType: function (index, typeKey) {
           setOpenCall(null);
           var scoped = wfFinite(index) === null ? "session" : String(Math.round(index));
@@ -8903,7 +8904,7 @@ window.__ModuleLoader__.load({
           updatePrefs({ selectedStep: index });
         },
         onReset: function () {
-          // step-12: the DOCUMENTED defaults, not whatever localStorage last held.
+     // the DOCUMENTED defaults, not whatever localStorage last held.
           updatePrefs(wfDefaultPrefs());
         },
         onSetting: function (setting, value) {
@@ -8927,13 +8928,13 @@ window.__ModuleLoader__.load({
             sessionId
           );
         },
-        // Escape (wfBindEscape): close the right page, never the panel. The step detail is no longer
-        // inline, so this is the whole gesture now.
+     // Escape (wfBindEscape): close the right page, never the panel. The step detail is no longer
+     // inline, so this is the whole gesture now.
         onEscapeDetail: function () {
           setOpenCall(null);
           updatePrefs({ rightOpen: false });
         },
-        // A path / command copy with the 1.5 s acknowledgement (NodeDetail.js).
+     // A path / command copy with the 1.5 s acknowledgement (NodeDetail.js).
         onCopy: function (text, element) {
           wfCopyWithFeedback(text, element, say);
         },
@@ -8948,29 +8949,29 @@ window.__ModuleLoader__.load({
         rev: snap.rev,
         endpoint: sessionId ? wfPollUrl(sessionId) : "",
         nodeTotal: snap.view && snap.view.counts ? wfFinite(snap.view.counts.nodes) : null,
-        // 会话4 · what the right page shows, already resolved against the model.
+     // what the right page shows, already resolved against the model.
         right: page,
         pageStep: page ? page.stepIndex : null,
         pageType: page ? page.openType : null,
         openCall: openCall,
         asOf: model ? model.asOf : null,
-        // step-10: what the living layer reads off the root element.
+     // what the living layer reads off the root element.
         motion: motion,
-        // step-12: 「始终」 keeps the living layer moving even when the session is idle;
-        // 「运行中」 (default) preserves step-10's idle freeze; 「关闭」 is data-motion=static.
+     // "Always" keeps the living layer moving even when the session is idle;
+     // "While running" (default) preserves the idle freeze; "Off" is data-motion=static.
         idle: motionPref === "always" ? false : !model || model.running !== true,
-        // step-04-hot-inject: the composer's own state, read straight from React.
+     // the composer's own state, read straight from React.
         injectState: inject.state,
         injectText: inject.text,
         injectReason: inject.reason,
-        // step-03-unsteer: which row is being revoked, and the host's reason when it refused.
+     // which row is being revoked, and the host's reason when it refused.
         injectRevoke: injectRevoke,
         sessionId: sessionId || "",
       });
     }
 
     /* ------------------------------------------------------------------------- */
-    /* the pure renderer                                                         */
+    /* the pure renderer */
     /* ------------------------------------------------------------------------- */
 
     function wfFire(fn, argument) {
@@ -8979,23 +8980,23 @@ window.__ModuleLoader__.load({
 
     function wfRenderPanel(model, prefs, say, actions, ui) {
       if (!model) return null;
-      // step-04-inject-prominence · the header badge's only number: rows the session has not taken yet.
+     // the header badge's only number: rows the session has not taken yet.
       var pendingCount = wfPendingInjectCount(model.injects);
       var extras = ui || {};
       var fire = actions || {};
-      // step-10: the two attributes the living layer needs. `motion` comes from the system's
-      // prefers-reduced-motion preference (pulse.js), `idle` from the model's running flag.
-      // Both live on .wf-root so the capsule is covered as well as the panel.
+     // the two attributes the living layer needs. `motion` comes from the system's
+     // prefers-reduced-motion preference (pulse.js), `idle` from the model's running flag.
+     // Both live on .wf-root so the capsule is covered as well as the panel.
       var motion = extras.motion === "static" ? "static" : "css";
       var idle = extras.idle === true;
-      // step-13: the layout owns the geometry. There is no dragged width, no pinned height and
-      // no viewport clamp any more — the centre column decides both, and the card fills it.
+     // the layout owns the geometry. There is no dragged width, no pinned height and
+     // no viewport clamp any more — the centre column decides both, and the card fills it.
       var collapsed = prefs.collapsed === true;
       var planning = model.kind === "planning";
-      // step-12: one sanitised settings record drives the root data attributes and the
-      // settings card, so a click can never leave the DOM and the card disagreeing.
-      // Read the live prefs, not model.settings: a click must change the root attributes
-      // on the same render even before the next poll produces an equivalent model.
+     // one sanitised settings record drives the root data attributes and the
+     // settings card, so a click can never leave the DOM and the card disagreeing.
+     // Read the live prefs, not model.settings: a click must change the root attributes
+     // on the same render even before the next poll produces an equivalent model.
       var settings = wfSettingsOf(prefs);
       if (collapsed) {
         var capsuleText = planning
@@ -9018,8 +9019,8 @@ window.__ModuleLoader__.load({
             "data-detail": settings.detail,
             "data-node-limit": String(settings.nodeLimit),
           },
-          // step-13: collapsed = a folded row inside the main area, not a floating capsule.
-          // The row keeps the live count so the panel can be left folded and still be read.
+     // collapsed = a folded row inside the main area, not a floating capsule.
+     // The row keeps the live count so the panel can be left folded and still be read.
           h(
             "div",
             { className: "wf-capsule-bar", key: "capsule-bar" },
@@ -9056,8 +9057,8 @@ window.__ModuleLoader__.load({
             { className: "wf-task", key: "task", title: model.task || "" },
             model.task || say("panel.task.fallback")
           ),
-          // No progress line while planning: the body's single "规划中…" line is the
-          // whole message (step-06 contract §3), so the number cannot appear twice.
+     // No progress line while planning: the body's single "planning..." line is the
+     // whole message ( contract §3), so the number cannot appear twice.
           planning
             ? null
             : h(
@@ -9096,9 +9097,9 @@ window.__ModuleLoader__.load({
             },
             "‒"
           ),
-          // 会话4 · the hot-inject entry is now a NAMED, prominent button (the user asked for it to be
-          // 显眼 and in Chinese), not a ⇄ glyph: the glyph said "split the column", which is no longer
-          // what happens — the composer takes over the right-hand page.
+     // the hot-inject entry is now a NAMED, prominent button (the user asked for it to be
+     // prominent and in Chinese), not a ⇄ glyph: the glyph said "split the column", which no longer exists
+     // what happens — the composer takes over the right-hand page.
           h(
             "button",
             {
@@ -9106,9 +9107,9 @@ window.__ModuleLoader__.load({
               key: "inject",
               className: "wf-btn wf-btn-hot",
               "data-dsh-workflow-map": "inject-toggle",
-              // step-04-inject-prominence · the badge is driven by the model's own rows: only a row
-              // whose status is "pending" is still waiting for the turn. No pending row ⇒ neither the
-              // attribute nor the element exists (the self-test asserts both directions).
+     // the badge is driven by the model's own rows: only a row
+     // whose status is "pending" is still waiting for the turn. No pending row ⇒ neither the
+     // attribute nor the element exists (the self-test asserts both directions).
               "data-pending-count": pendingCount > 0 ? String(pendingCount) : undefined,
               "data-active": extras.right && extras.right.kind === "inject" ? "true" : undefined,
               title: pendingCount > 0 ? say("panel.inject.pending.badge", { count: pendingCount }) : say("panel.inject.open"),
@@ -9174,20 +9175,20 @@ window.__ModuleLoader__.load({
             className: "wf-body",
             key: "body",
             "data-kind": "ready",
-            // 会话4 · ONE page. The right-hand page is a flex sibling, not an overlay and not a third
-            // column: `data-right` says whether it is mounted, and its flex basis does the rest.
+     // ONE page. The right-hand page is a flex sibling, not an overlay and not a third
+     // column: `data-right` says whether it is mounted, and its flex basis does the rest.
             "data-right": extras.right ? "true" : "false",
             "data-dsh-workflow-map": "body",
           },
-          // The serial main flow: one unit per step, satellites on both sides, straight connectors.
+     // The serial main flow: one unit per step, satellites on both sides, straight connectors.
           wfRenderMainFlow(h, model, say, fire, {
             openStep: extras.pageStep,
             openType: extras.pageType,
             asOf: wfFinite(extras.asOf) === null ? model.asOf : extras.asOf,
-            // step-12 「只看标题」 narrows the unit's rail to one line, exactly as it did in the old column.
+     // "Title only" narrows the unit's rail to one line, exactly as it did in the old column.
             compact: settings.detail === "title",
           }),
-          // The right page: a step record, one file type's calls, or the inject composer.
+     // The right page: a step record, one file type's calls, or the inject composer.
           extras.right
             ? wfRenderRightPage(
                 h,
@@ -9200,10 +9201,10 @@ window.__ModuleLoader__.load({
                   injectState: extras.injectState,
                   injectText: extras.injectText,
                   injectReason: extras.injectReason,
-                  // 会话5 · the history rows, straight from the model (the host folds them from the
-                  // session's own log, so the browser adds nothing and invents nothing).
+     // the history rows, straight from the model (the host folds them from the
+     // session's own log, so the browser adds nothing and invents nothing).
                   injectHistory: model.injects,
-                  // step-03-unsteer · the one revocation on screen, flattened for the composer.
+     // the one revocation on screen, flattened for the composer.
                   injectRevokeId: extras.injectRevoke && typeof extras.injectRevoke === "object" ? extras.injectRevoke.id : "",
                   injectRevokeState: extras.injectRevoke && typeof extras.injectRevoke === "object" ? extras.injectRevoke.state : "idle",
                   injectRevokeReason: extras.injectRevoke && typeof extras.injectRevoke === "object" ? extras.injectRevoke.reason : "",
@@ -9232,8 +9233,8 @@ window.__ModuleLoader__.load({
           {
             className: "wf-card",
             key: "card",
-            // step-13: a main-column panel is a region, not a dialog — it is not modal,
-            // it does not trap focus, and it has no close affordance of its own.
+     // a main-column panel is a region, not a dialog — it is not modal,
+     // it does not trap focus, and it has no close affordance of its own.
             role: "region",
             "aria-label": say("panel.aria", { task: model.task || say("panel.task.fallback") }),
             "data-dsh-workflow-map": "panel",
@@ -9248,11 +9249,11 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* the sidebar icon                                                          */
+    /* the sidebar icon */
     /* ------------------------------------------------------------------------- */
 
     /**
-     * The left-rail glyph (step-13). Same picture as icon.svg — two stacked panels on a
+     * The left-rail glyph . Same picture as icon.svg — two stacked panels on a
      * spine — drawn inline with createElement because the sidebar hands this occupant only
      * `{size, active}`: no asset URL is resolvable from inside the ModuleLoader factory.
      * `active` recolours through currentColor, which the shipped rows also rely on.
@@ -9318,7 +9319,7 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* 会话6 · the conversation-view seat wrapper                                  */
+    /* the conversation-view seat wrapper */
     /* ------------------------------------------------------------------------- */
 
     /**
@@ -9332,7 +9333,7 @@ window.__ModuleLoader__.load({
     /**
      * Wrap a rendered node in the seat marker. `display:contents` keeps the wrapper BOX-LESS: it adds
      * no element to the layout, so the seat's geometry is exactly the one the panel already had — the
-     * div exists only to be the `:has()` hook for the rule that hides the composer.
+     * div exists only to be the `:has` hook for the rule that hides the composer.
      */
     function wfViewSeatRoot(h, node) {
       return h(
@@ -9352,7 +9353,7 @@ window.__ModuleLoader__.load({
      * of the selected view, inside `[data-conversation-content]`
      * (`div[data-conversation-content] > div[data-conversation-scroll] > [selected view, div[data-composer-seat]]`,
      * measured in this host), so nothing inside the panel's own tree can unmount it. A stylesheet rule
-     * scoped by `:has()` on the seat marker is the only mechanism that removes it without a host change,
+     * scoped by `:has` on the seat marker is the only mechanism that removes it without a host change,
      * and it restores itself the moment the user switches back — the host unmounts this view.
      */
     function WorkflowMapViewSeat(props) {
@@ -9360,14 +9361,14 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------------- */
-    /* registration                                                              */
+    /* registration */
     /* ------------------------------------------------------------------------- */
 
     /**
-     * step-13: two seats, ONE id.
+     * two seats, ONE id.
      *
-     *   sidebar.panellist (list)  the rail glyph; its `id` is what the row selects
-     *   main              (keyed) the centre-column page for that same key
+     * sidebar.panellist (list) the rail glyph; its `id` is what the row selects
+     * main (keyed) the centre-column page for that same key
      *
      * They must agree: `PanelRow` renders `renderSlot("sidebar.panellist", …, {only:id})`
      * and `selectPanel(id)` then dispatches `main` by that key — selecting an id with no
@@ -9402,11 +9403,11 @@ window.__ModuleLoader__.load({
           WorkflowMapPanel
         );
       });
-      // 会话6 · 会话标签栏里的快捷入口。`conversation.view` 是对话区顶部那排 Tab 的插槽
-      // （list，按 order 升序）：chat(0) / trajectory(10) / context(20) / fleet(30)，所以 order 40
-      // 从「编队」之后（order 40）。点一下就是同一个 `WorkflowMapPanel`，外面套一层座位标记
-      // `wfViewSeatRoot`（会话6）：样式表据此把宿主的 composer 座位藏掉——与左栏菜单元素完全同一份
-      // 界面、同一份轮询、同一份热注入，不是第二个实现。
+     // The shortcut in the session tab bar. `conversation.view` is the slot for the tab row above the conversation area
+     // (a list ordered by `order`): chat(0) / trajectory(10) / context(20) / fleet(30), so order 40 puts it
+     // after "fleet". Clicking it renders the same `WorkflowMapPanel`, wrapped in a seat marker
+     // `wfViewSeatRoot`: the stylesheet uses it to hide the host composer seat - the very same
+     // panel, the same polling, the same hot injection. Not a second implementation.
       ctx.slots.inject("conversation.view", function () {
         return ctx.slots.register(
           {
@@ -9429,8 +9430,8 @@ window.__ModuleLoader__.load({
      */
     var __test = {
       buildModel: wfBuildModel,
-      // 会话4 · the single page, its satellites, the right page and the type buckets they are built
-      // from. Exported so the self-tests drive the EXACT trees the frame mounts.
+     // the single page, its satellites, the right page and the type buckets they are built
+     // from. Exported so the self-tests drive the EXACT trees the frame mounts.
       renderMainFlow: wfRenderMainFlow,
       renderUnit: wfRenderUnit,
       renderSatellite: wfRenderSatellite,
@@ -9453,17 +9454,17 @@ window.__ModuleLoader__.load({
       renderProgressDock: wfRenderProgressDock,
       progressLabel: wfProgressLabel,
       progressFillWidth: wfProgressFillWidth,
-      // step-03: the second line's arithmetic and its duration formatter.
+     // the second line's arithmetic and its duration formatter.
       progressTiming: wfProgressTiming,
       progressDurationText: wfProgressDurationText,
       deriveStatus: wfDeriveStepStatus,
       applyDerivedStatuses: wfApplyDerivedStatuses,
       renderPanel: wfRenderPanel,
-      // 会话6 · the conversation-view seat's marker wrapper (the rule that hides the HOST composer is
-      // keyed on it, so both halves of that contract are driven here).
+     // the conversation-view seat's marker wrapper (the rule that hides the HOST composer is
+     // keyed on it, so both halves of that contract are driven here).
       viewSeatRoot: wfViewSeatRoot,
       viewSeatMarker: WF_VIEW_SEAT_MARKER,
-      // step-04-hot-inject: the inject column — the state machine, the request and the renderer.
+     // the inject column — the state machine, the request and the renderer.
       injectState: wfInjectState,
       injectCanSend: wfInjectCanSend,
       injectText: wfInjectText,
@@ -9471,17 +9472,17 @@ window.__ModuleLoader__.load({
       injectAckDone: wfInjectAckDone,
       injectCounter: wfInjectCounter,
       postSteer: wfPostSteer,
-      // step-03-unsteer: the revoke half of the same column — its state machine, its request and the
-      // host's-answer → outcome rule.
+     // the revoke half of the same column — its state machine, its request and the
+     // host's-answer → outcome rule.
       revokeState: wfRevokeState,
       revokeOutcome: wfRevokeOutcome,
       postUnsteer: wfPostUnsteer,
-      // 会话5 · the history shaping and the 【需确认】 derivation.
+     // the history shaping and the "needs confirm" derivation.
       injectRows: wfInjectRows,
       confirmRows: wfConfirmRows,
       confirmTitle: wfConfirmTitle,
       renderHotInject: wfRenderHotInject,
-      // step-04-inject-prominence · the persistent dock, its renderer and its two pure inputs.
+     // the persistent dock, its renderer and its two pure inputs.
       renderInjectDock: wfRenderInjectDock,
       pendingInjectCount: wfPendingInjectCount,
       injectStatusKey: wfInjectStatusKey,
@@ -9499,8 +9500,8 @@ window.__ModuleLoader__.load({
       flowSelectNode: wfFlowSelectNode,
       flowClearSelection: wfFlowClearSelection,
       flowToggleBranch: wfFlowToggleBranch,
-      // step-05: the chain's branch derivation, its two halves (stroke path + the round icon), the
-      // opened category view and the per-step toggle that drives it.
+     // the chain's branch derivation, its two halves (stroke path + the round icon), the
+     // opened category view and the per-step toggle that drives it.
       flowToggleChain: wfFlowToggleChain,
       chainBranches: wfChainBranches,
       chainActionKind: wfChainActionKind,
@@ -9523,14 +9524,14 @@ window.__ModuleLoader__.load({
       nodeTitleParts: wfNodeTitleParts,
       nodeStatus: wfNodeStatus,
       nodeMetaBits: wfNodeMetaBits,
-      // step-11: node detail, step detail, the clipboard and the two document bindings.
+     // node detail, step detail, the clipboard and the two document bindings.
       renderNodeDetail: wfRenderNodeDetail,
       renderStepDetail: wfRenderStepDetail,
       renderStepHead: wfRenderStepHead,
       stepDetailOpen: wfStepDetailOpen,
       stepDetailToggle: wfStepDetailToggle,
       stepDetailOpenFor: wfStepDetailOpenFor,
-      // step-02: the ONE disclosure triangle (a real <button>) and its glyph.
+     // the ONE disclosure triangle (a real <button>) and its glyph.
       tri: wfTri,
       triGlyph: wfTriGlyph,
       detailCategory: wfDetailCategory,
@@ -9558,7 +9559,7 @@ window.__ModuleLoader__.load({
       loadPrefs: wfLoadPrefs,
       savePrefs: wfSavePrefs,
       defaultPrefs: wfDefaultPrefs,
-      // step-12: settings, snapshot construction and the two export deliveries.
+     // settings, snapshot construction and the two export deliveries.
       renderSettings: wfRenderSettings,
       defaultSettings: wfDefaultSettings,
       sanitizeSettings: wfSanitizeSettings,
@@ -9574,7 +9575,7 @@ window.__ModuleLoader__.load({
       snapshotDownload: wfSnapshotDownload,
       releaseSnapshotUrls: wfReleaseSnapshotUrls,
       snapshotUrlCount: wfSnapshotUrlCount,
-      // step-10: the living layer, its geometry and the two attributes it reads.
+     // the living layer, its geometry and the two attributes it reads.
       renderFlowEffects: wfRenderFlowEffects,
       fxCurve: wfFxCurve,
       fxGeometry: wfFxGeometry,
@@ -9620,8 +9621,8 @@ window.__ModuleLoader__.load({
           pulseMs: WF_PULSE_MS,
           idleAfterMs: WF_IDLE_AFTER_MS,
           fxMinGap: WF_FX_MIN_GAP,
-          // step-05: the chain's distances, so the self-test can assert the >= 28 px air, the 20–24 px
-          // icon, and the fact that the link never overflows the gap it is drawn in.
+     // the chain's distances, so the self-test can assert the >= 28 px air, the 20–24 px
+     // icon, and the fact that the link never overflows the gap it is drawn in.
           chainGap: WF_CHAIN_GAP,
           chainLink: WF_CHAIN_LINK,
           chainPad: WF_CHAIN_PAD,
@@ -9636,8 +9637,8 @@ window.__ModuleLoader__.load({
           detailModes: WF_DETAIL_MODES,
           nodeLimits: WF_NODE_LIMITS,
           snapshotSchema: WF_SNAPSHOT_SCHEMA,
-          // 会话4 · the single page's distances, the right page's kinds and its slot budget, so the
-          // self-test asserts the SAME numbers the stylesheet is built from.
+     // the single page's distances, the right page's kinds and its slot budget, so the
+     // self-test asserts the SAME numbers the stylesheet is built from.
           pagePad: WF_PAGE_PAD,
           satellite: WF_SATELLITE,
           satLink: WF_SAT_LINK,

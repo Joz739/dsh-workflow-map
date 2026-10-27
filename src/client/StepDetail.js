@@ -1,15 +1,15 @@
 /**
- * StepDetail.js — 「这一步交了什么」: the PAE step report plus the step's own statistics,
+ * StepDetail.js - "what did this step deliver": the PAE step report plus the step's own statistics,
  * inline under the selected step card (and a one-line summary in the column header).
  *
  * Two sources, deliberately kept apart:
- *   report  plan.stepReports[stepIndex] — summary / artifacts / exit_code / status. PAE
- *           rewrites this after every step; a step that has not reported yet says so.
- *   stats   the step's own nodes (tool count, distinct files, first/last clock) — the
- *           counts come from the nodes the host actually sent, and when the host's
- *           300-node cap bit, the block says how many nodes it could not count.
+ * report plan.stepReports[stepIndex] — summary / artifacts / exit_code / status. PAE
+ * rewrites this after every step; a step that has not reported yet says so.
+ * stats the step's own nodes (tool count, distinct files, first/last clock) — the
+ * counts come from the nodes the host actually sent, and when the host's
+ * 300-node cap bit, the block says how many nodes it could not count.
  *
- * There is NO "blank" state: a step without a report renders 「这一步还没交报告」.
+ * There is NO "blank" state: a step without a report renders "no report for this step yet".
  *
  * Pure: `h` and `say` are injected. The open/closed state is a plain number (the step whose
  * detail the user closed) so it survives re-renders without React state in the renderer.
@@ -67,7 +67,7 @@ function wfStepDetailOpenFor(stepIndex) {
   return { selectedStep: Math.round(stepIndex), closedStep: null };
 }
 
-/** The one-line summary pinned in the left column's header (「头部显示」). */
+/** The one-line summary pinned in the left column's header. */
 function wfRenderStepHead(h, detail, say) {
   if (!detail) return null;
   return h(
@@ -84,7 +84,7 @@ function wfRenderStepHead(h, detail, say) {
 /**
  * The block under the selected card. `detail` is built by store.js wfBuildStepDetail:
  * {index, planIndex, title, status, statusKey, tools, files, nodes, truncated,
- *  startedAt, endedAt, report|null}.
+ * startedAt, endedAt, report|null}.
  */
 function wfRenderStepDetail(h, detail, say, actions, ctx) {
   if (!detail || wfFinite(detail.index) === null) return null;

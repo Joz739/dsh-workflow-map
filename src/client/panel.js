@@ -2,16 +2,16 @@
  * panel.js — the React component, its hooks and the pure renderer.
  *
  * Structure:
- *   wfMakeSay        dictionary lookup with {placeholder} interpolation + fallback
- *   wfUseSessionId   props.useSessions → the active session id
- *   wfUsePrefs       localStorage-backed {width, height, collapsed, selectedStep}
- *   wfUseSnap        the 800 ms / 3 s conditional poll loop
- *   wfUseStyle       <style id="dsh-workflow-map-css">, removed on unmount
- *   wfUseAltW        Alt+W toggles collapsed
- *   wfUseSessionReset  drops a remembered step selection when the session changes
- *   WorkflowMapPanel   the overlay occupant
- *   wfRenderPanel    PURE: (model, prefs, say, actions, ui) → element tree | null
- *   apply            registration
+ * wfMakeSay dictionary lookup with {placeholder} interpolation + fallback
+ * wfUseSessionId props.useSessions → the active session id
+ * wfUsePrefs localStorage-backed {width, height, collapsed, selectedStep}
+ * wfUseSnap the 800 ms / 3 s conditional poll loop
+ * wfUseStyle <style id="dsh-workflow-map-css">, removed on unmount
+ * wfUseAltW Alt+W toggles collapsed
+ * wfUseSessionReset drops a remembered step selection when the session changes
+ * WorkflowMapPanel the overlay occupant
+ * wfRenderPanel PURE: (model, prefs, say, actions, ui) → element tree | null
+ * apply registration
  *
  * `wfRenderPanel` is deliberately hook-free so tools/selftest-panel.mjs can drive it
  * with a fake `createElement` and assert the exact tree the frame will mount.
@@ -20,7 +20,7 @@
  */
 
 /* ------------------------------------------------------------------------- */
-/* locale                                                                    */
+/* locale */
 /* ------------------------------------------------------------------------- */
 
 // Flat dotted keys (the dsh-context convention). zh/en must carry IDENTICAL key
@@ -50,9 +50,9 @@ var DICT_ZH = {
   "panel.flow.showAll": "展开全部",
   "panel.flow.expandGroup": "展开分组",
   "panel.flow.collapseGroup": "收起分组",
-  // step-05 · the round branch icons. The ARIA label says WHAT each circle is (read / edit / the
-  // tool being called), because a bare glyph is not a name; the visible label under it is the
-  // short form of the same fact.
+ // the round branch icons. The ARIA label says WHAT each circle is (read / edit / the
+ // tool being called), because a bare glyph is not a name; the visible label under it is the
+ // short form of the same fact.
   "panel.flow.icon.read": "读取",
   "panel.flow.icon.edit": "修改",
   "panel.flow.icon.tool": "工具",
@@ -94,17 +94,17 @@ var DICT_ZH = {
   "panel.kind.other": "其他",
   "panel.percent.estimate": "~{percent}% 估算",
   "panel.percent.self": "{percent}% 自报",
-  // 会话6 · 实测口径（待办清单完成比例）。与“自报/估算”用词严格区分。
+ // Measured basis (todo-list completion ratio), kept strictly distinct from the self-reported value / "estimated".
   "panel.percent.real": "{percent}% 实测",
-  // step-03: the rail's second line. {duration} is already formatted ("3 分钟"), and the
-  // wording says where the number came from — an estimate, not a measurement.
+ // the rail's second line. {duration} is already formatted ("3 minutes"), and the
+ // wording says where the number came from — an estimate, not a measurement.
   "panel.percent.ago": "{duration}前估计",
   "panel.percent.unknown": "时间未知",
   "panel.live": "正在",
   "panel.step.confirm": "需确认",
   "panel.step.progress": "{title} 进度",
-  // step-11 — node detail + step detail. Keep these suffixes LOWERCASE: build-client
-  // counts `panel.*` keys to prove zh/en carry the same set, and the pattern is [a-z.]+.
+ // — node detail + step detail. Keep these suffixes LOWERCASE: build-client
+ // counts `panel.*` keys to prove zh/en carry the same set, and the pattern is [a-z.]+.
   "panel.detail.aria": "节点详情：{tool}",
   "panel.detail.category.file": "文件",
   "panel.detail.category.command": "命令",
@@ -180,9 +180,9 @@ var DICT_ZH = {
   "panel.settings.export.downloadmarkdown": "下载 .md",
   "panel.settings.export.downloadjson": "下载 .json",
   "panel.stale": "离线（显示上次数据）",
-  // step-04-hot-inject: the inject column. `sent` is the ONLY success word — a failure prints
-  // the HOST's own reason, so no failure string of ours is ever shown instead of it.
-  // 会话4 · the single page and its right-hand page.
+ // the inject column. `sent` is the ONLY success word — a failure prints
+ // the HOST's own reason, so no failure string of ours is ever shown instead of it.
+ // the single page and its right-hand page.
   "panel.page.main": "主流程",
   "panel.page.step": "第 {n} 步详情",
   "panel.page.types": "这一步用到的工具文件",
@@ -202,8 +202,8 @@ var DICT_ZH = {
   "panel.page.noReport": "这一步的详情还没有随视图发送",
   "panel.page.inject": "热注入",
   "panel.inject.banner": "⚡ 热注入",
-  // step-04-inject-prominence · the badge on the header button. {count} is the number of rows
-  // the SESSION has not taken yet — never a number this side invents.
+ // the badge on the header button. {count} is the number of rows
+ // the SESSION has not taken yet — never a number this side invents.
   "panel.inject.pending.badge": "{count} 条待会话拾取",
   "panel.inject.open": "热注入提示词",
   "panel.inject.title": "热注入",
@@ -215,15 +215,15 @@ var DICT_ZH = {
   "panel.inject.sent": "已注入",
   "panel.inject.unknown": "注入失败（宿主未给出原因）",
   "panel.inject.counter": "{used}/{max}",
-  // 会话5 · the history rows. `picked` and `pending` are the two status words; they are NOT
-  // synonyms — the first is measured evidence, the second is "still waiting".
+ // the history rows. `picked` and `pending` are the two status words; they are NOT
+ // synonyms — the first is measured evidence, the second is "still waiting".
   "panel.inject.history": "热注入历史",
   "panel.inject.history.empty": "还没有热注入记录",
   "panel.inject.row.picked": "会话已接下",
   "panel.inject.row.pending": "待会话拾取",
-  // 会话6 · 撤回相关的字符串；step-03 起宿主开了真正的收件箱撤销接口，文案随之改为事实：
-  // 按钮做的事 = `POST /dsh-workflow/unsteer` → 宿主 `inbox.remove`，成功后才由日志里的
-  // `agent/inbox/spliced { outcome: 'canceled' }` 把这一行变成“已撤销”。
+ // Revoke-related strings. The host now exposes a real inbox revoke API, so the wording states the fact:
+ // what the button does = `POST /dsh-workflow/unsteer` -> host `inbox.remove`; only after that does the log's
+ // `agent/inbox/spliced { outcome: 'canceled' }` turn the row into "revoked".
   "panel.inject.row.canceled": "已撤销",
   "panel.inject.revoke": "撤回",
   "panel.inject.revoke.hint": "这条还在收件箱里、当前轮次尚未取用，所以可以撤回。撤回后它不会进入会话；一旦被轮次接下，就只能等它执行。",
@@ -260,7 +260,7 @@ var DICT_EN = {
   "panel.flow.showAll": "Show all",
   "panel.flow.expandGroup": "Expand group",
   "panel.flow.collapseGroup": "Collapse group",
-  // step-05 · the round branch icons.
+ // the round branch icons.
   "panel.flow.icon.read": "Read",
   "panel.flow.icon.edit": "Edit",
   "panel.flow.icon.tool": "Tool",
@@ -302,14 +302,14 @@ var DICT_EN = {
   "panel.kind.other": "Other",
   "panel.percent.estimate": "~{percent}% est.",
   "panel.percent.self": "{percent}% self",
-  // 会话6 · measured (todo-table completion ratio), distinct from self/estimate.
+ // measured (todo-table completion ratio), distinct from self/estimate.
   "panel.percent.real": "{percent}% measured",
   "panel.percent.ago": "{duration} ago",
   "panel.percent.unknown": "time unknown",
   "panel.live": "Working",
-  // step-04-hot-inject: same keys as the zh dictionary — the shape self-test asserts the two
-  // key sets are identical.
-  // 会话4 · the single page and its right-hand page (same keys as the zh dictionary).
+ // same keys as the zh dictionary — the shape self-test asserts the two
+ // key sets are identical.
+ // the single page and its right-hand page (same keys as the zh dictionary).
   "panel.page.main": "Main flow",
   "panel.page.step": "Step {n} details",
   "panel.page.types": "Tool files this step used",
@@ -470,12 +470,12 @@ function wfProgressText(say, progress) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* hooks                                                                     */
+/* hooks */
 /* ------------------------------------------------------------------------- */
 
 /** The active session id, or null. `useSessions` is a standard prop of BOTH seats this
- *  plugin occupies (`main` and `sidebar.panellist`), so the panel keeps reading it the
- *  same way it did on the overlay. */
+ * plugin occupies (`main` and `sidebar.panellist`), so the panel keeps reading it the
+ * same way it did on the overlay. */
 function wfUseSessionId(props) {
   var useSessions = props && props.useSessions;
   if (typeof useSessions !== "function") return null;
@@ -515,7 +515,7 @@ function wfUsePrefs() {
  * hook does: no writes, no host calls, no projections.
  *
  * The snapshot is dropped to `loading` the moment the session id changes, so a
- * switch can never show the previous session's steps (step-06 §4 acceptance).
+ * switch can never show the previous session's steps ( §4 acceptance).
  */
 function wfUseSnap(sessionId) {
   var pair = React.useState(function () {
@@ -554,15 +554,15 @@ function wfUseSnap(sessionId) {
           try {
             controller.abort();
           } catch (error) {
-            /* an already-settled request has nothing to abort */
+ /* an already-settled request has nothing to abort */
           }
         }
         controller = typeof AbortController === "function" ? new AbortController() : null;
         var signal = controller ? controller.signal : undefined;
         wfPollOnce(window.fetch, wfPollUrl(sessionId), etag, signal).then(function (result) {
           if (stopped) return;
-          // -1 = this request was aborted by a newer one (visibility change): the
-          // newer tick already owns the loop, so stay silent and do not re-arm.
+ // -1 = this request was aborted by a newer one (visibility change): the
+ // newer tick already owns the loop, so stay silent and do not re-arm.
           if (result.status === -1) return;
           if (result.status === 304) {
             setSnap(function (prev) {
@@ -605,7 +605,7 @@ function wfUseSnap(sessionId) {
           try {
             controller.abort();
           } catch (error) {
-            /* ignore */
+ /* ignore */
           }
         }
         document.removeEventListener("visibilitychange", onVisibilityChange);
@@ -676,7 +676,7 @@ function wfUseSessionReset(sessionId, updatePrefs) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* the two writes: the inject send and its undo (step-04 + step-03-unsteer)  */
+/* the two writes: the inject send and its undo ( + ) */
 /* ------------------------------------------------------------------------- */
 
 var WF_INJECT_PATH = "/dsh-workflow/steer";
@@ -699,20 +699,20 @@ function wfSendInject(text, sessionId, setInject) {
     return { open: prev ? prev.open : true, state: "sending", text: trimmed, reason: "" };
   });
 
-  // 会话6 · 发送前可取消：controller 存到 window 上，供面板“取消发送”按钮取用。
-  // 只对“还在路上”的请求有效；一旦返回 200，宿主已入收件箱，插件无法抽回。
+ // Cancellable before send: the controller is stored on window for the panel's "cancel send" button.
+ // Only takes effect while the request is still in flight; once it returns 200 the host has it in the inbox and the plugin cannot pull it back.
   var controller = typeof AbortController === "function" ? new AbortController() : null;
   window.__dshWorkflowMapAbort = controller;
 
   wfPostSteer(window.fetch, WF_INJECT_PATH, sessionId, trimmed, controller ? controller.signal : undefined).then(function (result) {
-    // The acknowledgement's wording comes from the panel's OWN dictionary: `say` here is the
-    // component's, and wfInjectOutcome only needs it for the one fallback string.
+ // The acknowledgement's wording comes from the panel's OWN dictionary: `say` here is the
+ // component's, and wfInjectOutcome only needs it for the one fallback string.
     var outcome = wfInjectOutcome(result && result.payload, wfMakeSay());
     var next = {
       open: true,
       state: outcome.kind === "sent" ? "sent" : "failed",
       text: trimmed,
-      // A failure carries the HOST's own reason verbatim (the honesty rule).
+ // A failure carries the HOST's own reason verbatim (the honesty rule).
       reason: outcome.kind === "sent" ? "" : outcome.text,
     };
     setInject(next);
@@ -732,7 +732,7 @@ function wfSendInject(text, sessionId, setInject) {
  * running turn has not claimed yet.
  *
  * WHY IT IS NOT OPTIMISTIC. The host's 200 means the message LEFT the inbox — the fold will say
- * 「已撤销」 on the next poll, from the host's own `agent/inbox/spliced { outcome: 'canceled' }`.
+ * "revoked" on the next poll, from the host's own `agent/inbox/spliced { outcome: 'canceled' }`.
  * So this function never rewrites the history row: it only records that THIS row is being revoked,
  * which greys its button (no second post) and carries the host's reason back when it refuses.
  *
@@ -761,14 +761,14 @@ function wfRevokeInject(messageId, sessionId, setRevoke) {
     setRevoke({
       id: messageId,
       state: outcome.kind === "revoked" ? "revoked" : "failed",
-      // A failure carries the HOST's own reason verbatim (the same honesty rule as the send).
+ // A failure carries the HOST's own reason verbatim (the same honesty rule as the send).
       reason: outcome.kind === "revoked" ? "" : outcome.text,
     });
   });
 }
 
 /* ------------------------------------------------------------------------- */
-/* detail wiring (step-11)                                                    */
+/* detail wiring */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -801,7 +801,7 @@ function wfUseDetailNudge() {
 }
 
 /* ------------------------------------------------------------------------- */
-/* 会话4 · the single page's behaviour                                            */
+/* the single page's behaviour */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -810,7 +810,7 @@ function wfUseDetailNudge() {
  * produce `null` (the page closes) rather than somebody else's record.
  *
  * The return value is the page's WHOLE content decision, so the renderer never re-derives it:
- *   {kind, stepIndex, unit, stepDetail, typeKey, label, scopeStep, bucket, nodes, openType}
+ * {kind, stepIndex, unit, stepDetail, typeKey, label, scopeStep, bucket, nodes, openType}
  */
 function wfRightPageSpec(model, prefs) {
   if (!model || !prefs || prefs.rightOpen !== true) return null;
@@ -832,13 +832,13 @@ function wfRightPageSpec(model, prefs) {
     if (typeKey === "") return null;
     var scopeStep = scopeRaw === "session" ? null : wfFinite(Number(scopeRaw));
     if (scopeRaw !== "session" && (scopeStep === null || !isFinite(scopeStep))) return null;
-    // The bucket is looked up in the units the model actually has: a type from another session's
-    // stored key simply does not resolve.
+ // The bucket is looked up in the units the model actually has: a type from another session's
+ // stored key simply does not resolve.
     var seen = null;
     var owner = null;
     if (scopeStep === null) {
-      // Whole session: merge every unit's bucket of this key. The count is the sum of the units',
-      // which is exactly what each circle already claims, so the page cannot contradict the chain.
+ // Whole session: merge every unit's bucket of this key. The count is the sum of the units',
+ // which is exactly what each circle already claims, so the page cannot contradict the chain.
       var merged = { key: typeKey, kind: "file", label: "", side: "left", count: 0, running: false, error: false, nodes: [] };
       for (var u = 0; u < units.length; u += 1) {
         var types = units[u] && Array.isArray(units[u].types) ? units[u].types : [];
@@ -867,9 +867,9 @@ function wfRightPageSpec(model, prefs) {
       if (!seen) return null;
       owner = units[scopeStep];
     }
-    // The calls themselves: every node of that type, resolved through the SELECTED step's flow only
-    // when the scope IS the selected step (the wire only ships that step's nodes). A session-wide
-    // type therefore lists ids it cannot dereference — the page says so rather than inventing rows.
+ // The calls themselves: every node of that type, resolved through the SELECTED step's flow only
+ // when the scope IS the selected step (the wire only ships that step's nodes). A session-wide
+ // type therefore lists ids it cannot dereference — the page says so rather than inventing rows.
     var calls = [];
     var flowNodes = model.flow && Array.isArray(model.flow.nodes) ? model.flow.nodes : [];
     if (scopeStep !== null && model.selected === scopeStep) {
@@ -892,7 +892,7 @@ function wfRightPageSpec(model, prefs) {
     };
   }
 
-  // kind === "step": the key is `step:<index>`; a keyless page follows the selection.
+ // kind === "step": the key is `step:<index>`; a keyless page follows the selection.
   var wanted = null;
   if (key.indexOf("step:") === 0) {
     var parsed = wfFinite(Number(key.slice(5)));
@@ -906,7 +906,7 @@ function wfRightPageSpec(model, prefs) {
     stepIndex: wanted,
     openType: null,
     unit: row,
-    // Only the selected step's detail is on the wire; a page about another step says so.
+ // Only the selected step's detail is on the wire; a page about another step says so.
     stepDetail: model.selected === wanted && model.detail ? model.detail : null,
     scopeStep: wanted,
   };
@@ -917,17 +917,17 @@ function wfRightPageSpec(model, prefs) {
  * scrolled since.
  *
  * Two rules make this honest rather than helpful-looking:
- *   1. it runs once per running step (`centeredStep`), so a poll cannot keep re-centring a reader;
- *   2. any manual scroll in the page defeats it — `userScrolled` is set by the FIRST wheel / touch /
- *      keydown on the scroller, and after that this hook does nothing for that step.
+ * 1. it runs once per running step (`centeredStep`), so a poll cannot keep re-centring a reader;
+ * 2. any manual scroll in the page defeats it — `userScrolled` is set by the FIRST wheel / touch /
+ * keydown on the scroller, and after that this hook does nothing for that step.
  */
 /**
  * The centring DECISION, as a pure function: run the auto-centring for `runningIndex` only
- *   · when there IS a running step,
- *   · when it has not already been centred once (`centeredStep`), and
- *   · when the user has not scrolled the chain by hand (`scrolled`).
+ * · when there IS a running step,
+ * · when it has not already been centred once (`centeredStep`), and
+ * · when the user has not scrolled the chain by hand (`scrolled`).
  *
- * The third clause is the user's 「除非用户手动滑动」. Note the trap this function exists to avoid:
+ * The third clause is the user's "unless the user scrolls by hand". Note the trap this function exists to avoid:
  * passing a sentinel like -1 as `centeredStep` would mean "never centred" and RE-CENTRE after every
  * manual scroll — the exact opposite of the request.
  */
@@ -980,8 +980,8 @@ function wfCenterRunning(doc, runningIndex) {
   );
   if (offset === null) return { applied: false, reason: "bad-geometry" };
   scroller.scrollTop = offset;
-  // Re-read after the write: the honest error is what the user now sees, not what the arithmetic
-  // predicted (a smooth-scroll or a sub-pixel layout shift would otherwise be papered over).
+ // Re-read after the write: the honest error is what the user now sees, not what the arithmetic
+ // predicted (a smooth-scroll or a sub-pixel layout shift would otherwise be papered over).
   var after = unit.getBoundingClientRect();
   return {
     applied: true,
@@ -1017,7 +1017,7 @@ function wfUseManualScrollGuard(mark) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* the component                                                             */
+/* the component */
 /* ------------------------------------------------------------------------- */
 
 function WorkflowMapPanel(props) {
@@ -1029,21 +1029,21 @@ function WorkflowMapPanel(props) {
   var settingsPair = React.useState(false);
   var settingsOpen = settingsPair[0];
   var setSettingsOpen = settingsPair[1];
-  // step-04-hot-inject: the composer's four-state machine and what was typed. It deliberately
-  // lives in React state, NOT in localStorage: an in-flight send and a draft prompt are
-  // per-session, per-moment facts, and reviving a stale "已注入" would be a lie.
+ // the composer's four-state machine and what was typed. It deliberately
+ // lives in React state, NOT in localStorage: an in-flight send and a draft prompt are
+ // per-session, per-moment facts, and reviving a stale "injected" would be a lie.
   var injectPair = React.useState({ state: "idle", text: "", reason: "" });
   var inject = injectPair[0];
   var setInject = injectPair[1];
-  // step-03-unsteer · which history row is being revoked right now, and (on failure) the host's
-  // own reason for that row. Deliberately NOT in the inject record above: the send's four-state
-  // machine clears itself on a timer, while a revocation stays on screen until the FOLDED row
-  // stops being `pending` — two different lifetimes, two different pieces of state.
+ // which history row is being revoked right now, and (on failure) the host's
+ // own reason for that row. Deliberately NOT in the inject record above: the send's four-state
+ // machine clears itself on a timer, while a revocation stays on screen until the FOLDED row
+ // stops being `pending` — two different lifetimes, two different pieces of state.
   var revokePair = React.useState({ id: "", state: "idle", reason: "" });
   var injectRevoke = revokePair[0];
   var setInjectRevoke = revokePair[1];
-  // 会话4 · which call the type page has expanded, and whether the chain has already brought the
-  // running unit to the middle (once per step — the user's own scrolling must never be undone).
+ // which call the type page has expanded, and whether the chain has already brought the
+ // running unit to the middle (once per step — the user's own scrolling must never be undone).
   var callPair = React.useState(null);
   var openCall = callPair[0];
   var setOpenCall = callPair[1];
@@ -1055,22 +1055,22 @@ function WorkflowMapPanel(props) {
   wfUseSessionReset(sessionId, updatePrefs);
 
   var say = wfMakeSay(props && props.t);
-  // `Date.now()` is passed in (the store stays clock-free) because step-10 needs one honest
-  // judgement the event log alone cannot make: is this session still working right now?
+ // `Date.now` is passed in (the store stays clock-free) because needs one honest
+ // judgement the event log alone cannot make: is this session still working right now?
   var model = wfBuildModel(snap.view, prefs, Date.now());
   var systemMotion = wfUseMotion();
   var motionPref = wfSettingsOf(prefs).motion;
   var motion = systemMotion === "static" || motionPref === "static" ? "static" : "css";
-  // The curve is measured from the DOM, so it must be re-measured whenever the two endpoint
-  // cards could have moved — the effect's dependency is a cheap string, not the whole model.
-  // 会话4 · the old two-column curve (step ↔ node) is gone with the columns: there is no second
-  // column to connect to. The living layer's CSS (ring, breathing dot, dashed branch) is reused;
-  // only its measurement is no longer needed.
-  // Resolve the per-step flow state BEFORE rendering: a state left over from another
-  // step reads as the defaults (collapsed groups · no show-all · no highlight).
-  // 会话4 · the right page's content is DERIVED from the prefs (kind + key) and the model, so a
-  // stale key can never show another step's record: every branch below re-resolves against the
-  // live view and falls back to the unit's own numbers.
+ // The curve is measured from the DOM, so it must be re-measured whenever the two endpoint
+ // cards could have moved — the effect's dependency is a cheap string, not the whole model.
+ // the old two-column curve (step ↔ node) is gone with the columns: there is no second
+ // column to connect to. The living layer's CSS (ring, breathing dot, dashed branch) is reused;
+ // only its measurement is no longer needed.
+ // Resolve the per-step flow state BEFORE rendering: a state left over from another
+ // step reads as the defaults (collapsed groups · no show-all · no highlight).
+ // the right page's content is DERIVED from the prefs (kind + key) and the model, so a
+ // stale key can never show another step's record: every branch below re-resolves against the
+ // live view and falls back to the unit's own numbers.
   var page = wfRightPageSpec(model, prefs);
   var scrolledPair = React.useState(0);
   var scrolled = scrolledPair[0];
@@ -1078,9 +1078,9 @@ function WorkflowMapPanel(props) {
   wfUseManualScrollGuard(function () {
     setScrolled(1);
   });
-  // 会话4 · centring: once per running step, defeated permanently by the FIRST manual scroll.
+ // centring: once per running step, defeated permanently by the FIRST manual scroll.
   wfUsePageCenter(model, centeredStep, scrolled === 1, setCenteredStep);
-  // step-12: object URLs created by exports are revoked when this panel unmounts.
+ // object URLs created by exports are revoked when this panel unmounts.
   wfUseSnapshotUrls();
 
   var actions = {
@@ -1090,8 +1090,8 @@ function WorkflowMapPanel(props) {
     onExpand: function () {
       updatePrefs({ collapsed: false });
     },
-    // 会话4 · 热注入 is a PAGE, not a split: opening it replaces whatever the right page was
-    // showing; closing it closes the page (the composer's draft stays in React state).
+ // Hot injection is a PAGE, not a split: opening it replaces whatever the right page was
+ // showing; closing it closes the page (the composer's draft stays in React state).
     onToggleInject: function () {
       updatePrefs(function (prev) {
         var open = prev.rightOpen === true && prev.rightKind === "inject";
@@ -1108,13 +1108,13 @@ function WorkflowMapPanel(props) {
     onInjectSend: function (text) {
       wfSendInject(text, sessionId, setInject);
     },
-    // step-03-unsteer · the history row's 「撤回」: one POST, then wait for the fold to say
-    // 「已撤销」. The row's id comes from the model (the host returned it on the steer 200 and the
-    // fold carried it into the rows), never from a DOM lookup.
+ // the history row's "Revoke": one POST, then wait for the fold to say
+ // "revoked". The row's id comes from the model (the host returned it on the steer 200 and the
+ // fold carried it into the rows), never from a DOM lookup.
     onInjectRevoke: function (messageId) {
       wfRevokeInject(messageId, sessionId, setInjectRevoke);
     },
-    // 会话6 · “取消发送”：只中止还在路上的请求。已经 200 的无法抽回（宿主未开放收件箱撤销）。
+ // "cancel send": abort only in-flight requests. A 200 cannot be pulled back (the host exposes no inbox revoke for it).
     onInjectAbort: function () {
       var controller = typeof window !== "undefined" ? window.__dshWorkflowMapAbort : null;
       if (controller && typeof controller.abort === "function") controller.abort();
@@ -1124,9 +1124,9 @@ function WorkflowMapPanel(props) {
     onToggleSettings: function () {
       setSettingsOpen(!settingsOpen);
     },
-    // Clicking a main-flow unit: it becomes the SELECTED step (store.js builds its detail) and the
-    // right page opens on it. It deliberately does not expand anything in place.
-    // right page opens on it. It deliberately does not expand anything in place.
+ // Clicking a main-flow unit: it becomes the SELECTED step (store.js builds its detail) and the
+ // right page opens on it. It deliberately does not expand anything in place.
+ // right page opens on it. It deliberately does not expand anything in place.
     onOpenStep: function (index) {
       setOpenCall(null);
       updatePrefs({
@@ -1136,8 +1136,8 @@ function WorkflowMapPanel(props) {
         rightKey: "step:" + index,
       });
     },
-    // A round satellite (or a type row inside the step page): the type page, scoped to that step
-    // when it came from a unit's gutter, or to the whole session when it came from the header.
+ // A round satellite (or a type row inside the step page): the type page, scoped to that step
+ // when it came from a unit's gutter, or to the whole session when it came from the header.
     onOpenType: function (index, typeKey) {
       setOpenCall(null);
       var scoped = wfFinite(index) === null ? "session" : String(Math.round(index));
@@ -1162,7 +1162,7 @@ function WorkflowMapPanel(props) {
       updatePrefs({ selectedStep: index });
     },
     onReset: function () {
-      // step-12: the DOCUMENTED defaults, not whatever localStorage last held.
+ // the DOCUMENTED defaults, not whatever localStorage last held.
       updatePrefs(wfDefaultPrefs());
     },
     onSetting: function (setting, value) {
@@ -1186,13 +1186,13 @@ function WorkflowMapPanel(props) {
         sessionId
       );
     },
-    // Escape (wfBindEscape): close the right page, never the panel. The step detail is no longer
-    // inline, so this is the whole gesture now.
+ // Escape (wfBindEscape): close the right page, never the panel. The step detail is no longer
+ // inline, so this is the whole gesture now.
     onEscapeDetail: function () {
       setOpenCall(null);
       updatePrefs({ rightOpen: false });
     },
-    // A path / command copy with the 1.5 s acknowledgement (NodeDetail.js).
+ // A path / command copy with the 1.5 s acknowledgement (NodeDetail.js).
     onCopy: function (text, element) {
       wfCopyWithFeedback(text, element, say);
     },
@@ -1207,29 +1207,29 @@ function WorkflowMapPanel(props) {
     rev: snap.rev,
     endpoint: sessionId ? wfPollUrl(sessionId) : "",
     nodeTotal: snap.view && snap.view.counts ? wfFinite(snap.view.counts.nodes) : null,
-    // 会话4 · what the right page shows, already resolved against the model.
+ // what the right page shows, already resolved against the model.
     right: page,
     pageStep: page ? page.stepIndex : null,
     pageType: page ? page.openType : null,
     openCall: openCall,
     asOf: model ? model.asOf : null,
-    // step-10: what the living layer reads off the root element.
+ // what the living layer reads off the root element.
     motion: motion,
-    // step-12: 「始终」 keeps the living layer moving even when the session is idle;
-    // 「运行中」 (default) preserves step-10's idle freeze; 「关闭」 is data-motion=static.
+ // "Always" keeps the living layer moving even when the session is idle;
+ // "While running" (default) preserves the idle freeze; "Off" is data-motion=static.
     idle: motionPref === "always" ? false : !model || model.running !== true,
-    // step-04-hot-inject: the composer's own state, read straight from React.
+ // the composer's own state, read straight from React.
     injectState: inject.state,
     injectText: inject.text,
     injectReason: inject.reason,
-    // step-03-unsteer: which row is being revoked, and the host's reason when it refused.
+ // which row is being revoked, and the host's reason when it refused.
     injectRevoke: injectRevoke,
     sessionId: sessionId || "",
   });
 }
 
 /* ------------------------------------------------------------------------- */
-/* the pure renderer                                                         */
+/* the pure renderer */
 /* ------------------------------------------------------------------------- */
 
 function wfFire(fn, argument) {
@@ -1238,23 +1238,23 @@ function wfFire(fn, argument) {
 
 function wfRenderPanel(model, prefs, say, actions, ui) {
   if (!model) return null;
-  // step-04-inject-prominence · the header badge's only number: rows the session has not taken yet.
+ // the header badge's only number: rows the session has not taken yet.
   var pendingCount = wfPendingInjectCount(model.injects);
   var extras = ui || {};
   var fire = actions || {};
-  // step-10: the two attributes the living layer needs. `motion` comes from the system's
-  // prefers-reduced-motion preference (pulse.js), `idle` from the model's running flag.
-  // Both live on .wf-root so the capsule is covered as well as the panel.
+ // the two attributes the living layer needs. `motion` comes from the system's
+ // prefers-reduced-motion preference (pulse.js), `idle` from the model's running flag.
+ // Both live on .wf-root so the capsule is covered as well as the panel.
   var motion = extras.motion === "static" ? "static" : "css";
   var idle = extras.idle === true;
-  // step-13: the layout owns the geometry. There is no dragged width, no pinned height and
-  // no viewport clamp any more — the centre column decides both, and the card fills it.
+ // the layout owns the geometry. There is no dragged width, no pinned height and
+ // no viewport clamp any more — the centre column decides both, and the card fills it.
   var collapsed = prefs.collapsed === true;
   var planning = model.kind === "planning";
-  // step-12: one sanitised settings record drives the root data attributes and the
-  // settings card, so a click can never leave the DOM and the card disagreeing.
-  // Read the live prefs, not model.settings: a click must change the root attributes
-  // on the same render even before the next poll produces an equivalent model.
+ // one sanitised settings record drives the root data attributes and the
+ // settings card, so a click can never leave the DOM and the card disagreeing.
+ // Read the live prefs, not model.settings: a click must change the root attributes
+ // on the same render even before the next poll produces an equivalent model.
   var settings = wfSettingsOf(prefs);
   if (collapsed) {
     var capsuleText = planning
@@ -1277,8 +1277,8 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
         "data-detail": settings.detail,
         "data-node-limit": String(settings.nodeLimit),
       },
-      // step-13: collapsed = a folded row inside the main area, not a floating capsule.
-      // The row keeps the live count so the panel can be left folded and still be read.
+ // collapsed = a folded row inside the main area, not a floating capsule.
+ // The row keeps the live count so the panel can be left folded and still be read.
       h(
         "div",
         { className: "wf-capsule-bar", key: "capsule-bar" },
@@ -1315,8 +1315,8 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
         { className: "wf-task", key: "task", title: model.task || "" },
         model.task || say("panel.task.fallback")
       ),
-      // No progress line while planning: the body's single "规划中…" line is the
-      // whole message (step-06 contract §3), so the number cannot appear twice.
+ // No progress line while planning: the body's single "planning..." line is the
+ // whole message ( contract §3), so the number cannot appear twice.
       planning
         ? null
         : h(
@@ -1355,9 +1355,9 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
         },
         "‒"
       ),
-      // 会话4 · the hot-inject entry is now a NAMED, prominent button (the user asked for it to be
-      // 显眼 and in Chinese), not a ⇄ glyph: the glyph said "split the column", which is no longer
-      // what happens — the composer takes over the right-hand page.
+ // the hot-inject entry is now a NAMED, prominent button (the user asked for it to be
+ // prominent and in Chinese), not a ⇄ glyph: the glyph said "split the column", which no longer exists
+ // what happens — the composer takes over the right-hand page.
       h(
         "button",
         {
@@ -1365,9 +1365,9 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
           key: "inject",
           className: "wf-btn wf-btn-hot",
           "data-dsh-workflow-map": "inject-toggle",
-          // step-04-inject-prominence · the badge is driven by the model's own rows: only a row
-          // whose status is "pending" is still waiting for the turn. No pending row ⇒ neither the
-          // attribute nor the element exists (the self-test asserts both directions).
+ // the badge is driven by the model's own rows: only a row
+ // whose status is "pending" is still waiting for the turn. No pending row ⇒ neither the
+ // attribute nor the element exists (the self-test asserts both directions).
           "data-pending-count": pendingCount > 0 ? String(pendingCount) : undefined,
           "data-active": extras.right && extras.right.kind === "inject" ? "true" : undefined,
           title: pendingCount > 0 ? say("panel.inject.pending.badge", { count: pendingCount }) : say("panel.inject.open"),
@@ -1433,20 +1433,20 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
         className: "wf-body",
         key: "body",
         "data-kind": "ready",
-        // 会话4 · ONE page. The right-hand page is a flex sibling, not an overlay and not a third
-        // column: `data-right` says whether it is mounted, and its flex basis does the rest.
+ // ONE page. The right-hand page is a flex sibling, not an overlay and not a third
+ // column: `data-right` says whether it is mounted, and its flex basis does the rest.
         "data-right": extras.right ? "true" : "false",
         "data-dsh-workflow-map": "body",
       },
-      // The serial main flow: one unit per step, satellites on both sides, straight connectors.
+ // The serial main flow: one unit per step, satellites on both sides, straight connectors.
       wfRenderMainFlow(h, model, say, fire, {
         openStep: extras.pageStep,
         openType: extras.pageType,
         asOf: wfFinite(extras.asOf) === null ? model.asOf : extras.asOf,
-        // step-12 「只看标题」 narrows the unit's rail to one line, exactly as it did in the old column.
+ // "Title only" narrows the unit's rail to one line, exactly as it did in the old column.
         compact: settings.detail === "title",
       }),
-      // The right page: a step record, one file type's calls, or the inject composer.
+ // The right page: a step record, one file type's calls, or the inject composer.
       extras.right
         ? wfRenderRightPage(
             h,
@@ -1459,10 +1459,10 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
               injectState: extras.injectState,
               injectText: extras.injectText,
               injectReason: extras.injectReason,
-              // 会话5 · the history rows, straight from the model (the host folds them from the
-              // session's own log, so the browser adds nothing and invents nothing).
+ // the history rows, straight from the model (the host folds them from the
+ // session's own log, so the browser adds nothing and invents nothing).
               injectHistory: model.injects,
-              // step-03-unsteer · the one revocation on screen, flattened for the composer.
+ // the one revocation on screen, flattened for the composer.
               injectRevokeId: extras.injectRevoke && typeof extras.injectRevoke === "object" ? extras.injectRevoke.id : "",
               injectRevokeState: extras.injectRevoke && typeof extras.injectRevoke === "object" ? extras.injectRevoke.state : "idle",
               injectRevokeReason: extras.injectRevoke && typeof extras.injectRevoke === "object" ? extras.injectRevoke.reason : "",
@@ -1491,8 +1491,8 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
       {
         className: "wf-card",
         key: "card",
-        // step-13: a main-column panel is a region, not a dialog — it is not modal,
-        // it does not trap focus, and it has no close affordance of its own.
+ // a main-column panel is a region, not a dialog — it is not modal,
+ // it does not trap focus, and it has no close affordance of its own.
         role: "region",
         "aria-label": say("panel.aria", { task: model.task || say("panel.task.fallback") }),
         "data-dsh-workflow-map": "panel",
@@ -1507,11 +1507,11 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* the sidebar icon                                                          */
+/* the sidebar icon */
 /* ------------------------------------------------------------------------- */
 
 /**
- * The left-rail glyph (step-13). Same picture as icon.svg — two stacked panels on a
+ * The left-rail glyph . Same picture as icon.svg — two stacked panels on a
  * spine — drawn inline with createElement because the sidebar hands this occupant only
  * `{size, active}`: no asset URL is resolvable from inside the ModuleLoader factory.
  * `active` recolours through currentColor, which the shipped rows also rely on.
@@ -1577,7 +1577,7 @@ function WorkflowMapIcon(props) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* 会话6 · the conversation-view seat wrapper                                  */
+/* the conversation-view seat wrapper */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -1591,7 +1591,7 @@ var WF_VIEW_SEAT_MARKER = "conversation-view";
 /**
  * Wrap a rendered node in the seat marker. `display:contents` keeps the wrapper BOX-LESS: it adds
  * no element to the layout, so the seat's geometry is exactly the one the panel already had — the
- * div exists only to be the `:has()` hook for the rule that hides the composer.
+ * div exists only to be the `:has` hook for the rule that hides the composer.
  */
 function wfViewSeatRoot(h, node) {
   return h(
@@ -1611,7 +1611,7 @@ function wfViewSeatRoot(h, node) {
  * of the selected view, inside `[data-conversation-content]`
  * (`div[data-conversation-content] > div[data-conversation-scroll] > [selected view, div[data-composer-seat]]`,
  * measured in this host), so nothing inside the panel's own tree can unmount it. A stylesheet rule
- * scoped by `:has()` on the seat marker is the only mechanism that removes it without a host change,
+ * scoped by `:has` on the seat marker is the only mechanism that removes it without a host change,
  * and it restores itself the moment the user switches back — the host unmounts this view.
  */
 function WorkflowMapViewSeat(props) {
@@ -1619,14 +1619,14 @@ function WorkflowMapViewSeat(props) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* registration                                                              */
+/* registration */
 /* ------------------------------------------------------------------------- */
 
 /**
- * step-13: two seats, ONE id.
+ * two seats, ONE id.
  *
- *   sidebar.panellist (list)  the rail glyph; its `id` is what the row selects
- *   main              (keyed) the centre-column page for that same key
+ * sidebar.panellist (list) the rail glyph; its `id` is what the row selects
+ * main (keyed) the centre-column page for that same key
  *
  * They must agree: `PanelRow` renders `renderSlot("sidebar.panellist", …, {only:id})`
  * and `selectPanel(id)` then dispatches `main` by that key — selecting an id with no
@@ -1661,11 +1661,11 @@ function apply(ctx) {
       WorkflowMapPanel
     );
   });
-  // 会话6 · 会话标签栏里的快捷入口。`conversation.view` 是对话区顶部那排 Tab 的插槽
-  // （list，按 order 升序）：chat(0) / trajectory(10) / context(20) / fleet(30)，所以 order 40
-  // 从「编队」之后（order 40）。点一下就是同一个 `WorkflowMapPanel`，外面套一层座位标记
-  // `wfViewSeatRoot`（会话6）：样式表据此把宿主的 composer 座位藏掉——与左栏菜单元素完全同一份
-  // 界面、同一份轮询、同一份热注入，不是第二个实现。
+ // The shortcut in the session tab bar. `conversation.view` is the slot for the tab row above the conversation area
+ // (a list ordered by `order`): chat(0) / trajectory(10) / context(20) / fleet(30), so order 40 puts it
+ // after "fleet". Clicking it renders the same `WorkflowMapPanel`, wrapped in a seat marker
+ // `wfViewSeatRoot`: the stylesheet uses it to hide the host composer seat - the very same
+ // panel, the same polling, the same hot injection. Not a second implementation.
   ctx.slots.inject("conversation.view", function () {
     return ctx.slots.register(
       {
@@ -1688,8 +1688,8 @@ function apply(ctx) {
  */
 var __test = {
   buildModel: wfBuildModel,
-  // 会话4 · the single page, its satellites, the right page and the type buckets they are built
-  // from. Exported so the self-tests drive the EXACT trees the frame mounts.
+ // the single page, its satellites, the right page and the type buckets they are built
+ // from. Exported so the self-tests drive the EXACT trees the frame mounts.
   renderMainFlow: wfRenderMainFlow,
   renderUnit: wfRenderUnit,
   renderSatellite: wfRenderSatellite,
@@ -1712,17 +1712,17 @@ var __test = {
   renderProgressDock: wfRenderProgressDock,
   progressLabel: wfProgressLabel,
   progressFillWidth: wfProgressFillWidth,
-  // step-03: the second line's arithmetic and its duration formatter.
+ // the second line's arithmetic and its duration formatter.
   progressTiming: wfProgressTiming,
   progressDurationText: wfProgressDurationText,
   deriveStatus: wfDeriveStepStatus,
   applyDerivedStatuses: wfApplyDerivedStatuses,
   renderPanel: wfRenderPanel,
-  // 会话6 · the conversation-view seat's marker wrapper (the rule that hides the HOST composer is
-  // keyed on it, so both halves of that contract are driven here).
+ // the conversation-view seat's marker wrapper (the rule that hides the HOST composer is
+ // keyed on it, so both halves of that contract are driven here).
   viewSeatRoot: wfViewSeatRoot,
   viewSeatMarker: WF_VIEW_SEAT_MARKER,
-  // step-04-hot-inject: the inject column — the state machine, the request and the renderer.
+ // the inject column — the state machine, the request and the renderer.
   injectState: wfInjectState,
   injectCanSend: wfInjectCanSend,
   injectText: wfInjectText,
@@ -1730,17 +1730,17 @@ var __test = {
   injectAckDone: wfInjectAckDone,
   injectCounter: wfInjectCounter,
   postSteer: wfPostSteer,
-  // step-03-unsteer: the revoke half of the same column — its state machine, its request and the
-  // host's-answer → outcome rule.
+ // the revoke half of the same column — its state machine, its request and the
+ // host's-answer → outcome rule.
   revokeState: wfRevokeState,
   revokeOutcome: wfRevokeOutcome,
   postUnsteer: wfPostUnsteer,
-  // 会话5 · the history shaping and the 【需确认】 derivation.
+ // the history shaping and the "needs confirm" derivation.
   injectRows: wfInjectRows,
   confirmRows: wfConfirmRows,
   confirmTitle: wfConfirmTitle,
   renderHotInject: wfRenderHotInject,
-  // step-04-inject-prominence · the persistent dock, its renderer and its two pure inputs.
+ // the persistent dock, its renderer and its two pure inputs.
   renderInjectDock: wfRenderInjectDock,
   pendingInjectCount: wfPendingInjectCount,
   injectStatusKey: wfInjectStatusKey,
@@ -1758,8 +1758,8 @@ var __test = {
   flowSelectNode: wfFlowSelectNode,
   flowClearSelection: wfFlowClearSelection,
   flowToggleBranch: wfFlowToggleBranch,
-  // step-05: the chain's branch derivation, its two halves (stroke path + the round icon), the
-  // opened category view and the per-step toggle that drives it.
+ // the chain's branch derivation, its two halves (stroke path + the round icon), the
+ // opened category view and the per-step toggle that drives it.
   flowToggleChain: wfFlowToggleChain,
   chainBranches: wfChainBranches,
   chainActionKind: wfChainActionKind,
@@ -1782,14 +1782,14 @@ var __test = {
   nodeTitleParts: wfNodeTitleParts,
   nodeStatus: wfNodeStatus,
   nodeMetaBits: wfNodeMetaBits,
-  // step-11: node detail, step detail, the clipboard and the two document bindings.
+ // node detail, step detail, the clipboard and the two document bindings.
   renderNodeDetail: wfRenderNodeDetail,
   renderStepDetail: wfRenderStepDetail,
   renderStepHead: wfRenderStepHead,
   stepDetailOpen: wfStepDetailOpen,
   stepDetailToggle: wfStepDetailToggle,
   stepDetailOpenFor: wfStepDetailOpenFor,
-  // step-02: the ONE disclosure triangle (a real <button>) and its glyph.
+ // the ONE disclosure triangle (a real <button>) and its glyph.
   tri: wfTri,
   triGlyph: wfTriGlyph,
   detailCategory: wfDetailCategory,
@@ -1817,7 +1817,7 @@ var __test = {
   loadPrefs: wfLoadPrefs,
   savePrefs: wfSavePrefs,
   defaultPrefs: wfDefaultPrefs,
-  // step-12: settings, snapshot construction and the two export deliveries.
+ // settings, snapshot construction and the two export deliveries.
   renderSettings: wfRenderSettings,
   defaultSettings: wfDefaultSettings,
   sanitizeSettings: wfSanitizeSettings,
@@ -1833,7 +1833,7 @@ var __test = {
   snapshotDownload: wfSnapshotDownload,
   releaseSnapshotUrls: wfReleaseSnapshotUrls,
   snapshotUrlCount: wfSnapshotUrlCount,
-  // step-10: the living layer, its geometry and the two attributes it reads.
+ // the living layer, its geometry and the two attributes it reads.
   renderFlowEffects: wfRenderFlowEffects,
   fxCurve: wfFxCurve,
   fxGeometry: wfFxGeometry,
@@ -1879,8 +1879,8 @@ var __test = {
       pulseMs: WF_PULSE_MS,
       idleAfterMs: WF_IDLE_AFTER_MS,
       fxMinGap: WF_FX_MIN_GAP,
-      // step-05: the chain's distances, so the self-test can assert the >= 28 px air, the 20–24 px
-      // icon, and the fact that the link never overflows the gap it is drawn in.
+ // the chain's distances, so the self-test can assert the >= 28 px air, the 20–24 px
+ // icon, and the fact that the link never overflows the gap it is drawn in.
       chainGap: WF_CHAIN_GAP,
       chainLink: WF_CHAIN_LINK,
       chainPad: WF_CHAIN_PAD,
@@ -1895,8 +1895,8 @@ var __test = {
       detailModes: WF_DETAIL_MODES,
       nodeLimits: WF_NODE_LIMITS,
       snapshotSchema: WF_SNAPSHOT_SCHEMA,
-      // 会话4 · the single page's distances, the right page's kinds and its slot budget, so the
-      // self-test asserts the SAME numbers the stylesheet is built from.
+ // the single page's distances, the right page's kinds and its slot budget, so the
+ // self-test asserts the SAME numbers the stylesheet is built from.
       pagePad: WF_PAGE_PAD,
       satellite: WF_SATELLITE,
       satLink: WF_SAT_LINK,

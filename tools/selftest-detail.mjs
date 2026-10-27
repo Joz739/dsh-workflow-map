@@ -1,22 +1,22 @@
-// selftest-detail.mjs — step-11: node detail + step detail (and the copy path).
+// selftest-detail.mjs — node detail + step detail (and the copy path).
 //
 // Run: node tools/selftest-detail.mjs
 //
 // What this file proves, in order:
-//   1. the bundle carries the pieces (build-client also refuses to ship without them)
-//   2. the model: a PAE stepReport reaches model.detail (summary / artifacts / exit_code),
-//      a step without a report stays null, and the statistics count ONLY the nodes the host
-//      actually sent while stating the truncated remainder
-//   3. the node detail tree: tool + category chip + status, argsText preview + <details>,
-//      file rows grouped by action with the FULL path on data-wf-copy, result/error text,
-//      start clock / duration ms / seq
-//   4. the step detail tree: the report block, the artifacts, the "no report" message (never
-//      a blank block), the counts and the clocks
-//   5. privacy: a node that still carries a file body (`content`) cannot leak it — store.js
-//      copies a whitelist, so the marker never reaches the tree
-//   6. the copy path: Clipboard API success, the textarea/execCommand fallback, the 1.5 s
-//      「已复制」 acknowledgement and its failed twin
-//   7. Escape / the layout nudge: the bindings fire, are filter-correct, and tear down
+// 1. the bundle carries the pieces (build-client also refuses to ship without them)
+// 2. the model: a PAE stepReport reaches model.detail (summary / artifacts / exit_code),
+// a step without a report stays null, and the statistics count ONLY the nodes the host
+// actually sent while stating the truncated remainder
+// 3. the node detail tree: tool + category chip + status, argsText preview + <details>,
+// file rows grouped by action with the FULL path on data-wf-copy, result/error text,
+// start clock / duration ms / seq
+// 4. the step detail tree: the report block, the artifacts, the "no report" message (never
+// a blank block), the counts and the clocks
+// 5. privacy: a node that still carries a file body (`content`) cannot leak it — store.js
+// copies a whitelist, so the marker never reaches the tree
+// 6. the copy path: Clipboard API success, the textarea/execCommand fallback, the 1.5 s
+// the "Copied" acknowledgement and its failure twin
+// 7. Escape / the layout nudge: the bindings fire, are filter-correct, and tear down
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,7 +29,7 @@ const check = (id, pass, detail) => {
 };
 
 /* ------------------------------------------------------------------------- */
-/* load the built bundle (the same seam as selftest-panel)                   */
+/* load the built bundle (the same seam as selftest-panel) */
 /* ------------------------------------------------------------------------- */
 
 const source = fs.readFileSync(path.join(ROOT, 'client.js'), 'utf8');
@@ -77,7 +77,7 @@ check(
 );
 
 /* ------------------------------------------------------------------------- */
-/* tree helpers                                                              */
+/* tree helpers */
 /* ------------------------------------------------------------------------- */
 
 const hasData = (node) => node && node.props && typeof node.props['data-dsh-workflow-map'] === 'string';
@@ -102,7 +102,7 @@ function textOf(node) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* fixtures                                                                  */
+/* fixtures */
 /* ------------------------------------------------------------------------- */
 
 const T0 = 1792243000000;
@@ -130,7 +130,7 @@ const nodes = [
     at: T0 + 1000,
     durationMs: 42,
     seq: 101,
-    // A body that must never be printed: store.js copies node fields explicitly.
+ // A body that must never be printed: store.js copies node fields explicitly.
     content: SECRET,
     old_str: SECRET,
   },
@@ -208,7 +208,7 @@ const steps = [
     startedAt: T0 + 95000,
     endedAt: null,
     nodeIds: ['err1', 'r1'],
-    // One node the host never sent: the detail must SAY so instead of under-counting.
+ // One node the host never sent: the detail must SAY so instead of under-counting.
     nodeCount: 3,
     groups: [],
   },
@@ -258,13 +258,13 @@ const plan = {
 };
 
 const view = { asOf: T0 + 100000, task: 'step-11 节点详情', steps, nodes, plan, active: { stepIndex: 1, nodeId: 'r1' }, counts: { steps: 3, nodes: 4, running: 1, completed: 1 } };
-// 会话4 · the fixture opens the right-hand page: the step detail LIVES there now, so every
+// the fixture opens the right-hand page: the step detail LIVES there now, so every
 // renderer assertion counts one detail block inside the right page instead of under the card.
 const prefs = { ...T.defaultPrefs(), rightOpen: true, rightKind: 'step' };
 const noop = () => {};
 
 /* ------------------------------------------------------------------------- */
-/* 2. the model                                                              */
+/* 2. the model */
 /* ------------------------------------------------------------------------- */
 
 const model0 = T.buildModel(view, { ...prefs, selectedStep: 0 }, T0 + 100000);
@@ -307,7 +307,7 @@ check('model.flow.bodyDropped', model0.flow.nodes[0].content === undefined && mo
 check('model.flow.errorText', model1.flow.nodes[0].error === true && model1.flow.nodes[0].errorText.startsWith('ENOENT'), model1.flow.nodes[0].errorText);
 
 /* ------------------------------------------------------------------------- */
-/* 3/4. rendering                                                            */
+/* 3/4. rendering */
 /* ------------------------------------------------------------------------- */
 
 const actions = {
@@ -322,7 +322,7 @@ const actions = {
   onCopy: noop,
 };
 
-// 会话4 · the step detail is no longer inline: it is the right-hand page. The fixture therefore asks
+// the step detail is no longer inline: it is the right-hand page. The fixture therefore asks
 // for the selected step's page and hands renderPanel the spec the component would derive
 // (wfRightPageSpec) together with the same prefs that open it.
 function rightFor(model, openCall) {
@@ -361,8 +361,8 @@ function extrasFor(model, flowUi, closedStep) {
 }
 
 function render(model, flowUi, closedStep) {
-  // `closedStep` is the OLD inline-detail notion. In the single page a closed detail simply means
-  // the right page is not requested at all (the user pressed × or Escape).
+ // `closedStep` is the OLD inline-detail notion. In the single page a closed detail simply means
+ // the right page is not requested at all (the user pressed × or Escape).
   if (closedStep !== undefined && closedStep !== null) {
     return T.renderPanel(model, { ...prefs, rightOpen: false }, say, actions, extrasFor(model, flowUi, closedStep));
   }
@@ -382,7 +382,7 @@ check('render.stepDetail.exit', textOf(detailEl).includes('退出码 0'), 'exit 
 check('render.stepDetail.stats', textOf(detailEl).includes('2 工具') && textOf(detailEl).includes('3 文件'), textOf(detailEl).slice(0, 120));
 check('render.stepDetail.time', textOf(detailEl).includes('开始') && textOf(detailEl).includes('结束'), 'both clocks');
 
-// 会话4 · 「i」 and the disclosure triangles belonged to the old left column; the single page's
+// 「i」 and the disclosure triangles belonged to the old left column; the single page's
 // unit card IS the entry point (it opens the right page). The assertions therefore move to the
 // card's own aria-pressed / data-selected wiring, which is the same fact.
 const infoButtons = byData(tree0, 'step');
@@ -400,7 +400,7 @@ check('render.stepHead', textOf(byData(tree0, 'page-head')[0]).includes('主流�
 const headerText = textOf(byData(tree0, 'step')[0]);
 check('render.stepHead', headerText.includes('2 工具') && headerText.includes('3 文件'), headerText.slice(0, 80));
 
-// 会话4 · a node detail now lives inside the TYPE page (a call row expands in place). The renderer
+// a node detail now lives inside the TYPE page (a call row expands in place). The renderer
 // itself is unchanged, so the fixture drives it directly with the SAME node the model carries —
 // these assertions are about the blocks, the caps and the whitelist, not the old column.
 function renderNodeDetailOf(model, nodeId) {
@@ -500,7 +500,7 @@ function clickFirst(tree, predicate) {
   const el = findAll(tree, predicate)[0];
   if (el && typeof el.props.onClick === 'function') el.props.onClick({ currentTarget: null });
 }
-// 会话4 · the copy row and the page-closing wired actions. The file row lives in the TYPE page's
+// the copy row and the page-closing wired actions. The file row lives in the TYPE page's
 // opened call detail, and 「×」 is the page's own close button.
 const typeTree0 = T.renderRightPage(
   createElement,
@@ -556,9 +556,9 @@ clickFirst(chainTree, (el) => hasData(el) && el.props['data-dsh-workflow-map'] =
 check('actions.openType', typeof openedType === 'string' && openedType.includes('|'), String(openedType));
 
 /* ------------------------------------------------------------------------- */
-/* 4b. step-02: the disclosure triangle is a real <button>                   */
+/* 4b. the disclosure triangle is a real <button> */
 /* ------------------------------------------------------------------------- */
-// The user's 「缩进号」 was a `::before` glyph — a decoration that could not be clicked,
+// The indent marker was a `::before` glyph - a decoration that could not be clicked,
 // tabbed to, or announced. These assertions pin the replacement: one shared renderer
 // (wfTri), a sibling of the row it discloses, a 20 px × full-height band, and a state that
 // comes from the SAME source the row itself uses.
@@ -566,7 +566,7 @@ check('actions.openType', typeof openedType === 'string' && openedType.includes(
 const triGlyph = T.triGlyph;
 check('tri.glyph.pure', triGlyph(true) === '▾' && triGlyph(false) === '▸' && triGlyph(undefined) === '▸', `${triGlyph(true)}/${triGlyph(false)}`);
 
-// 会话4 · the unit card has no disclosure triangle any more: clicking it opens the right page, so
+// the unit card has no disclosure triangle any more: clicking it opens the right page, so
 // there is nothing to disclose in place. What must still hold is that the card is a real button,
 // one per step, carrying its own ordinals and status.
 const unitCards = byData(tree0, 'step');
@@ -711,7 +711,7 @@ check(
 );
 check('tri.oneRenderer', typeof T.tri === 'function' && T.tri(createElement, false, () => {}, { label: 'x' }).props.className === 'wf-tri', 'both call sites share wfTri');
 /* ------------------------------------------------------------------------- */
-/* 5. copy path                                                              */
+/* 5. copy path */
 /* ------------------------------------------------------------------------- */
 
 const copyTarget = 'D:\\proj\\src\\client\\NodeDetail.js';
@@ -797,7 +797,7 @@ check('copy.ackFailed', failedButton.textContent === '复制失败' && failedBut
 check('copy.buttonAttrs', pathCopy.props['data-wf-copy-label'] === 'NodeDetail.js' && pathCopy.props['data-copy-state'] === 'idle', JSON.stringify(pathCopy.props));
 
 /* ------------------------------------------------------------------------- */
-/* 6. Escape + the layout nudge                                              */
+/* 6. Escape + the layout nudge */
 /* ------------------------------------------------------------------------- */
 
 check('key.escape', T.escapeIntent({ key: 'Escape' }) === true, 'plain Escape');
@@ -857,7 +857,7 @@ nudgeBind.destroy();
 check('nudge.destroyed', (nudgeDoc.listeners.get('click') || []).length === 0 && (nudgeDoc.listeners.get('toggle') || []).length === 0, 'both listeners removed');
 
 /* ------------------------------------------------------------------------- */
-/* 7. stylesheet + the privacy rule is structural                            */
+/* 7. stylesheet + the privacy rule is structural */
 /* ------------------------------------------------------------------------- */
 
 const css = T.css();
@@ -869,7 +869,7 @@ check(
   css.includes('.wf-step-info{') && css.includes('.wf-step-card{padding-left:20px;padding-right:26px}'),
   'the 「i」 band (right) and the triangle band (left)'
 );
-// step-02: the triangle is a real element now — the CSS must size its band and the
+// the triangle is a real element now — the CSS must size its band and the
 // ::before glyph must be gone for good.
 check(
   'css.triBand',
@@ -916,7 +916,7 @@ const leakyTree = T.renderPanel(leakyModel, { ...prefs }, say, actions, extrasFo
 check('privacy.treeClean', textOf(leakyTree).indexOf(SECRET) === -1, 'no body text in the whole panel');
 
 /* ------------------------------------------------------------------------- */
-/* report                                                                    */
+/* report */
 /* ------------------------------------------------------------------------- */
 
 const failed = results.filter((result) => !result.pass);

@@ -7,13 +7,13 @@
 // serialised next to the real WF_CSS. tools/preview-shot.ps1 then screenshots
 // the pages with headless Chrome.
 //
-// What this proves: the panel fills the MAIN CONTENT AREA (step-13) — no fixed box, no
+// What this proves: the panel fills the MAIN CONTENT AREA — no fixed box, no
 // corner anchor, no drag grips — plus the two-column split, wrapping, scroll containment,
 // contrast with BOTH the fallback palette and a light token override, and the folded row.
 // The mock shell below is a 220 px rail + a main column, i.e. the real seat.
 // override, and the collapsed capsule.
 // What it does NOT prove: that React mounts inside the real frame — that is the
-// user's F5 check (and step-14's live visual verification).
+// user's F5 check (and 's live visual verification).
 //
 // Run: node tools/preview-panel.mjs
 import fs from 'node:fs';
@@ -78,7 +78,7 @@ function toHtml(node) {
 const mockCss = `
   html,body{margin:0;height:100%;background:var(--mock-bg);color:var(--mock-fg);
     font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif}
-  /* step-13: the real shell is [rail | main] and the panel is the main column's occupant,
+ /* the real shell is [rail | main] and the panel is the main column's occupant,
      so the mock MUST give it exactly that slot — otherwise "fills the area" is untested. */
   .mock-app{display:grid;grid-template-columns:220px 1fr;height:100vh}
   .mock-side{border-right:1px solid var(--mock-border);padding:14px 12px;font-size:12px;color:var(--mock-dim)}
@@ -86,7 +86,7 @@ const mockCss = `
   .mock-row{padding:6px 8px;border-radius:6px;margin-bottom:4px;background:var(--mock-row)}
   .mock-row.active{outline:1px solid var(--mock-brand,#5b8cff);color:var(--mock-fg)}
   .mock-main{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
-  /* step-13: the note lives INSIDE the rail. A strip below the app grid would add page
+ /* the note lives INSIDE the rail. A strip below the app grid would add page
      overflow and make "the panel fits the viewport" fail for a reason that has nothing to
      do with the panel. */
   .mock-note{margin-top:12px;padding-top:10px;border-top:1px solid var(--mock-border);font-size:10px;line-height:1.5;color:var(--mock-dim)}
@@ -123,14 +123,14 @@ const mockApp = `
 function page(panelHtml, tokens, title, script) {
   const css = T.css();
   const tail = script ? `<script>${script}</script>` : '';
-  // step-13: the panel goes INTO the main column, exactly as the `main` slot does.
+ // the panel goes INTO the main column, exactly as the `main` slot does.
   const shell = mockApp.replace('<main class="mock-main" id="wf-slot"><!-- panel injected by page() --></main>', `<main class="mock-main" id="wf-slot">${panelHtml}</main>`);
   return `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>${esc(title)}</title>
 <style>${tokens}${mockCss}${css}</style></head><body>${shell}${tail}</body></html>`;
 }
 
 /**
- * step-02: the triangle page keeps the real CSS and the real mock shell, but the panel is
+ * the triangle page keeps the real CSS and the real mock shell, but the panel is
  * replaced by a HOST DIV the measurement script re-mounts into. The script needs the bundle
  * factory (window.__wfDef) and live handlers, so it rebuilds the tree itself instead of
  * measuring a dead static dump.
@@ -149,7 +149,7 @@ function triPage(panelHtml, tokens, script) {
 }
 
 /**
- * step-03: the same idea as triPage but with ONE named host div, so a measuring script can
+ * the same idea as triPage but with ONE named host div, so a measuring script can
  * mount the real renderer output into a live DOM (handlers included) with fixed stamps.
  */
 function mountPage(tokens, hostId, title, script) {
@@ -197,7 +197,7 @@ const planningModel = T.buildModel({ steps: [], nodes: [], plan: { phase: 'plann
 const planning = T.renderPanel(planningModel, prefs, say, actions, { ...ui, status: 'loading' });
 /* A page that MEASURES itself and leaves the numbers in <pre id="wf-measure">:
  * tools/measure-panel.ps1 dumps this DOM with headless Chrome and asserts the
- * geometry the step-07 acceptance criteria talk about (8 px of air under the
+ * geometry the acceptance criteria talk about (8 px of air under the
  * card frame, a 6 px rail, no overlap with the next connector). */
 const measureScript = `
 window.addEventListener('load', function () {
@@ -210,8 +210,8 @@ window.addEventListener('load', function () {
       var fill = item.querySelector('.wf-prog-fill');
       var track = item.querySelector('.wf-prog-track');
       var label = item.querySelector('.wf-prog-label');
-      // step-03: the second line (ago · eta). Measured for the same reasons as the rail: only a
-      // layout engine can prove it neither wraps onto a third line nor overlaps the connector.
+ // the second line (ago · eta). Measured for the same reasons as the rail: only a
+ // layout engine can prove it neither wraps onto a third line nor overlaps the connector.
       var sub = item.querySelector('.wf-prog-sub');
       var ago = item.querySelector('.wf-prog-ago');
       var eta = item.querySelector('.wf-prog-eta');
@@ -237,7 +237,7 @@ window.addEventListener('load', function () {
           var row = item.querySelector('.wf-prog-row');
           return row ? Math.round(row.getBoundingClientRect().bottom * 100) / 100 : null;
         })(),
-        // One line only: a wrapped sub line is taller than its own font size.
+ // One line only: a wrapped sub line is taller than its own font size.
         subWrapped: sub ? sub.getBoundingClientRect().height > 14 : false,
         subOverlapsTrack: (function () {
           if (!sub) return false;
@@ -254,8 +254,8 @@ window.addEventListener('load', function () {
     });
     var gaps = rows.map(function (row) { return row.gapPx; });
     var links = rows.filter(function (row) { return row.dockToLinkPx !== null; });
-    // The >8-step contract: the left column scrolls internally and its header
-    // stays put while it does.
+ // The >8-step contract: the left column scrolls internally and its header
+ // stays put while it does.
     var scroller = document.querySelector('[data-dsh-workflow-map="page-scroll"]');
     var header = document.querySelector('[data-dsh-workflow-map="page-head"]');
     var headerTopBefore = header ? Math.round(header.getBoundingClientRect().top) : null;
@@ -267,7 +267,7 @@ window.addEventListener('load', function () {
     var payload = {
       cards: cards.length,
       docks: document.querySelectorAll('.wf-prog-dock').length,
-      // step-03: the second line's own counts and its two failure modes.
+ // the second line's own counts and its two failure modes.
       subLines: document.querySelectorAll('.wf-prog-sub').length,
       agoSegments: document.querySelectorAll('.wf-prog-ago').length,
       etaSegments: document.querySelectorAll('.wf-prog-eta').length,
@@ -297,7 +297,7 @@ window.addEventListener('load', function () {
   }, 150);
 });
 `;
-/* --- flow column (step-08): a page that measures itself ------------------- */
+/* --- flow column : a page that measures itself ------------------- */
 const flowMeasure = `
 window.addEventListener('load', function () {
   window.setTimeout(function () {
@@ -407,7 +407,7 @@ process.stdout.write(`flow: cap shows ${capWindowNodes}/${capModel.flow.nodes.le
 // The measure pages deliberately do NOT use these: they scroll on their own.
 const bottomShot = "window.addEventListener('load',function(){setTimeout(function(){var list=document.querySelector('[data-dsh-workflow-map=\\\"flow-scroll\\\"]');if(list)list.scrollTop=list.scrollHeight;},120);});";
 const groupShot = "window.addEventListener('load',function(){setTimeout(function(){var el=document.querySelector('.wf-group');if(el&&el.scrollIntoView)el.scrollIntoView({block:'center'});},120);});";
-/* step-02: the triangle page MOUNTS the real renderer output into real DOM (with the real
+/* the triangle page MOUNTS the real renderer output into real DOM (with the real
  * onClick handlers) and clicks it. A static dump cannot prove a toggle — the handler would
  * be missing — so this page rebuilds the tree from the bundle on every state change. */
 const triMeasureScript = `
@@ -423,7 +423,7 @@ window.addEventListener('load', function () {
         throw new Error('unexpected require: ' + name);
       }).__test;
 
-      // --- a real DOM mount of the renderer's own tree (handlers included) ----------
+ // --- a real DOM mount of the renderer's own tree (handlers included) ----------
       var SVG_NS = 'http://www.w3.org/2000/svg';
       function mount(node) {
         if (node === null || node === undefined || node === false) return null;
@@ -481,7 +481,7 @@ window.addEventListener('load', function () {
       }
       render();
 
-      // --- 1. the band: 20 px wide, exactly as tall as its card ------------------
+ // --- 1. the band: 20 px wide, exactly as tall as its card ------------------
       var items = [].slice.call(host.querySelectorAll('.wf-unit'));
       report.triangles = items.map(function (item) {
         var card = item.querySelector('.wf-unit-card');
@@ -503,12 +503,12 @@ window.addEventListener('load', function () {
           text: tri.textContent,
           titleLeft: round(titleEl ? titleEl.getBoundingClientRect().left : cr.left),
           triRight: round(tr.right),
-          // Tab reachability: a real <button> is focusable without tabindex.
+ // Tab reachability: a real <button> is focusable without tabindex.
           focusable: (function () { tri.focus(); return document.activeElement === tri; })(),
         };
       });
 
-      // --- 2. a real click flips aria-expanded and removes the detail -------------
+ // --- 2. a real click flips aria-expanded and removes the detail -------------
       var beforeTri = items[0].querySelector('.wf-tri');
       var beforeExpanded = beforeTri.getAttribute('aria-expanded');
       var beforeDetail = host.querySelectorAll('[data-dsh-workflow-map=\"step-detail\"]').length;
@@ -521,11 +521,11 @@ window.addEventListener('load', function () {
         beforeDetail: beforeDetail,
         afterDetail: host.querySelectorAll('[data-dsh-workflow-map=\"step-detail\"]').length,
       };
-      // Click again: it must flip back (a toggle, not a one-way switch).
+ // Click again: it must flip back (a toggle, not a one-way switch).
       afterTri.click();
       report.click.back = host.querySelector('.wf-step-item .wf-tri').getAttribute('aria-expanded');
 
-      // --- 3. a triangle on ANOTHER card selects that step and opens it -----------
+ // --- 3. a triangle on ANOTHER card selects that step and opens it -----------
       var secondTri = host.querySelectorAll('.wf-unit')[1].querySelector('.wf-tri');
       secondTri.click();
       var secondCard = host.querySelectorAll('.wf-unit')[1];
@@ -538,7 +538,7 @@ window.addEventListener('load', function () {
         })(),
       };
 
-      // --- 4. the FOLDED RUN's triangle: same renderer, same band, same toggle ------
+ // --- 4. the FOLDED RUN's triangle: same renderer, same band, same toggle ------
       var groupHost = document.getElementById('wf-group-tri-host');
       var groupState = { expanded: [] };
       var groupView = {
@@ -601,7 +601,7 @@ window.addEventListener('load', function () {
 });
 `;
 
-/* step-03: a page that mounts the real renderer with FIXED stamps and measures the second
+/* a page that mounts the real renderer with FIXED stamps and measures the second
    line in a real layout engine — the recorded live view carries no `lastEstimateAt` (it
    predates the field), so the "both halves at once" case can only be proven here. */
 const timingMeasureScript = `
@@ -636,7 +636,7 @@ window.addEventListener('load', function () {
         return el;
       }
 
-      // Fixed stamps: the renderer must be a pure function of these, never of the wall clock.
+ // Fixed stamps: the renderer must be a pure function of these, never of the wall clock.
       var NOW = 1792000000000;
       var view = {
         asOf: NOW, task: 'timing measure',
@@ -695,12 +695,12 @@ window.addEventListener('load', function () {
         };
       });
 
-      // 会话6 · the ETA wording must be gone from the RENDERED page, not just from the rail: a sloppy
-      // string could survive in a title/aria attribute and only the live DOM can prove it is not there.
+ // the ETA wording must be gone from the RENDERED page, not just from the rail: a sloppy
+ // string could survive in a title/aria attribute and only the live DOM can prove it is not there.
       report.pageTextHasEta = host.textContent.indexOf('还剩') !== -1;
       report.etaNodeCount = host.querySelectorAll('.wf-prog-eta').length;
 
-      // Narrow container: only the first line may exist.
+ // Narrow container: only the first line may exist.
       var narrowPrefs = T.applyPrefsPatch(T.defaultPrefs(), { detail: 'title' });
       render(narrowPrefs);
       var narrowItem = host.querySelector('.wf-step-item');
@@ -725,7 +725,7 @@ window.addEventListener('load', function () {
   }, 250);
 });
 `;
-/* step-04-inject-prominence: a page that MOUNTS the real renderer FOUR times — no right page, the
+/* a page that MOUNTS the real renderer FOUR times — no right page, the
    step page (which carries the persistent dock), a 620 px host, and the composer itself — and
    measures the entry button's real box (≥96×30) together with its pending badge, the 460 px right
    column, the dock pinned to the page's foot (and absent on the composer), and every unit card's
@@ -767,10 +767,10 @@ window.addEventListener('load', function () {
       var actions = { onSelectStep: function () {}, onStepInfo: function () {}, onToggleGroup: function () {}, onToggleInject: function () {}, onInjectText: function () {}, onInjectCancel: function () {}, onInjectSend: function () {} };
       var host = document.getElementById('wf-inject-host');
 
-      // A small synthetic view: 4 steps and no nodes, so the geometry is about the PAGE, the
-      // 460 px column and the DOCK, not about a 35-node flow. Fixed stamps — no wall clock
-      // anywhere. Two injection rows (one already taken, one still waiting) so the badge and the
-      // dock's status word are measured from the MODEL instead of being faked in the DOM.
+ // A small synthetic view: 4 steps and no nodes, so the geometry is about the PAGE, the
+ // 460 px column and the DOCK, not about a 35-node flow. Fixed stamps — no wall clock
+ // anywhere. Two injection rows (one already taken, one still waiting) so the badge and the
+ // dock's status word are measured from the MODEL instead of being faked in the DOM.
       var NOW = 1792000000000;
       var view = {
         asOf: NOW, task: 'inject measure',
@@ -788,8 +788,8 @@ window.addEventListener('load', function () {
         ]
       };
 
-      // kind: 'none' | 'step' | 'inject'. The right page is built from the SAME model the
-      // renderer is given, so the page spec can never disagree with the chain.
+ // kind: 'none' | 'step' | 'inject'. The right page is built from the SAME model the
+ // renderer is given, so the page spec can never disagree with the chain.
       function render(kind) {
         var model = T.buildModel(view, T.defaultPrefs(), NOW);
         var right = null;
@@ -833,7 +833,7 @@ window.addEventListener('load', function () {
           composerSendDisabled: (function () { var el = host.querySelector('[data-inject="send"]'); return el ? el.disabled === true : null; })(),
           composerCounter: (function () { var el = host.querySelector('.wf-inject-count'); return el ? el.textContent : null; })(),
           pageOverflow: Math.max(0, Math.round(document.documentElement.scrollHeight - window.innerHeight)),
-          // The entry button: its own box, its pending badge, and the ‒ beside it for comparison.
+ // The entry button: its own box, its pending badge, and the ‒ beside it for comparison.
           toggle: box('[data-dsh-workflow-map="inject-toggle"]'),
           toggleRadius: css('[data-dsh-workflow-map="inject-toggle"]', 'borderTopLeftRadius'),
           pendingCount: attr('[data-dsh-workflow-map="inject-toggle"]', 'data-pending-count'),
@@ -842,7 +842,7 @@ window.addEventListener('load', function () {
           badgeText: (function () { var el = host.querySelector('.wf-inject-badge'); return el ? el.textContent : null; })(),
           collapse: box('.wf-btns .wf-btn'),
           collapseRadius: css('.wf-btns .wf-btn', 'borderTopLeftRadius'),
-          // Every unit card's position, so a displacement is a number rather than an opinion.
+ // Every unit card's position, so a displacement is a number rather than an opinion.
           cards: [].slice.call(host.querySelectorAll('.wf-unit')).map(function (card) {
             var b = card.getBoundingClientRect();
             return { index: card.getAttribute('data-step-index'), left: r(b.left), top: r(b.top), width: r(b.width) };
@@ -850,13 +850,13 @@ window.addEventListener('load', function () {
         };
       }
 
-      // 1. no right page at all — the baseline every displacement is measured against.
+ // 1. no right page at all — the baseline every displacement is measured against.
       render('none');
       report.closed = boxes();
-      // 2. the step page (kind "step"): the dock must be there, at its foot.
+ // 2. the step page (kind "step"): the dock must be there, at its foot.
       render('step');
       report.open = boxes();
-      // Pair each open card with the closed one of the same index.
+ // Pair each open card with the closed one of the same index.
       var closedByIndex = {};
       report.closed.cards.forEach(function (c) { closedByIndex[c.index] = c; });
       report.open.cards.forEach(function (c) {
@@ -864,14 +864,14 @@ window.addEventListener('load', function () {
         c.leftClosed = was ? was.left : null;
         c.topClosed = was ? was.top : null;
       });
-      // 3. narrow: the same step page in a 620 px host. The stacking rule is a CONTAINER query
-      // on .wf-card, so narrowing the host is exactly the condition the CSS reads — a media
-      // query would have needed a second browser run at a different viewport.
+ // 3. narrow: the same step page in a 620 px host. The stacking rule is a CONTAINER query
+ // on .wf-card, so narrowing the host is exactly the condition the CSS reads — a media
+ // query would have needed a second browser run at a different viewport.
       host.style.width = '620px';
       render('step');
       report.narrow = boxes();
       host.style.width = '';
-      // 4. the composer itself: the dock must NOT be repeated, and the full form must be there.
+ // 4. the composer itself: the dock must NOT be repeated, and the full form must be there.
       render('inject');
       report.composer = boxes();
     } catch (error) {
@@ -896,15 +896,15 @@ const files = [
   ['panel-flow-groups-measure.html', page(toHtml(groupFlowTree), DARK_TOKENS, 'workflow-map fold measure', flowMeasure)],
   ['panel-flow-all-measure.html', page(toHtml(allFlowTree), DARK_TOKENS, 'workflow-map all-nodes measure', flowMeasure)],
   ['planning-dark.html', page(toHtml(planning), DARK_TOKENS, 'workflow-map planning')],
-  // step-02: a page whose only job is to MEASURE the disclosure triangle's hit band and
-  // prove a real click flips aria-expanded. Same real bundle + real CSS as the shots above.
+ // a page whose only job is to MEASURE the disclosure triangle's hit band and
+ // prove a real click flips aria-expanded. Same real bundle + real CSS as the shots above.
   ['panel-tri-measure.html', triPage(toHtml(expanded), DARK_TOKENS, triMeasureScript)],
-  // step-03: the rail's second line, measured with fixed stamps (the recorded live view
-  // predates `lastEstimateAt`, so only a synthetic view can prove both halves at once).
+ // the rail's second line, measured with fixed stamps (the recorded live view
+ // predates `lastEstimateAt`, so only a synthetic view can prove both halves at once).
   ['panel-timing-measure.html', mountPage(DARK_TOKENS, 'wf-timing-host', 'workflow-map timing measure', timingMeasureScript)],
-  // step-04-hot-inject: the split, measured in a live layout engine — the ⇄'s box against the
-  // two buttons beside it, the two columns' geometry, and the one acceptance criterion a
-  // screenshot can only eyeball: the LEFT column does not MOVE.
+ // the split, measured in a live layout engine — the ⇄'s box against the
+ // two buttons beside it, the two columns' geometry, and the one acceptance criterion a
+ // screenshot can only eyeball: the LEFT column does not MOVE.
   ['panel-inject-measure.html', mountPage(DARK_TOKENS, 'wf-inject-host', 'workflow-map inject measure', injectMeasureScript)],
 ];
 for (const [name, html] of files) {

@@ -7,8 +7,8 @@
  * air, so the card still reads as a card and the bar as an annotation of it.
  *
  * STATUS POLICY (the one rule this file exists for):
- *   PAE `plan.statuses`  >  the todo table  >  `plan.anchorSeqs` inference  >
- *   the host's event-derived status  >  "pending".
+ * PAE `plan.statuses` > the todo table > `plan.anchorSeqs` inference >
+ * the host's event-derived status > "pending".
  *
  * Why the browser re-derives what the host already merged: the host may see a
  * PAE-opened row's event status before PAE rewrites `statuses`, and the plan file
@@ -23,7 +23,7 @@
  */
 
 /** PAE / todo status vocabulary → this plugin's five card states. A Map, so a
- *  crafted "constructor" key cannot resolve through Object.prototype. */
+ * crafted "constructor" key cannot resolve through Object.prototype. */
 var WF_STATUS_ALIASES = new Map([
   ["completed", "done"],
   ["complete", "done"],
@@ -88,11 +88,11 @@ function wfStatusGlyph(status) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* matching a step to its todo row                                           */
+/* matching a step to its todo row */
 /* ------------------------------------------------------------------------- */
 
-/** "5. 装入 desktop profile…" → "装入 desktop profile…" (the ordinal is not part
- *  of the name). Also strips a trailing run of list punctuation. */
+/** "5. install into the desktop profile..." -> "install into the desktop profile..." (the ordinal is not part
+ * of the name). Also strips a trailing run of list punctuation. */
 function wfStripStepOrdinal(text) {
   if (typeof text !== "string") return "";
   return text.replace(/^\s*\d+\s*[.、)．:：]\s*/, "");
@@ -140,7 +140,7 @@ function wfBuildTodoIndex(todos) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* status derivation                                                         */
+/* status derivation */
 /* ------------------------------------------------------------------------- */
 
 function wfHasKey(object, key) {
@@ -157,14 +157,14 @@ function wfDeriveStepStatus(row, plan, todoIndex, currentPlanIndex) {
   var planIndex = row && wfFinite(row.planIndex) !== null ? Math.round(row.planIndex) : null;
 
   if (plan && planIndex !== null) {
-    // 1. PAE's own statuses are the published truth.
+ // 1. PAE's own statuses are the published truth.
     var label = wfHasKey(plan.statuses, String(planIndex)) ? plan.statuses[String(planIndex)] : null;
     var fromPae = wfCanonicalStatus(label);
     var skipped = Array.isArray(plan.skipped) && plan.skipped.indexOf(planIndex) >= 0;
     if (skipped && (fromPae === null || fromPae === "pending")) return { status: "skipped", source: "pae" };
     if (fromPae !== null) return { status: fromPae, source: "pae" };
 
-    // 2. The todo table (what the model wrote into its own checklist).
+ // 2. The todo table (what the model wrote into its own checklist).
     var fromTodo = null;
     if (todoIndex) {
       if (todoIndex.byOrdinal.has(planIndex)) fromTodo = wfCanonicalStatus(todoIndex.byOrdinal.get(planIndex));
@@ -175,8 +175,8 @@ function wfDeriveStepStatus(row, plan, todoIndex, currentPlanIndex) {
     }
     if (fromTodo !== null) return { status: fromTodo, source: "todo" };
 
-    // 3. An anchored step has been opened. The plan's own cursor decides whether
-    //    it is behind us (done), here (running) or still ahead (pending).
+ // 3. An anchored step has been opened. The plan's own cursor decides whether
+ // it is behind us (done), here (running) or still ahead (pending).
     if (wfHasKey(plan.anchorSeqs, String(planIndex))) {
       if (currentPlanIndex !== null && planIndex < currentPlanIndex) return { status: "done", source: "anchor" };
       if (currentPlanIndex !== null && planIndex === currentPlanIndex) return { status: "running", source: "anchor" };
@@ -184,8 +184,8 @@ function wfDeriveStepStatus(row, plan, todoIndex, currentPlanIndex) {
       return { status: "running", source: "anchor" };
     }
   } else if (todoIndex) {
-    // A row with no plan ordinal (planning-phase work) can still be in the todo
-    // table; match it by name only.
+ // A row with no plan ordinal (planning-phase work) can still be in the todo
+ // table; match it by name only.
     var fallbackTitle = wfNormalizeStepTitle(row && row.title);
     if (fallbackTitle !== "" && todoIndex.byTitle.has(fallbackTitle)) {
       var named = wfCanonicalStatus(todoIndex.byTitle.get(fallbackTitle));
@@ -193,7 +193,7 @@ function wfDeriveStepStatus(row, plan, todoIndex, currentPlanIndex) {
     }
   }
 
-  // 4. The host's event-derived status, then the honest floor.
+ // 4. The host's event-derived status, then the honest floor.
   var fromHost = wfCanonicalStatus(row && row.status);
   if (fromHost !== null) return { status: fromHost, source: "host" };
   return { status: "pending", source: "none" };
@@ -223,20 +223,20 @@ function wfApplyDerivedStatuses(rows, plan, todos) {
       rawStatus: row.status,
       percent: row.percent,
       percentSource: row.percentSource,
-      // step-03: carried through the status rewrite so every row keeps the stamp the host
-      // shipped, whichever policy decided its status.
+ // carried through the status rewrite so every row keeps the stamp the host
+ // shipped, whichever policy decided its status.
       lastEstimateAt: wfFinite(row.lastEstimateAt) === null ? 0 : Math.max(0, Math.round(wfFinite(row.lastEstimateAt))),
       nodeCount: row.nodeCount,
       planIndex: row.planIndex,
       anchorSeq: row.anchorSeq,
       requiresConfirmation: requiresConfirmation,
-      // 会话5 · carried through the status rewrite: the rows the host folded for this step (an
-      // open approval, an unanswered question). Bounded to the same limit the host applies, so a
-      // damaged record cannot flood the badge row.
+ // carried through the status rewrite: the rows the host folded for this step (an
+ // open approval, an unanswered question). Bounded to the same limit the host applies, so a
+ // damaged record cannot flood the badge row.
       pendingConfirm: Array.isArray(row.pendingConfirm) ? row.pendingConfirm.slice(0, 8) : [],
       reportSummary: row.reportSummary,
-      // step-11: the step detail needs the clock and the report; both are carried here so
-      // every row has the same shape whether or not it is the selected one.
+ // the step detail needs the clock and the report; both are carried here so
+ // every row has the same shape whether or not it is the selected one.
       startedAt: wfFinite(row.startedAt),
       endedAt: wfFinite(row.endedAt),
       outcome: typeof row.outcome === "string" ? row.outcome : "",
@@ -249,7 +249,7 @@ function wfApplyDerivedStatuses(rows, plan, todos) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* rendering                                                                 */
+/* rendering */
 /* ------------------------------------------------------------------------- */
 
 function wfPad2(value) {
@@ -267,7 +267,7 @@ function wfTriGlyph(expanded) {
 }
 
 /**
- * The ONE disclosure triangle (step-02), shared by a step card and a folded run.
+ * The ONE disclosure triangle , shared by a step card and a folded run.
  *
  * It is a real <button>, not a ::before glyph: a pseudo-element is not a hit
  * target, cannot be Tab-reached and cannot carry aria-expanded. It is also a
@@ -277,8 +277,8 @@ function wfTriGlyph(expanded) {
  * band the row reserves with padding-left.
  *
  * `extra` carries what only the caller knows:
- *   {label, controls, data, key}  the aria-label/title, aria-controls target,
- *                                 the data-dsh-workflow-map tag and the React key.
+ * {label, controls, data, key} the aria-label/title, aria-controls target,
+ * the data-dsh-workflow-map tag and the React key.
  */
 function wfTri(h, expanded, onToggle, extra) {
   var open = expanded === true;
@@ -306,7 +306,7 @@ function wfTri(h, expanded, onToggle, extra) {
 }
 
 /**
- * One `<li>`: card (+ its 「i」) + rail + (step-11) the step detail + (unless last) the
+ * One `<li>`: card (+ its 「i」) + rail + the step detail + (unless last) the
  * 14 px connector to the next card. `info` carries {detail, open} for THIS row only.
  */
 function wfRenderStepItem(h, row, position, total, say, actions, info) {
@@ -314,9 +314,9 @@ function wfRenderStepItem(h, row, position, total, say, actions, info) {
   var fire = actions || {};
   var glyph = wfStatusGlyph(status);
   var detail = info && info.detail && info.detail.index === row.index ? info.detail : null;
-  // step-03: `asOf` is the ONE moment every timing segment is measured against. The host
-  // ships it in the view; passing it down keeps the renderer clock-free and the numbers
-  // reproducible in a self-test with a fixed stamp.
+ // `asOf` is the ONE moment every timing segment is measured against. The host
+ // ships it in the view; passing it down keeps the renderer clock-free and the numbers
+ // reproducible in a self-test with a fixed stamp.
   var compact = !!(info && info.compact === true);
   var open = detail !== null && info.open === true && !compact;
 
@@ -359,9 +359,9 @@ function wfRenderStepItem(h, row, position, total, say, actions, info) {
             )
           : null
       ),
-      // 「正在 …」 only on the step that is running right now (step-10): a 6 px breathing dot
-      // plus a three-dot ellipsis. It sits under the title line, so a running card never
-      // reflows the two-line clamp of `.wf-step-title`.
+ // "working ..." only on the step that is running right now: a 6 px breathing dot
+ // plus a three-dot ellipsis. It sits under the title line, so a running card never
+ // reflows the two-line clamp of `.wf-step-title`.
       status === "running" ? wfRenderLive(h, say, "step") : null
     ),
     h("span", { className: "wf-step-seq", key: "seq" }, wfPad2(position + 1) + "/" + wfPad2(total))
@@ -377,11 +377,11 @@ function wfRenderStepItem(h, row, position, total, say, actions, info) {
       "data-selected": row.selected ? "true" : "false",
       "data-detail": compact ? "title" : "summary",
     },
-    // step-02: the disclosure triangle is a real <button>, a SIBLING of the card (a
-    // button inside a button is invalid HTML and unreachable by keyboard). The <li> is a
-    // one-column grid, so the triangle and the card share cell 1/1: the triangle spans the
-    // card's full height in the 20 px band the card reserves with padding-left, and the
-    // card stays a DIRECT child (the running-frame ring and FlowEffects query it that way).
+ // the disclosure triangle is a real <button>, a SIBLING of the card (a
+ // button inside a button is invalid HTML and unreachable by keyboard). The <li> is a
+ // one-column grid, so the triangle and the card share cell 1/1: the triangle spans the
+ // card's full height in the 20 px band the card reserves with padding-left, and the
+ // card stays a DIRECT child (the running-frame ring and FlowEffects query it that way).
     compact
       ? null
       : wfTri(h, open, function () {
@@ -393,9 +393,9 @@ function wfRenderStepItem(h, row, position, total, say, actions, info) {
           controls: "wf-step-detail-" + row.index,
         }),
     card,
-    // The 「i」 is a SIBLING of the card too (same reason as the triangle): it is absolutely
-    // positioned inside the 26 px right band the card reserves, so the title never runs
-    // underneath it. step-02 keeps it — two entry points, one state source.
+ // The 「i」 is a SIBLING of the card too (same reason as the triangle): it is absolutely
+ // positioned inside the 26 px right band the card reserves, so the title never runs
+ // underneath it. keeps it — two entry points, one state source.
     compact ? null : h(
       "button",
       {
@@ -415,8 +415,8 @@ function wfRenderStepItem(h, row, position, total, say, actions, info) {
       },
       "i"
     ),
-    // step-03: the rail carries the number, its age and its projection. `compact` is passed on
-    // the row because the dock renders the two-line layout only when there is room for it.
+ // the rail carries the number, its age and its projection. `compact` is passed on
+ // the row because the dock renders the two-line layout only when there is room for it.
     wfRenderProgressDock(h, compact ? { ...row, compact: true } : row, say, info && info.asOf),
     open ? wfRenderStepDetail(h, detail, say, actions) : null,
     position + 1 < total
@@ -432,12 +432,12 @@ function wfRenderStepItem(h, row, position, total, say, actions, info) {
 
 /**
  * The whole left column: a sticky header inside an internally scrolling list, so
- * a 15-step plan keeps its "总任务分步 · 5/15" caption while the cards move.
+ * a 15-step plan keeps its "total steps · 5/15" caption while the cards move.
  */
 function wfRenderStepColumn(h, model, say, actions, ui) {
   var total = model.steps.length;
-  // `ui` is the closed step index (number) or null; the detail itself is built by store.js
-  // for the selected step only, so a stale index can never render another step's report.
+ // `ui` is the closed step index (number) or null; the detail itself is built by store.js
+ // for the selected step only, so a stale index can never render another step's report.
   var detail = model.detail && model.detail.index === model.selected ? model.detail : null;
   var header = h(
     "div",
@@ -467,9 +467,9 @@ function wfRenderStepColumn(h, model, say, actions, ui) {
             detail: detail,
             open: detail !== null && !(model.settings && model.settings.detail === "title") && wfStepDetailOpen(ui, model.selected),
             compact: !!(model.settings && model.settings.detail === "title"),
-            // step-03: the shared "now" for every rail's age arithmetic. `view.asOf` is the
-            // host's own stamp (the ONE honest clock in the plugin); `model.now` is the render
-            // moment the panel passed in and is only a fallback for a view that carries none.
+ // the shared "now" for every rail's age arithmetic. `view.asOf` is the
+ // host's own stamp (the ONE honest clock in the plugin); `model.now` is the render
+ // moment the panel passed in and is only a fallback for a view that carries none.
             asOf: model.asOf === null || model.asOf === undefined ? model.now : model.asOf,
           });
         })

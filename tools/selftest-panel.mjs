@@ -1,13 +1,13 @@
-// selftest-panel.mjs — step-06 panel skeleton self-check.
+// selftest-panel.mjs — panel skeleton self-check.
 //
 // It loads the BUILT client.js exactly the way the page does (a `window.__ModuleLoader__`
 // stub + a fake `require("react")`), then drives the pure parts of the bundle:
-//   - preferences round-trip / clamping / resilience
-//   - the conditional poll (200 / 304 / 4xx / network error) and its headers
-//   - session-id resolution (current, and the retainedBy.mainView fallback)
-//   - view → model (selection, progress, flow, empty and planning states)
-//   - the pure renderer tree (capsule, two columns, no DOM when empty)
-//   - the stylesheet contract (geometry, tokens, pointer-events)
+// - preferences round-trip / clamping / resilience
+// - the conditional poll (200 / 304 / 4xx / network error) and its headers
+// - session-id resolution (current, and the retainedBy.mainView fallback)
+// - view → model (selection, progress, flow, empty and planning states)
+// - the pure renderer tree (capsule, two columns, no DOM when empty)
+// - the stylesheet contract (geometry, tokens, pointer-events)
 //
 // Run: node tools/selftest-panel.mjs
 import fs from 'node:fs';
@@ -22,7 +22,7 @@ const check = (id, pass, detail) => {
 };
 
 /* ------------------------------------------------------------------------- */
-/* load the built bundle                                                     */
+/* load the built bundle */
 /* ------------------------------------------------------------------------- */
 
 const source = fs.readFileSync(path.join(ROOT, 'client.js'), 'utf8');
@@ -70,7 +70,7 @@ check('bundle.exports.apply', typeof entry.apply === 'function', typeof entry.ap
 check('bundle.exports.testSeam', T && typeof T.buildModel === 'function', 'exports.__test present');
 
 /* ------------------------------------------------------------------------- */
-/* tree helpers                                                              */
+/* tree helpers */
 /* ------------------------------------------------------------------------- */
 
 function hasData(node) {
@@ -106,7 +106,7 @@ function childByClass(node, className) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* constants + dictionaries                                                  */
+/* constants + dictionaries */
 /* ------------------------------------------------------------------------- */
 
 const C = T.constants();
@@ -132,7 +132,7 @@ const sayFromT = T.makeSay((key) => (key === 'panel.title' ? 'X' : key));
 check('say.usesT', sayFromT('panel.title') === 'X' && sayFromT('panel.steps') === '总任务分步', 't wins, dictionary covers the rest');
 
 /* ------------------------------------------------------------------------- */
-/* preferences                                                               */
+/* preferences */
 /* ------------------------------------------------------------------------- */
 
 const defaults = T.defaultPrefs();
@@ -188,7 +188,7 @@ check('prefs.loadThrows', T.loadPrefs(brokenStorage).width === 720, 'throwing st
 check('prefs.saveThrows', T.savePrefs(defaults, brokenStorage) === false, 'throwing storage → false');
 
 /* ------------------------------------------------------------------------- */
-/* the poll                                                                  */
+/* the poll */
 /* ------------------------------------------------------------------------- */
 
 check('poll.url', T.pollUrl('session-1') === '/dsh-workflow/state?sessionId=session-1', T.pollUrl('session-1'));
@@ -235,7 +235,7 @@ const abortedResult = await T.pollOnce(() => Promise.reject(abortError), '/x', '
 check('poll.abortIsNotFailure', abortedResult.status === -1 && abortedResult.payload === null, JSON.stringify(abortedResult));
 
 /* ------------------------------------------------------------------------- */
-/* session identity                                                          */
+/* session identity */
 /* ------------------------------------------------------------------------- */
 
 check('session.current', T.sessionIdFromSnapshot({ current: 'session-a', byId: {} }) === 'session-a', 'current wins');
@@ -253,7 +253,7 @@ check('session.retainedFallback', T.sessionIdFromSnapshot(retained) === 'c', T.s
 check('session.retainedNoRetention', T.sessionIdFromSnapshot({ byId: { a: {}, b: { retainedBy: { mainView: 0 } } } }) === null, 'no retained main view → null');
 
 /* ------------------------------------------------------------------------- */
-/* model                                                                     */
+/* model */
 /* ------------------------------------------------------------------------- */
 
 check('model.null', T.buildModel(null, defaults) === null, 'null view → no DOM');
@@ -317,7 +317,7 @@ check('model.synthetic.errorFlag', errorModel.flow.nodes[0].error === true, 'err
 check('model.synthetic.filesCount', T.buildModel(synthetic, defaults).flow.nodes[0].files === 2, 'files counted, not listed');
 
 /* ------------------------------------------------------------------------- */
-/* renderer                                                                  */
+/* renderer */
 /* ------------------------------------------------------------------------- */
 
 const actions = {
@@ -341,7 +341,7 @@ check('render.capsule.noPanel', byData(collapsed, 'panel').length === 0, 'capsul
 check('render.capsule.dot', childByClass(capsule[0], 'wf-dot') !== undefined, 'pulsing dot present');
 check('render.capsule.clickable', typeof capsule[0].props.onClick === 'function', 'onClick → expand');
 check('render.capsule.aria', typeof capsule[0].props['aria-label'] === 'string' && capsule[0].props['aria-label'].length > 0, capsule[0].props['aria-label']);
-// step-13: the folded state is a row INSIDE the main area, not a floating pill: it carries
+// the folded state is a row INSIDE the main area, not a floating pill: it carries
 // an explicit aria-expanded="false" and the hint that says how to get back.
 check('render.capsule.collapsedAria', capsule[0].props['aria-expanded'] === 'false', capsule[0].props['aria-expanded']);
 check('render.capsule.bar', childByClass(collapsed, 'wf-capsule-bar') !== undefined, 'capsule sits in a bar');
@@ -350,14 +350,14 @@ const tree = T.renderPanel(model, defaults, say, actions, ui);
 const root = byData(tree, 'root');
 const panel = byData(tree, 'panel')[0];
 check('render.panel.present', panel !== undefined && panel.type === 'section', panel?.type);
-// step-13: a main-column panel is a region with a label — not a modal dialog — and it
+// a main-column panel is a region with a label — not a modal dialog — and it
 // carries NO inline geometry at all (the centre column decides width and height).
 check('render.panel.region', panel.props.role === 'region' && typeof panel.props['aria-label'] === 'string', panel.props.role);
 check('render.panel.noInlineSize', panel.props.style === undefined, JSON.stringify(panel.props.style));
 check('render.panel.noGrips', childByClass(panel, 'wf-grip-left') === undefined && childByClass(panel, 'wf-grip-bottom') === undefined, 'no resize grips');
 const body = childByClass(panel, 'wf-body');
 check('render.body.ready', body !== undefined && body.props['data-kind'] === 'ready', body?.props['data-kind']);
-// 会话4 · ONE page: the serial main flow (one unit per step) is the whole body; the right page is
+// ONE page: the serial main flow (one unit per step) is the whole body; the right page is
 // mounted only while a click has opened it.
 const pageTree = childByClass(body, 'wf-page');
 check('render.page.present', pageTree !== undefined, 'the main flow page is the body child');
@@ -376,7 +376,7 @@ const headButtons = findAll(panel, (el) => el.type === 'button').filter((el) => 
 // stays. Assert on the header's buttons instead of the whole tree's text.
 check('render.headerNoClose', headButtons.every((el) => textOf(el) !== '×'), 'no × among the header buttons');
 check('render.headerButtons', headButtons.length === 3, headButtons.length);
-// step-04-hot-inject: the ⇄ sits in the header's tool row, the same .wf-btn box as the other
+// the ⇄ sits in the header's tool row, the same .wf-btn box as the other
 // two — the acceptance asks for it to be on the same row and aligned with them.
 const injectButton = byData(tree, 'inject-toggle')[0];
 check('inject.toggle.present', injectButton !== undefined, 'the hot-inject button exists');
@@ -401,7 +401,7 @@ check('render.settings.present', settings.length === 1, settings.length);
 check('render.settings.endpoint', textOf(settings[0]).includes('/dsh-workflow/state?sessionId=session-1'), textOf(settings[0]).slice(0, 80));
 check('render.settings.reset', textOf(settings[0]).includes('恢复默认'), 'reset control');
 
-// step-13: a stored width/height from an older record must NOT resize the panel any more —
+// a stored width/height from an older record must NOT resize the panel any more —
 // the main area owns both. This is the regression guard for the old drag grips.
 const legacy = T.renderPanel(model, { ...defaults, width: 720, height: 500 }, say, actions, ui);
 const legacyPanel = byData(legacy, 'panel')[0];
@@ -425,7 +425,7 @@ check('render.emptyFlow', emptyStepTree !== null && textOf(emptyStepOpen).includ
 
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
-/* step cards + progress rails (step-07)                                     */
+/* step cards + progress rails */
 /* ------------------------------------------------------------------------- */
 
 // The live view is the regression fixture: 15 rows, PAE statuses 1-4 completed,
@@ -455,7 +455,7 @@ check(
   cardsChecked[5].props['data-status'] + '/' + cardsChecked[6].props['data-status']
 );
 
-// step-03: the fixed "now" every synthetic view and timing assertion shares. The renderer must
+// the fixed "now" every synthetic view and timing assertion shares. The renderer must
 // never read a clock, so the number it prints is a pure function of this stamp.
 const TIMING_AS_OF = 1792000000000;
 
@@ -486,8 +486,8 @@ function viewOf(stepRows, plan, todos) {
     status: 'pending',
     ...step,
   }));
-  // step-03: the host ALWAYS ships `asOf` (viewSchema requires it); the synthetic views below
-  // carry it too, so the rail's ago/eta arithmetic runs on the same stamp the wire uses.
+ // the host ALWAYS ships `asOf` (viewSchema requires it); the synthetic views below
+ // carry it too, so the rail's ago/eta arithmetic runs on the same stamp the wire uses.
   return { steps: steps, nodes: [], todos: todos || [], plan: plan || null, asOf: TIMING_AS_OF, counts: { steps: steps.length, nodes: 0, running: 0, completed: 0 } };
 }
 
@@ -565,7 +565,7 @@ check(
   JSON.stringify(byData(estimateTree, 'progress')[0].children[0].children[0].children[0].props.style)
 );
 
-// ---- step-03: the second line (ago · eta) -----------------------------------
+// ---- the second line (ago · eta) -----------------------------------
 // Every stamp below is FIXED: the renderer must never read a clock, so the arithmetic is
 // reproducible and a wrong number fails here instead of in the user's session.
 const T_AS_OF = TIMING_AS_OF;
@@ -578,7 +578,7 @@ check('prog.timing.durationText',
   T.progressDurationText(0) === '' && T.progressDurationText(null) === '' && T.progressDurationText(-5) === '',
   JSON.stringify([T.progressDurationText(180000), T.progressDurationText(54000), T.progressDurationText(3000000), T.progressDurationText(7200000)]));
 
-// 会话6 (2026-10-26) · the projected remainder is GONE by user request. `progressTiming` answers
+// (2026-10-26) · the projected remainder is GONE by user request. `progressTiming` answers
 // ONE question now — how stale the quoted number is. The rows below used to assert WHEN a projection
 // was withheld (percent 0, a closed step, a failed step, a missing start stamp, a pending row); the
 // honest equivalent after the removal is that NONE of them can conjure an `eta` key back, and that
@@ -599,7 +599,7 @@ check('prog.timing.agoOnlyShape', noProjectionRows.every((row) => Object.keys(T.
 check('prog.timing.agoFormula', T.progressTiming({ status: 'running', percent: 62, percentSource: 'baseline', startedAt: T_START, lastEstimateAt: T_ESTIMATE }, T_AS_OF).ago === '3 分钟',
   'asOf - lastEstimateAt');
 
-// No stamp at all ⇒ no ago segment. NOT "0 秒前".
+// No stamp at all => no ago segment. NOT "0 seconds ago".
 check('prog.timing.noStampNoAgo', T.progressTiming({ status: 'running', percent: 62, percentSource: 'baseline', startedAt: T_START, lastEstimateAt: 0 }, T_AS_OF).ago === null,
   JSON.stringify(T.progressTiming({ status: 'running', percent: 62, percentSource: 'baseline', startedAt: T_START, lastEstimateAt: 0 }, T_AS_OF)));
 // A stamp in the FUTURE (a re-ordered log) must not print a negative duration.
@@ -608,7 +608,7 @@ check('prog.timing.futureStampNoAgo', T.progressTiming({ status: 'running', perc
 
 // The age is a fact about `lastEstimateAt` alone: it no longer needs a start stamp, a percent that is
 // “still a projection”, or a step that is still open — this step's own elapsed time is not read
-// anywhere any more. (A missing stamp still yields nothing: never “0 秒前”.)
+// anywhere any more. (A missing stamp still yields nothing: never "0 seconds ago".)
 check('prog.timing.agoNeedsNoStartStamp', T.progressTiming({ status: 'running', percent: 62, percentSource: 'baseline', startedAt: 0, lastEstimateAt: T_ESTIMATE }, T_AS_OF).ago === '3 分钟',
   'the age only needs the stamp it measures from');
 // A closed step's pinned 100 % is a record of the past: the AGE of that final number is still a fact.
@@ -654,7 +654,7 @@ check('prog.timing.narrowDropsSubLine', findAll(narrowTree, (el) => el.props && 
   'detail=title renders only the first line');
 check('prog.timing.narrowKeepsPercent', textOf(byData(narrowTree, 'progress')[0]).includes('~62% 估算'), textOf(byData(narrowTree, 'progress')[0]));
 
-// The live view (a real recorded session). 会话6: the age is the ONLY secondary fact left, so a
+// The live view (a real recorded session). the age is the ONLY secondary fact left, so a
 // running row shows a second line exactly when it carries a stamp to measure — the recorded session
 // may well have none, and then the honest answer is NO line at all (never a placeholder). The check
 // therefore follows the ROW's own data instead of hard-coding one recorded session's shape.
@@ -685,7 +685,7 @@ check(
 check('prog.aria', byData(tree, 'progress')[5].children[0].children[0].props.role === 'progressbar' && byData(tree, 'progress')[5].children[0].children[0].props['aria-valuenow'] === 5, JSON.stringify({ role: byData(tree, 'progress')[5].children[0].children[0].props.role, now: byData(tree, 'progress')[5].children[0].children[0].props['aria-valuenow'] }));
 check('prog.ariaAbsentWhenUnknown', unknownDock.children[0].children[0].props['aria-valuenow'] === undefined, 'no aria-valuenow without a number');
 
-// ---- 会话6: a payload that still carries the old projected-remaining field -------------------
+// ---- a payload that still carries the old projected-remaining field -------------------
 // The host stopped computing the projection, so the rail must not read it either: a payload from an
 // older host (or an old checkpoint) is accepted and IGNORED — the field never reaches the wire model
 // and the second line stays ago-only. That is what makes this change immediate on F5 instead of
@@ -708,7 +708,7 @@ const coldEtaTree = T.renderPanel(T.buildModel(coldEtaView, defaults, T_AS_OF), 
 check('prog.timing.coldStartKeepsTheEstimateFlavour', textOf(byData(coldEtaTree, 'progress')[0]).includes('~67% 估算') && findAll(coldEtaTree, (el) => el.props && el.props['data-kind'] === 'estimate').length === 1, textOf(byData(coldEtaTree, 'progress')[0]));
 
 // ---- the serial connector ---------------------------------------------------
-// 会话4 · one straight run between two units, and NONE after the last one.
+// one straight run between two units, and NONE after the last one.
 const links = findAll(tree, (element) => element.props && element.props.className === 'wf-unit-link');
 check('link.count', links.length === view.steps.length - 1, links.length + ' connectors');
 check('link.doneSolid', links[0].props['data-done'] === 'true', 'the connector under a done step is solid');
@@ -727,7 +727,7 @@ const selectedModel = T.buildModel(view, { ...defaults, selectedStep: 2 });
 const selectedTree = T.renderPanel(selectedModel, { ...defaults, selectedStep: 2 }, say, actions, ui);
 const selectedCards = byData(selectedTree, 'step');
 check('cards.selectionMoves', selectedCards[2].props['data-selected'] === 'true' && selectedCards.filter((card) => card.props['data-selected'] === 'true').length === 1, 'exactly one selected card');
-// 会话4 · "the page follows the selection": with the right page OPEN on `step:2`, its title is that
+// "the page follows the selection": with the right page OPEN on `step:2`, its title is that
 // step's title — the `flow` column no longer exists to follow it.
 const followRight = {
   kind: 'step',
@@ -751,7 +751,7 @@ check(
 );
 
 // ---- many steps ------------------------------------------------------------
-// 会话4 · the 「many」 flag lived on the step column's scroll box; the single page always scrolls,
+// the 「many」 flag lived on the step column's scroll box; the single page always scrolls,
 // so the assertion moves to the number of units actually drawn (2 vs 15) — the same fact, measured
 // where it now lives.
 check('cards.manyUnits', byData(tree, 'unit').length === view.steps.length, byData(tree, 'unit').length + ' units');
@@ -763,7 +763,7 @@ check(
 );
 
 /* ------------------------------------------------------------------------- */
-/* flow column (step-08): fold · window · node cards · per-step UI state     */
+/* flow column : fold · window · node cards · per-step UI state */
 /* ------------------------------------------------------------------------- */
 
 const FC = C.flowCap;
@@ -916,7 +916,7 @@ check(
 check('model.flow.matchesStepNodeIds', model.flow.nodes.length === view.steps[5].nodeIds.length, model.flow.nodes.length + ' vs ' + view.steps[5].nodeIds.length);
 
 // The GLOBAL 1200-node cap prunes a step's id list WITHOUT touching truncatedNodes;
-// 「已省略 n」 must still be the honest gap (nodeCount − drawn), not 0.
+// "n omitted" must still be the honest gap (nodeCount - drawn), not 0.
 const prunedView = {
   steps: [{ index: 0, title: 'pruned', status: 'running', nodeIds: ['n1', 'n2'], nodeCount: 5, truncatedNodes: 0 }],
   nodes: [
@@ -981,7 +981,7 @@ const groupModel = T.buildModel(view, { ...defaults, selectedStep: 1 });
 const groupRanges = T.flowGroups(groupModel.flow.nodes, groupModel.flow.groups);
 check('flow.real.group', groupRanges.length === 1 && groupRanges[0].tool === 'read' && groupRanges[0].count >= 3, JSON.stringify(groupRanges));
 // The fold may sit outside the default 60-node window, so these renders lift the
-// cap (「展开全部」) and keep only the fold collapsed — that is the state a reader
+// cap ("expand all") and keep only the fold collapsed - that is the state a reader
 // reaches by scrolling to the top of a long step.
 const collapsedTree = T.renderFlowColumn(createElement, groupModel, say, flowActions, T.flowExpandAll(T.flowUiFor(null, 1), 1));
 const groupRows = byData(collapsedTree, 'group');
@@ -1012,7 +1012,7 @@ check('flow.render.nodeSelected', marked.length === 1 && marked[0].props['data-n
 const emptyFlowTree = T.renderFlowColumn(createElement, T.buildModel(noFlowView, defaults), say, actions, null);
 check('flow.render.empty', textOf(emptyFlowTree).includes('这一步还没有动作') && byData(emptyFlowTree, 'node').length === 0, textOf(emptyFlowTree));
 
-// 会话4 · the panel mounts the SINGLE PAGE, not either old column: one unit per step, satellites
+// the panel mounts the SINGLE PAGE, not either old column: one unit per step, satellites
 // and straight connectors, with the right page closed until a click.
 const mountedUnits = byData(tree, 'unit');
 check(
@@ -1023,7 +1023,7 @@ check(
 check('flow.render.planningEmpty', textOf(collapsedTree) !== '', 'the collapsed capsule still renders');
 
 /* ------------------------------------------------------------------------- */
-/* branch lanes (step-09): parallel subagents / workflows / jobs             */
+/* branch lanes : parallel subagents / workflows / jobs */
 /* ------------------------------------------------------------------------- */
 
 const branchView = {
@@ -1156,7 +1156,7 @@ check('prog.fillWidth', T.progressFillWidth({ status: 'running', percent: null }
 check('const.stepGeometry', C.stepGap === 8 && C.stepRail === 6 && C.stepLink === 14 && C.stepMany === 8, JSON.stringify({ gap: C.stepGap, rail: C.stepRail, link: C.stepLink, many: C.stepMany }));
 
 
-/* ---- step-05: the flow becomes a chain ------------------------------- */
+/* ---- the flow becomes a chain ------------------------------- */
 
 // (a) distances: ONE source for the air in both columns, and no hard-coded stack left.
 check(
@@ -1198,8 +1198,8 @@ check(
   'the circle calls onChainBranch, not onSelectNode'
 );
 
-/* ---- step-04-hot-inject: the inject column ------------------------------- */
-/* ---- step-04-hot-inject: the inject column ------------------------------- */
+/* ---- the inject column ------------------------------- */
+/* ---- the inject column ------------------------------- */
 
 // (a) the state machine: four states, and a corrupted one degrades to idle rather than wedging.
 check('inject.state.passes', ['idle', 'sending', 'sent', 'failed'].every((s) => T.injectState(s) === s), 'the four states');
@@ -1251,7 +1251,7 @@ const broken = await T.postSteer(brokenFetch, '/dsh-workflow/steer', 'session-1'
 check('inject.post.neverThrows', broken.status === 0 && broken.error === 'offline', JSON.stringify(broken));
 check('inject.post.noFetch', (await T.postSteer(null, '/x', 's', 't')).status === 0, 'a missing fetch is a value');
 
-// (f) the renderer: 热注入 is the THIRD kind of right page — not a split column.
+// (f) the renderer: hot injection is the THIRD kind of right page - not a split column.
 const injectRight = {
   kind: "inject",
   stepIndex: null,
@@ -1329,10 +1329,10 @@ check('inject.sent.kind', sentNote && sentNote.props['data-kind'] === 'sent', se
 const noSessionCol = T.renderHotInject(createElement, say, actions, { sessionId: '', state: 'idle', text: 'hi', reason: '' });
 check('inject.noSession.disabled', findAll(noSessionCol, (el) => el.props && el.props['data-inject'] === 'send')[0].props.disabled === true, 'no session → disabled');
 
-/* ---- step-03-unsteer: the history row's 「撤回」 ---------------------------- */
+/* ---- the history row's "Revoke" ---------------------------- */
 
 // (h0) The wire → model shaping the whole button hinges on: `canceled` is the ONLY thing that
-// turns a row into 「已撤销」 (and therefore removes the button), and the row's own stamps travel
+// turns a row into "revoked" (and therefore removes the button), and the row's own stamps travel
 // with it. Without this the renderer could be perfect and still never see a revoked row.
 const shapedRows = T.injectRows([
   { id: 'w1', at: 1, pickedUpAt: null, target: 'next-step', text: '甲', pickedUp: false },
@@ -1467,7 +1467,7 @@ check('inject.postUnsteer.neverThrows', (await T.postUnsteer(brokenUnsteerFetch,
 check('inject.postUnsteer.noFetch', (await T.postUnsteer(null, '/x', 's', 'm')).status === 0, 'a missing fetch is a value');
 
 /* ------------------------------------------------------------------------- */
-/* step-04-inject-prominence: the header badge + the persistent dock          */
+/* the header badge + the persistent dock */
 /* ------------------------------------------------------------------------- */
 
 // (i1) The badge's number comes from the model's OWN rows — `status === "pending"` and nothing
@@ -1565,7 +1565,7 @@ check('inject.css.dockNarrow', promCss.includes('@container (max-width:900px){.w
 
 // (g) the stylesheet: the split and the column, plus the narrow-container downgrade.
 const cssNow = T.css();
-// 会话4 · the split is gone; the composer fills the right page instead.
+// the split is gone; the composer fills the right page instead.
 check(
   'inject.css.column',
   cssNow.includes('.wf-right .wf-inject{flex:1 1 auto') && !cssNow.includes('.wf-inject{flex:0 0 320px'),
@@ -1585,12 +1585,12 @@ check('say.failedSkipped', say('panel.status.failed') === '失败' && say('panel
 check('say.stepConfirm', say('panel.step.confirm') === '需确认' && say('panel.step.progress', { title: 'x' }) === 'x 进度', say('panel.step.confirm'));
 
 /* ------------------------------------------------------------------------- */
-/* stylesheet                                                                */
+/* stylesheet */
 /* ------------------------------------------------------------------------- */
 
 const css = T.css();
 const cssNeedles = [
-// step-13: the root is a column that fills the main area — no fixed box, no corner anchor,
+// the root is a column that fills the main area — no fixed box, no corner anchor,
 // no click-through layer, no inline-capped card. The card stretches instead.
 ['root fills the main area', '.wf-root{position:relative;width:100%;height:100%;min-height:0;display:flex;flex-direction:column'],
 ['ring pulse', '@keyframes wf-ring'],
@@ -1599,22 +1599,22 @@ const cssNeedles = [
 ['two columns', 'grid-template-columns:minmax(240px,44%) 1fr'],
   ['capsule bar', '.wf-capsule-bar{'],
   ['capsule pulse', '@keyframes wf-pulse'],
-  // step-13: the card sits flush in the centre column, so the radius belongs to the inner
-  // surfaces (cards, capsules, detail blocks) rather than to the frame itself.
+ // the card sits flush in the centre column, so the radius belongs to the inner
+ // surfaces (cards, capsules, detail blocks) rather than to the frame itself.
   ['inner card radius', '.wf-step-card{grid-area:1/1;display:flex;gap:8px;align-items:flex-start;width:100%;padding:7px 8px;border-radius:8px'],
   ['step card', '.wf-step-card{'],
   ['step ring', '.wf-step-ring{'],
-  // step-03: the dock became a two-LINE block (row + sub line), so the 8 px air and the
-  // The dock is now a two-LINE block (row + sub line), so the 8 px air sits on the dock and
-  // the 6 px track on the row inside it. `css()` returns the joined, evaluated sheet.
+ // the dock became a two-LINE block (row + sub line), so the 8 px air and the
+ // The dock is now a two-LINE block (row + sub line), so the 8 px air sits on the dock and
+ // the 6 px track on the row inside it. `css` returns the joined, evaluated sheet.
   ['rail air', '.wf-prog-dock{display:flex;flex-direction:column;gap:2px;margin-top:8px}'],
   ['rail row height', '.wf-prog-row{display:flex;align-items:center;gap:6px;height:6px}'],
   ['rail sub line', '.wf-prog-sub{'],
   ['sub line hidden when narrow', ".wf-step-item[data-detail='title'] .wf-prog-sub{display:none}"],
   ['rail fill', '.wf-prog-fill{'],
-  // step-05: the step column's air now comes from the LIST's `gap` (WF_CHAIN_GAP), so the
-  // connector no longer carries a margin — the old needle asserted the very double spacing this
-  // step removed. The drawn height (14 px) is unchanged.
+ // the step column's air now comes from the LIST's `gap` (WF_CHAIN_GAP), so the
+ // connector no longer carries a margin — the old needle asserted the very double spacing this
+ // step removed. The drawn height (14 px) is unchanged.
   ['connector', '.wf-step-link{display:block;position:relative;height:14px}'],
   ['connector solid', ".wf-step-link[data-done='true']::before"],
   ['connector dashed', 'repeating-linear-gradient'],
@@ -1637,10 +1637,10 @@ const cssNeedles = [
   ['branch body', '.wf-branch-body{'],
   ['branch running dot', ".wf-branch-dot[data-status='running']"],
   ['branch more strip', '.wf-branch-more{'],
-  // 会话6 · the conversation-view seat removes the HOST's composer (the input bar plus the todo dock
-  // ARE INSIDE that seat and disappear with it). The composer is outside the panel's own tree — a
-  // sibling of the selected view — so the only browser-half mechanism is a rule keyed on the marker
-  // the seat wrapper emits (`wfViewSeatRoot` in panel.js).
+ // the conversation-view seat removes the HOST's composer (the input bar plus the todo dock
+ // ARE INSIDE that seat and disappear with it). The composer is outside the panel's own tree — a
+ // sibling of the selected view — so the only browser-half mechanism is a rule keyed on the marker
+ // the seat wrapper emits (`wfViewSeatRoot` in panel.js).
   [
     'host composer hidden on the view seat',
     "[data-conversation-content]:has([data-dsh-workflow-map='conversation-view']) [data-composer-seat]{display:none!important}",
@@ -1649,7 +1649,7 @@ const cssNeedles = [
 for (const [label, needle] of cssNeedles) {
   check('css.' + label.replace(/\s+/g, '-'), css.includes(needle), needle);
 }
-// 会话6 · the seat wrapper itself: the marker that rule keys on, emitted BOX-LESS so the seat's
+// the seat wrapper itself: the marker that rule keys on, emitted BOX-LESS so the seat's
 // geometry does not move, and the panel still travelling through it untouched.
 const seatChild = createElement('span', { key: 'child', className: 'wf-seat-child' }, 'panel');
 const seatTree = T.viewSeatRoot(createElement, seatChild);
@@ -1680,7 +1680,7 @@ for (const token of tokens) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* report                                                                    */
+/* report */
 /* ------------------------------------------------------------------------- */
 
 const failed = results.filter((row) => !row.pass);

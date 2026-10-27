@@ -1,8 +1,8 @@
 // dsh-workflow-map — src/fold.mjs (step-02). PURE FUNCTION. No clock, no fs, no net.
 //
-// The single source of truth for the workflow view: 「分步列表 + 每步流程节点 +
-// 当前进行中的分步/节点 + 每步百分比」. Three consumers, one implementation:
-//   1. node (offline self-test): import { foldEvent, buildView } from "…/src/fold.mjs"
+// The single source of truth for the workflow view: "step list + each step's flow nodes +
+// currently running step/node + per-step percentage". Three consumers, one implementation:
+//   1. node (offline self-test): import foldEvent and buildView out of src/fold.mjs
 //   2. the host projection     : the same relative import from lib/index.js
 //   3. (later) the browser half: an inlined copy, kept honest by a differential test
 //
@@ -23,7 +23,7 @@
 //   * stepProgress/report data = { percent, note? } — the model self-report (our own event
 //     type, appended by the dsh-session-progress tool `report_step_progress`).
 //   * PAE writes `user/message` events with source.kind === "plugin:dsh-plan-and-execute":
-//     the kickoff/summary/step instructions AND the "[plan-and-execute 上一步结果：…]"
+//     the kickoff/summary/step instructions AND the "[plan-and-execute previous result: ...]"
 //     reports. `orchestrator.json` (read by step-03, NOT here) carries anchorSeqs
 //     { stepIndex: seq } — the seq of the context message that opens each plan step.
 //   * Unrelated types seen in a live log: job/*, llm/*, compaction/*, request/*,
@@ -140,13 +140,13 @@ const TYPE_JOB_SETTLED = "job/settled";
 const TYPE_USER_QUESTIONS = "user-questions/request";
 const TYPE_APPROVAL = "approval/request";
 
-// 会话5 · the step-04 plugin's own hot-inject message and the inbox splice that carries it.
+// The hot-inject message this plugin's own hot-inject message and the inbox splice that carries it.
 // Measured in this session's log (session-f1b5bf9d, 2026-10-18): the panel's POST lands as
 // `agent/inbox/spliced { target: "next-step", inserted:[{ source:{kind:"plugin:dsh-workflow-map"} }] }`
 // and is admitted as a `user/message` with the same `source.kind`. Those two facts are what
 // makes a hot-inject HISTORY possible without a second write path.
 const TYPE_INBOX_SPLICED = "agent/inbox/spliced";
-// 会话6 · the loop's LIVE notice that a message left an inbox: `dispatch.emit("agent/inbox/discarded",
+// The loop's LIVE notice that a message left an inbox: `dispatch.emit("agent/inbox/discarded",
 // { message })` — it carries the message itself, but it is NOT a session event (the agent-loop
 // README is explicit: "Consumers that need a removed message use the claimed or discarded
 // notification instead of depending on a pre-splice session/event view"). Measured 2026-10-26 on
@@ -158,7 +158,7 @@ const PLUGIN_SOURCE_PREFIX = "plugin:";
 const SELF_SOURCE_KIND = "plugin:dsh-workflow-map";
 const TYPE_APPROVAL_ASKED = "approval/asked";
 const TYPE_APPROVAL_DECIDED = "approval/decided";
-// 会话5 · the tool the model uses to ask the user something (measured name, from the harness's
+// The tool the model uses to ask the user something (measured name, from the harness's
 // own tool definition in dsh-tool-ask-user).
 const ASK_USER_QUESTION_TOOL = "ask_user_question";
 /** Everything this fold answers to. Anything else returns the very same state reference. */
@@ -342,11 +342,11 @@ export function createInitialState() {
     // without a tool call (its events arrive at the end). Exposed as `view.running`; the browser
     // half freezes every animation when it is false.
     turnActive: false,
-    // 会话5 · hot-inject history. One row per message this plugin's `/steer` channel put into
+    // Hot-inject history. One row per message this plugin's `/steer` channel put into
     // the session: `{ id, at, text, pickedUp }`. `pickedUp` flips to true the moment the
     // session's own `user/message` event with the same id enters the log — that is the
     // MEASURED proof the loop admitted it (measured 2026-10-18, session-f1b5bf9d), so the
-    // panel can say 「已注入·会话已接下」 instead of guessing from the HTTP 200 alone.
+    // panel can say "injected, session picked it up" instead of guessing from the HTTP 200 alone.
     injects: [],
     // step-03-unsteer · the inbox LEDGER: the pending message ids of each loop-owned list, in
     // order, replayed from the same `agent/inbox/spliced` coordinates the loop writes. It exists
@@ -356,11 +356,11 @@ export function createInitialState() {
     // `pendingIdsInLog`): clamp `start` into the list, clamp the removal count, then splice.
     // Bounded by the inbox itself (the loop keeps at most a couple of pending messages).
     inboxIds: { "next-turn": [], "next-step": [] },
-    // 会话5 · the step indexes a decision is waiting on. Filled from the log's own shapes
+    // The step indexes a decision is waiting on. Filled from the log's own shapes
     // (an approval/asked with no decided yet, or a node of kind question/approval with no
     // later outcome event) — never from a guess about the step's title.
     pendingConfirm: [],
-    // 会话5 · the approval audit pair, folded to know which decision is still open:
+    // The approval audit pair, folded to know which decision is still open:
     // `{ id, state: "asked"|"decided", stepIndex, label, at }`. Bounded; the oldest decided
     // rows are dropped first, because only an UNPAIRED ask matters.
     approvals: [],
@@ -376,7 +376,7 @@ function newStep(index, title, at, source) {
   return {
     index,
     title: text(title, TITLE_LIMIT),
-    // 会话6 · the row's STABLE identity, derived from the same expression appendNode uses for a
+    // The row's STABLE identity, derived from the same expression appendNode uses for a
     // node's `stepKey`. Every row therefore has one from the moment it exists — a row created by
     // `foldTodos` never goes through `syncToTodos`'s create branch, so setting it only there left
     // every foldTodos-created row keyless and its nodes unattributable.
@@ -396,7 +396,7 @@ function newStep(index, title, at, source) {
     // The seq this step opened at (the PAE context message). `undefined` = never anchored,
     // which `stepForNode` reads as "not part of an anchored plan".
     anchorSeq: undefined,
-    // The plan ordinal PAE prints ("执行计划第 3/14 步"). `undefined` for a todo-only session.
+    // The plan ordinal PAE prints ("executing plan step 3/14"). `undefined` for a todo-only session.
     planIndex: undefined,
     // The model step currently running inside this plan step (step/start, step/end).
     modelStep: null,
@@ -416,8 +416,8 @@ function newStep(index, title, at, source) {
  * The step the session is working on: the FIRST running row (the todo table's own rule —
  * the first in_progress entry is "current"); parallel work keeps list order.
  *
- * 会话6 · WHY THIS IS THE ONLY CANDIDATE. Measured on 129 real logs: 22 sessions ended the
- * fold with 2+ rows in `running`. Cause: the synthetic 「规划与调研」 row opens during the
+ * WHY THIS IS THE ONLY CANDIDATE. Measured on 129 real logs: 22 sessions ended the
+ * fold with 2+ rows in `running`. Cause: the synthetic "planning & research" row opens during the
  * planning phase and only `openPlanStep` ever closed it, so a todo-only session (or one whose
  * plan never opens a PAE step) keeps it running forever, and every later row the todo table
  * re-opens adds a second one. Two running rows = two flowing rings and two animated rails in
@@ -432,7 +432,7 @@ function runningStep(state) {
 }
 
 /**
- * 会话6 · Keep exactly ONE running row, and keep the RIGHT one.
+ * Keep exactly ONE running row, and keep the RIGHT one.
  *
  * Priority mirrors the two facts the panel draws from:
  *   1. the `in_progress` todo row — the model's own "this is what I am doing now";
@@ -507,7 +507,7 @@ function stepForNode(state, seq, inProgressIndex) {
  *      remaining row is still in progress);
  *   4. the time baseline: this step's elapsed time / the median finished-step duration, capped at
  *      90 % because it is an extrapolation, not a measurement. With no finished step (the cold
- *      start) the plan's own ordinal — 当前步序 / 总步数 — stands in as `baseline:steps`, but
+ *      start) the plan's own ordinal - current step / total steps - stands in as `baseline:steps`, but
  *      only from the second step of a ≥ 2-step plan: 0 of N is not progress.
  */
 function percentFor(state, step, now) {
@@ -515,7 +515,7 @@ function percentFor(state, step, now) {
     const pinned = step.percent === null ? 100 : step.percent;
     return { percent: clamp(pinned, 0, 100), source: step.percentSource === "none" ? "closed" : step.percentSource };
   }
-  // 会话6 · REAL progress source (会话4 调研建议 1). The todo table is itself a measurement: how
+  // REAL progress source. The todo table is itself a measurement: how
   // many of its rows are already completed. No clock, no extrapolation — so it outranks the time
   // baseline. A model self-report still wins when present (it knows the work better than the
   // checklist), and the baseline is demoted to the last resort.
@@ -523,11 +523,11 @@ function percentFor(state, step, now) {
   const rowsDone = state.todos.filter((item) => item.status === "completed").length;
   const reported = state.reports.find((entry) => entry.stepIndex === step.index);
   if (reported && isFiniteNumber(reported.percent)) {
-    // step-02 · 自报高水位的衰变. The self-report used to WIN outright, so one optimistic report
+    // Self-report high-water decay. The self-report used to WIN outright, so one optimistic report
     // (measured across real sessions: 5 of 6 land in 85–100) froze the bar above the todo table's
-    // own completion ratio for the rest of the step — 自报虚高压死实测. The todo table is itself a
+    // own completion ratio for the rest of the step - an inflated self-report could freeze out the measurement. The todo table is itself a
     // MEASUREMENT (no clock, no extrapolation), so it speaks whenever it has rows to speak for:
-    //   • below the report → min(report, measured) = measured (虚高不再压死实测);
+    //   • below the report → min(report, measured) = measured (an inflated report no longer freezes out the measurement);
     //   • above the report → measured (a stale low report must not hide work already done).
     // The high-water RECORD (step.maxPercent) is still kept and never rolled back; it simply no
     // longer pins the *display* up, which is what let an 85 % report sit on a 40 % reality.
@@ -550,10 +550,10 @@ function percentFor(state, step, now) {
     const value = Math.round((elapsed / baseline) * 100);
     return { percent: clamp(Math.max(value, step.maxPercent), 0, 90), source: "baseline" };
   }
-  // step-02 · 时间基线的冷启动. With no finished step there is no median to divide by, so the whole
+  // Time-baseline cold start. With no finished step there is no median to divide by, so the whole
   // first stretch of a session used to show no number at all. When the plan itself already names
-  // ≥ 2 steps and this one is not the first, the ordinal PAE prints (“执行计划第 2/6 步”) is a REAL
-  // fact about scope, and 当前步序 / 总步数 is worth a coarse bar. Below two steps there is no ratio
+  // ≥ 2 steps and this one is not the first, the ordinal PAE prints ("executing plan step 2/6") is a REAL
+  // fact about scope, and current step / total steps is worth a coarse bar. Below two steps there is no ratio
   // to speak of, and the old rule stands: no number beats a fabricated one.
   if (baseline === null && step.startedAt > 0) {
     const total = state.steps.length;
@@ -758,8 +758,8 @@ function foldTodos(state, event, time) {
     const planIndex = planIndexOf(item.content);
     let at = planIndex === null ? -1 : steps.findIndex((step) => step.planIndex === planIndex);
     if (at === -1) at = steps.findIndex((step) => normalizeTitle(step.title) === normalizeTitle(item.content));
-    // 会话6 · REWORDED ROW at the source. The model often rewrites its own todo text between two
-    // `todo/write` events (measured: 「只读盘点：读插件源码…」 → 「只读盘点：源码/配置…」). Matching on the
+    // REWORDED ROW at the source. The model often rewrites its own todo text between two
+    // `todo/write` events (measured: "read-only inventory: read plugin sources..." -> "read-only inventory: sources/config..."). Matching on the
     // title alone then misses the row that already exists, a SECOND row is created for the new
     // wording, and the first one — with every node it owns — becomes an orphan that the view-side
     // sync then drops. That was "only the running step shows tool types". The fix belongs HERE:
@@ -792,7 +792,7 @@ function foldTodos(state, event, time) {
     }
 
     const step = steps[at];
-    // 会话6 · a matched row takes the CURRENT wording (the model may have reworded it) and keeps
+    // a matched row takes the CURRENT wording (the model may have reworded it) and keeps
     // its old key, so the nodes it already owns can follow the rename. Both the rename and the
     // lifecycle change are applied in one assignment, so neither can lose the other.
     let next = step;
@@ -837,8 +837,8 @@ function foldToolCall(state, event, time, seq) {
     files,
     callId,
   });
-  // 会话5 · `ask_user_question` is the tool the model calls to ASK the user something. It must
-  // produce a `question` node (not a plain `tool` node), because that is what the 【需确认】 flag
+  // `ask_user_question` is the tool the model calls to ASK the user something. It must
+  // produce a `question` node (not a plain `tool` node), because that is what the needs-confirmation flag
   // reads — and the settled/answered state comes from the same call's tool result below.
   // Measured 2026-10-18: 87 such calls across the logs, every one answered by its own result
   // except one whose result is the pending notice.
@@ -903,7 +903,7 @@ function foldToolResult(state, event, time, seq) {
     durationMs: previous.at > 0 && time > previous.at ? time - previous.at : null,
   };
   const answered = { ...state, asOf: time, nodes };
-  // 会话5 · a question node is settled by its OWN result. An error result settles it too (the
+  // a question node is settled by its OWN result. An error result settles it too (the
   // user saw something and the loop moved on); only the PENDING notice leaves it open.
   const settled =
     previous.kind === "question"
@@ -971,7 +971,7 @@ function foldUser(state, event, time, seq) {
   // A settled subagent reports through a USER message, not a tool result (measured in this
   // session's log: `source.kind === "subagent-settled"` with `senderSessionId` = the child's
   // id, and the child's final answer first arrives as `source.kind === "agent-message"`).
-  // THIS is what closes the lane, so 「子任务结束后状态变为完成/失败」 holds in a real log.
+  // THIS is what closes the lane, so "a subtask ending turns the status into done/failed" holds in a real log.
   if (kind === "subagent-settled" || kind === "agent-message" || kind === "workflow-settled") {
     const childId = typeof source.senderSessionId === "string" ? source.senderSessionId : "";
     const open = openBranch(state, (branch) => branch.runId !== "" && branch.runId === childId);
@@ -1006,7 +1006,7 @@ function foldUser(state, event, time, seq) {
   // `source.kind` (agent instructions, runtime context, the skill catalogue, the model
   // selector) is host plumbing: it must never become the task and never becomes a node.
   if (state.task === "" && kind === "user") {
-    // The task text is the view's HEADER, not a flow node: a node called "任务开始" would add
+    // The task text is the view's HEADER, not a flow node: a node called "task start" would add
     // a step-shaped row that says nothing about the work that was actually done.
     return { ...state, asOf: time, task: text(block.text, TITLE_LIMIT) };
   }
@@ -1015,10 +1015,10 @@ function foldUser(state, event, time, seq) {
     // PAE's own context messages, written with source.kind = plugin:dsh-plan-and-execute
     // (measured in this session's log). Four shapes, told apart by `source.summary` — the
     // label PAE itself puts on the instruction (its prompts.ts, lines 273-329):
-    //   "plan-and-execute：开始规划（…）"       — the kickoff, opens the planning phase
-    //   "plan-and-execute：计划摘要"           — the plan rows: the step list, anchored at its seq
-    //   "plan-and-execute：执行第 i/N 步（…）"  — the step instruction, opens step i
-    //   "plan-and-execute：第 i/N 步结果"      — step i's report: closes it, records the summary
+    //   "plan-and-execute: start planning (...)"       — the kickoff, opens the planning phase
+    //   "plan-and-execute: plan summary"           — the plan rows: the step list, anchored at its seq
+    //   "plan-and-execute: executing step i/N (...)"  — the step instruction, opens step i
+    //   "plan-and-execute: step i/N result"      — step i's report: closes it, records the summary
     // These are the ONLY reliable plan-step boundaries: they are what PAE's own
     // orchestrator.json anchorSeqs point at, so step-03 can confirm them later.
     const summary = typeof source.summary === "string" ? source.summary : "";
@@ -1040,9 +1040,9 @@ function foldUser(state, event, time, seq) {
       time,
     );
   }
-  // 会话5 · a message THIS plugin injected has now been admitted by the session itself.
+  // A message THIS plugin injected has now been admitted by the session itself.
   // Its id is the one the splice carried, so the history row's status can flip from
-  // 「已进入收件箱」 to 「会话已接下」 on measured evidence rather than on a guess.
+  // "entered the inbox" to "session picked it up" on measured evidence rather than on a guess.
   if (kind === SELF_SOURCE_KIND && typeof data.id === "string" && data.id !== "") {
     return markInjectPickedUp({ ...state, asOf: time }, data.id, time);
   }
@@ -1054,13 +1054,13 @@ function foldUser(state, event, time, seq) {
  * Plan-step bookkeeping.
  *
  * A plan step has TWO identities that must not drift apart: the ordinal PAE prints
- * ("执行计划第 3/14 步") and the title the plan and the todo table both carry. `planIndex`
+ * ("executing plan step 3/14") and the title the plan and the todo table both carry. `planIndex`
  * holds the ordinal; `normalizeTitle` compares titles. Either one matching is enough to
  * recognise the same step, which matters because the todo table is written BEFORE the plan
  * summary and again after every step.
  */
 
-/** "3. 宿主投影：…" -> 3, and "12、x" / "12) x" alike; null when the row carries no ordinal. */
+/** "3. host projection: ..." -> 3, and "12, x" / "12) x" alike; null when the row carries no ordinal. */
 function planIndexOf(content) {
   const match = /^\s*(\d+)\s*[.、．)]\s*\S/.exec(content);
   return match ? Number(match[1]) : null;
@@ -1073,9 +1073,9 @@ function normalizeTitle(value) {
     : "";
 }
 /**
- * 会话6 · How many leading characters two normalised titles share. Used to recognise a row the
- * model REWORDED between two `todo/write` events (it does this often: 「只读盘点：读插件源码…」 →
- * 「只读盘点：源码/配置…」). Rewording must reuse the existing ledger row, or the old row keeps the
+ * How many leading characters two normalised titles share. Used to recognise a row the
+ * model REWORDED between two `todo/write` events (it does this often: "read-only inventory: read plugin sources..." ->
+ * "read-only inventory: sources/config..."). Rewording must reuse the existing ledger row, or the old row keeps the
  * nodes and the new one starts empty — the user-visible symptom was "only the running step shows
  * tool types".
  */
@@ -1089,8 +1089,8 @@ function commonPrefix(left, right) {
 
 /**
  * Shortest shared prefix (normalised chars) that still means "the same row, reworded", AND the
- * share of the shorter title it has to cover. 6 chars alone was wrong: 「只读盘点：源码…」 vs
- * 「只读盘点：读插件源码…」 share only 「只读盘点」 + a colon (4–5 chars after normalisation), so a
+ * share of the shorter title it has to cover. 6 chars alone was wrong: "read-only inventory: sources..." vs
+ * "read-only inventory: read plugin sources..." share only "read-only inventory" + a colon (4-5 chars after normalisation), so a
  * reworded row was treated as deleted and its nodes fell onto the neighbouring step. Requiring
  * 60 % of the shorter title as well accepts that pair (5/8) without gluing unrelated rows together
  * (two rows sharing a boilerplate opening still differ in the rest of the title).
@@ -1100,7 +1100,7 @@ const REWORD_SHARE_MIN = 0.6;
 
 /**
  * The title a step is DISPLAYED with: the todo row's own list ordinal is dropped.
- * "12. 面板设置与导出" becomes "面板设置与导出" — the panel draws its own numbering, and two
+ * "12. panel settings and export" becomes "panel settings and export" — the panel draws its own numbering, and two
  * numbering systems on one card read as a mistake. The PAE plan titles already have no ordinal.
  */
 function stripOrdinal(value) {
@@ -1112,7 +1112,7 @@ function reindex(steps) {
   return steps.map((step, index) => (step.index === index ? step : { ...step, index }));
 }
 
-/** "执行计划第 3/14 步：标题" (PAE stepInstruction) or its summary form. */
+/** "executing plan step 3/14: title" (PAE stepInstruction) or its summary form. */
 function parseStepInstruction(blockText, summary) {
   const fromText = /^执行计划第\s*(\d+)\s*\/\s*(\d+)\s*步[：:]\s*(.+)$/m.exec(blockText);
   if (fromText) return { planIndex: Number(fromText[1]), total: Number(fromText[2]), title: text(fromText[3], TITLE_LIMIT) };
@@ -1121,14 +1121,14 @@ function parseStepInstruction(blockText, summary) {
   return null;
 }
 
-/** "[plan-and-execute 上一步结果：第 3/14 步（标题）]" -> { planIndex: 3 }. */
+/** "[plan-and-execute previous result: step 3/14 (title)]" -> { planIndex: 3 }. */
 function parseStepReport(value) {
   const match = /第\s*(\d+)\s*\/\s*(\d+)\s*步[（(]([^）)]+)[）)]/.exec(value);
   if (!match) return null;
   return { planIndex: Number(match[1]), total: Number(match[2]), title: text(match[3], TITLE_LIMIT) };
 }
 
-/** The plan rows of "[plan-and-execute 计划摘要]" — "1. 标题（step-01-x.md）" per line. */
+/** The plan rows of "[plan-and-execute plan summary]" - "1. title (step-01-x.md)" per line. */
 function parsePlanRows(blockText) {
   const rows = [];
   for (const raw of blockText.split("\n")) {
@@ -1269,9 +1269,9 @@ function foldReport(state, event, time) {
   const raw = data ? data.percent : undefined;
   if (!isFiniteNumber(raw)) return state;
   const note = data && typeof data.note === "string" ? data.note : "";
-  // 会话6 · the report belongs to the step the TODO TABLE says is in progress (the model's own
+  // the report belongs to the step the TODO TABLE says is in progress (the model's own
   // "this is what I am doing now"), and only falls back to the running row. Before this, a
-  // stale synthetic 「规划与调研」 row won every report: the user saw one bar jump to 45 % on the
+  // stale synthetic "planning & research" row won every report: the user saw one bar jump to 45 % on the
   // planning card while the real step stayed on an indeterminate streamer.
   const inProgress = inProgressStepIndex(state);
   const step =
@@ -1284,7 +1284,7 @@ function foldReport(state, event, time) {
   const reports = [...state.reports.filter((entry) => entry.stepIndex !== step.index), { stepIndex: step.index, percent: value }]
     .slice(-REPORTS_PER_STEP);
   // step-03: a report IS the moment a progress number came into being, so it is the
-  // `lastEstimateAt` stamp the rail's "N 分钟前估计" segment measures from. Same event time,
+  // `lastEstimateAt` stamp the rail's "estimated N minutes ago" segment measures from. Same event time,
   // no clock read.
   const stamped = state.steps.map((row) =>
     row.index === step.index ? { ...row, lastEstimateAt: time } : row,
@@ -1698,7 +1698,7 @@ function rememberJob(state, job) {
  * BEFORE its own tool result (452 registrations in one session), so drawing a lane per
  * registration would bury the real parallel work under synchronous commands. A background
  * task is exactly the opposite order — result first, settlement later — and that is the only
- * case that becomes a lane (step-09 §1: 「后端长任务」).
+ * case that becomes a lane (a backend long-running task).
  */
 function promoteJobLane(state, callId, time) {
   const pending = pendingJobOf(state, callId);
@@ -1725,7 +1725,7 @@ function foldQuestion(state, event, time, seq) {
   const questions = data && Array.isArray(data.questions) ? data.questions : [];
   const first = questions.find(isRecord);
   const label = first && typeof first.question === "string" ? first.question : "等待用户回答";
-  // 会话5 · the callId is what lets the tool result settle this question. The `user-questions`
+  // the callId is what lets the tool result settle this question. The `user-questions`
   // request is a BUS event that a recorded log never carries (measured 2026-10-18: 0 hits in
   // every session log); the question really arrives as a `tool/call` named `ask_user_question`
   // (87 measured) and is settled by its own `tool/result`. So the node the UI shows comes from
@@ -1743,7 +1743,7 @@ function foldApproval(state, event, time, seq) {
 }
 
 // ---------------------------------------------------------------------------
-// 会话5 · hot-inject history (the session log is the record — no second write path)
+// hot-inject history (the session log is the record — no second write path)
 // ---------------------------------------------------------------------------
 
 /** One injected message, bounded and lossless. `pickedUp` is the honest status word. */
@@ -1812,7 +1812,7 @@ function inboxApplySplice(inboxIds, data) {
  *      producer-owned `source.kind`, so a human's prompt, a PAE instruction and a runtime-context
  *      frame are all ignored here (measured 2026-10-18: `target: "next-step"` is what `steer()`
  *      produces). A cancellation (`outcome: 'canceled'`) is resolved through the ledger and flips
- *      the matching row to “已撤销” — that is the `POST /dsh-workflow/unsteer` round trip's
+ *      the matching row to "canceled" - that is the `POST /dsh-workflow/unsteer` round trip's
  *      durable half.
  */
 function foldInboxSpliced(state, event, time) {
@@ -1851,14 +1851,14 @@ function foldInboxSpliced(state, event, time) {
 }
 
 /**
- * 会话6 · 「未被会话抓取时的可撤销」——**非持久的那一半**（step-03 勘误）。
+ * "revocable while not yet claimed by the session" - the NON-persistent half (step-03 erratum).
  *
- * 这条分支回答的是宿主的 `dispatch.emit("agent/inbox/discarded", { message })`：它带着消息本身，
- * 但**不落会话日志**（agent-loop README 明说消费者要用 claimed/discarded 通知，而不是依赖
- * pre-splice 的 session/event 视图；145 份真实日志实测持久 `agent/inbox/discarded` 0 条）。
- * 真正持久的撤回记录是 `agent/inbox/spliced { outcome: "canceled" }`，走上一条 `foldInboxSpliced`
- * 的台账路径 —— 两条路都调 `markInjectCanceled`，所以无论哪个形状先到，界面看到的都是同一个
- * 状态词，而且重复到达是幂等的（不会抛、也不会把已接下的行翻回“已撤销”）。
+ * This branch answers the host's `dispatch.emit("agent/inbox/discarded", { message })`: it carries the message itself,
+ * but does NOT enter the session log (the agent-loop README says consumers should use claimed/discarded notices, not rely on
+ * the pre-splice session/event view; across 145 real logs the persistent `agent/inbox/discarded` count is 0).
+ * The genuinely persistent revoke record is `agent/inbox/spliced { outcome: "canceled" }`, handled by the previous `foldInboxSpliced`
+ * ledger path - both paths call `markInjectCanceled`, so whichever shape arrives first the UI shows the same
+ * status word, and re-arrival is idempotent (it neither throws nor flips a claimed row back).
  */
 function foldInboxDiscarded(state, event, time) {
   const data = dataOf(event);
@@ -1871,7 +1871,7 @@ function foldInboxDiscarded(state, event, time) {
   return markInjectCanceled(state, id, time);
 }
 
-/** 会话5 · 「会话已接下」: the session admitted THIS plugin's injected message (same id) ⇒ pickedUp. */
+/** "session picked it up": the session admitted THIS plugin's injected message (same id) ⇒ pickedUp. */
 function markInjectPickedUp(state, messageId, time) {
   if (messageId === "") return state;
   let changed = false;
@@ -1884,7 +1884,7 @@ function markInjectPickedUp(state, messageId, time) {
 }
 
 /**
- * 会话6 · 「已撤销」: the ledger proved this id is the one the loop's splice removed ⇒ the row is
+ * "canceled": the ledger proved this id is the one the loop's splice removed ⇒ the row is
  * cancelled, not picked up. Same row shape as the durable `agent/inbox/discarded` path
  * (`foldInboxDiscarded`) so the panel renders one status word whichever event carried the fact.
  * A row the session already admitted keeps `pickedUp`: a revocation cannot un-read a message.
@@ -1901,7 +1901,7 @@ function markInjectCanceled(state, messageId, time) {
 }
 
 // ---------------------------------------------------------------------------
-// 会话5 · the approval audit pair — which decision is still waiting on a human
+// the approval audit pair - which decision is still waiting on a human
 // ---------------------------------------------------------------------------
 
 /** How many approval rows are kept. Only an unpaired `asked` matters, so decided rows go first. */
@@ -1956,7 +1956,7 @@ function trimApprovals(rows) {
 
 /**
  * Settle a question / approval node when its own tool result arrives. A node whose call was
- * answered is no longer 「需确认」; a node whose result is the PENDING notice (dsh-tool-ask-user's
+ * answered is no longer needs-confirmation; a node whose result is the PENDING notice (dsh-tool-ask-user's
  * timeout) stays open, because the user can still answer later.
  */
 function settleConfirmNode(state, callId, body, time) {
@@ -2004,8 +2004,8 @@ function appendNode(state, node, time) {
   let truncatedTotal = state.truncated.totalNodes;
   let steps = state.steps;
   if (nodes.length > NODES_TOTAL) {
-    // 会话6 · FAIR EVICTION, not oldest-first. Dropping the OLDEST nodes deleted exactly the
-    // finished steps' work, so their cards read "0 工具 0 文件" while a long-running step kept
+    // FAIR EVICTION, not oldest-first. Dropping the OLDEST nodes deleted exactly the
+    // finished steps' work, so their cards read "0 tools 0 files" while a long-running step kept
     // everything. The global cap now removes nodes from the step with the MOST nodes (oldest first
     // inside that step), so the cap still bounds the state but no step is emptied.
     let drop = nodes.length - NODES_TOTAL;
@@ -2139,7 +2139,7 @@ export function foldEvent(state, event) {
   const time = eventTime(event);
   const folded = foldOne(base, type, event, time, seq);
   if (folded === base && seq === null) return base;
-  // 会话6 · ONE convergence point for 「有且只有一个正在进行的分步」. Running it here (not inside
+  // ONE convergence point for "exactly one running step". Running it here (not inside
   // foldTodos) is deliberate: a stale synthetic row can survive any event type, and the batch
   // paths (the host's one-shot replay of a whole log) then get the same invariant for free.
   // `soleRunning` is a no-op when at most one row is running, so the reference — and with it
@@ -2258,7 +2258,7 @@ function stepView(step, state, now) {
     nodeIds: [...step.nodeIds],
     truncatedNodes: step.truncatedNodes,
     groups: step.groups.map((group) => ({ ...group })),
-    // 会话5 · derived in buildView: a step that is waiting on a human right now. The plan's own
+    // derived in buildView: a step that is waiting on a human right now. The plan's own
     // `requiresConfirmation` is merged by the host (lib/index.js); this adds the LOG-derived
     // half — an open approval or an unanswered question belonging to this step.
     pendingConfirm: Array.isArray(step.pendingConfirm) ? step.pendingConfirm.slice() : [],
@@ -2306,10 +2306,10 @@ function branchView(branch) {
 }
 
 // ---------------------------------------------------------------------------
-// 会话6 · 「严格与对话页面同步」 and 会话5 · 【需确认】 — both derived from the log
+// "strict sync with the conversation page" and needs-confirmation - both derived from the log
 // ---------------------------------------------------------------------------
 /**
- * 会话6 · 「严格与对话页面同步」 — the todo table is the ONE published step list.
+ * "strict sync with the conversation page" - the todo table is the ONE published step list.
  *
  * Why this exists: the fold ADDS a step row the first time a `todo/write` carries it, and never
  * removes it. That is right for history but wrong for the panel, which must match what the
@@ -2320,7 +2320,7 @@ function branchView(branch) {
  *
  * Rules (all of them are facts, none is a guess):
  *   • a row the latest table still names — keep, whatever its status;
- *   • a lone synthetic planning row (planIndex undefined, title 规划与调研) — keep only while
+ *   • a lone synthetic planning row (planIndex undefined, title planning & research) — keep only while
  *     nothing else exists, i.e. the true planning phase;
  *   • everything else — drop. A PAE row is NOT protected: PAE rewrites the whole table after
  *     every step, so a row it no longer lists is not part of the plan any more.
@@ -2350,8 +2350,8 @@ function syncToTodos(state) {
     const key = normalizeTitle(step.title);
     if (key !== "" && !byKey.has(key)) byKey.set(key, step);
   }
-  // 会话6 · REWORDED ROWS. The model rewrites its own todo text between `todo/write` events
-  // (measured on this session: 「只读盘点：读插件源码…」 became 「只读盘点：源码/配置…」), and the
+  // REWORDED ROWS. The model rewrites its own todo text between `todo/write` events
+  // (measured on this session: "read-only inventory: read plugin sources..." became "read-only inventory: sources/config..."), and the
   // fold had already created a row for the old wording. Without a second pass those old rows stay
   // behind as orphans AND the new row starts with no nodes — which is exactly why "only the running
   // step shows tool types". A reworded row is matched by the longest shared prefix of its
@@ -2365,7 +2365,7 @@ function syncToTodos(state) {
   for (const step of state.steps) if (wantedKeys.has(normalizeTitle(step.title))) claimed.add(step.index);
   const orphans = state.steps.filter((step) => !claimed.has(step.index));
   const used = new Set();
-  // 会话6 · old row key -> new row key, for every row this pass reworded. The node remap below
+  // old row key -> new row key, for every row this pass reworded. The node remap below
   // walks through it, so a reworded row keeps its ledger instead of dropping it.
   const reworded = new Map();
   // Each entry remembers WHICH old row it came from (`from`), because the reworded case returns a
@@ -2380,7 +2380,7 @@ function syncToTodos(state) {
       origins.push(exact.index);
       continue;
     }
-    // 会话6 · REWORD DETECTION, two signals in priority order.
+    // REWORD DETECTION, two signals in priority order.
     //
     // (1) POSITIONAL STATE MATCH. The todo table is an ordered list and the model rewrites its text
     //     in place: same slot, same lifecycle status, different wording. Measured on this session,
@@ -2412,9 +2412,9 @@ function syncToTodos(state) {
     }
     if (candidate !== null) {
       used.add(candidate.index);
-      // 会话6 · 改写标题时，行身份（stepKey）也跟着换，并把该行已有节点的 stepKey 统一迁移。
-      // 这是“已完成步显示 0 工具”的真根因：节点的 stepKey 停在旧标题，而新行键是改写后的
-      // 标题，两者对不上 → 节点在视图里被当作孤儿丢掉。
+      // When a title is reworded the row identity (stepKey) follows, and every node already attached to that row is migrated.
+      // This is the real root cause of "a finished step shows 0 tools": the nodes' stepKey stayed at the old title, while the new row key was the
+      // reworded title - the two did not match, so the nodes were dropped as orphans in the view.
       const oldKey = candidate.stepKey || normalizeTitle(candidate.title);
       const newKey = normalizeTitle(row.title);
       const nextStep = { ...candidate, title: text(row.title, TITLE_LIMIT), stepKey: newKey };
@@ -2425,7 +2425,7 @@ function syncToTodos(state) {
     }
     // No candidate: this is a genuinely new row.
     const created = newStep(ordered.length, row.title, 0, "todo");
-    // 会话6 · the row's STABLE key, the SAME expression appendNode uses
+    // the row's STABLE key, the SAME expression appendNode uses
     // (`normalizeTitle(step.title)`). Without it a created row has no key, so neither the
     // node-remap nor the node attribution can ever find it.
     created.stepKey = row.key;
@@ -2489,7 +2489,7 @@ function syncToTodos(state) {
       const key = reworded.get(raw) || raw;
       const at = newIndexByKey.get(key);
       if (at === undefined) {
-        // 会话6 · foldTodos renames a row in place (title + stepKey) and parks the old key in
+        // foldTodos renames a row in place (title + stepKey) and parks the old key in
         // `step.prevKey`. A node still carrying that old key belongs to the renamed row — this is
         // the path that keeps a finished step's tool/file types after the model rewrites its text.
         const renamed = prevKeyIndex.get(raw);
@@ -2547,10 +2547,10 @@ function pendingConfirmSteps(state) {
   if (Array.isArray(state.approvals)) {
     for (const row of state.approvals) {
       if (!isRecord(row)) continue;
-      // 会话6 · 修正一处与注释相反的实现。`foldApprovalDecided` 把被拒/取消的行留在 approvals 里
-      // 并标记 state:'decided'（只有真正放行 allowed-once 才删行），因为「被拒」对用户仍是
-      // 一个待处理的决定——宿主要再问一次。旧代码在这里把任何 'decided' 都当作已结束，于是
-      // 「被拒的审批」不再标需确认。现在：asked 和「已决但未放行」都算未决。
+      // Corrects an implementation that contradicted its own comment. `foldApprovalDecided` keeps rejected/cancelled rows in approvals
+      // marked state:'decided' (only an actual allowed-once removes the row), because "rejected" is still
+      // a decision the user has to handle - the host will ask again. The old code treated any 'decided' as finished, so
+      // a rejected approval stopped showing needs-confirmation. Now: asked and "decided but not allowed" both count as unresolved.
       if (row.state === "asked") asked.set(row.id, row);
       else if (row.state === "decided" && row.outcome !== "allowed-once") asked.set(row.id, row);
       else if (row.state === "decided") asked.delete(row.id);
@@ -2572,7 +2572,7 @@ function pendingConfirmSteps(state) {
 export function buildView(state, nowMs) {
   const source = isRecord(state) ? state : createInitialState();
   const now = isFiniteNumber(nowMs) && nowMs > 0 ? nowMs : source.asOf;
-  // 会话6 · the view is built from the step list the CONVERSATION currently shows: syncToTodos
+  // the view is built from the step list the CONVERSATION currently shows: syncToTodos
   // drops rows the latest todo table no longer names (measured: 97 of 129 real logs carried such
   // rows), so the map can no longer display steps the task list has already replaced.
   const live = withPercents(withGroups(soleRunning(syncToTodos(source), now)), now);
@@ -2584,7 +2584,7 @@ export function buildView(state, nowMs) {
   const activeStep = active && steps[active.stepIndex] ? steps[active.stepIndex] : null;
   const activeNode = active && active.nodeId ? nodes.find((node) => node.id === active.nodeId) : null;
 
-  // 会话5 · 【需确认】. Two halves, both derived, neither guessed:
+  // NEEDS-CONFIRMATION. Two halves, both derived, neither guessed:
   //   1. the session's own shapes — an `approval/asked` without its `approval/decided`, and a
   //      `question` / `approval` node with no later outcome in the same step (the tool result
   //      that settles it). Both are MEASURED log facts (dsh-user-approval appends the pair;
@@ -2620,7 +2620,7 @@ export function buildView(state, nowMs) {
     // answer it (PAE leaves them 'running' after the turn ends).
     running: live.turnActive === true,
     truncated: { ...live.truncated },
-    // 会话5 · the hot-inject history: what THIS plugin's /steer channel put into the session, and
+    // the hot-inject history: what THIS plugin's /steer channel put into the session, and
     // whether the session has admitted each one. The browser half renders it under the composer.
     injects: source.injects.map((row) => ({ ...row })),
     counts: {

@@ -1,5 +1,5 @@
 /**
- * MainFlow.js — 会话4 · the single page: ONE serial main flow, satellites on both sides.
+ * MainFlow.js — the single page: ONE serial main flow, satellites on both sides.
  *
  * The layout the user asked for, in one sentence: the steps run serially down the middle, each
  * step's core unit carries a few parallel "interfaces" off its left and right edges, every
@@ -11,9 +11,9 @@
  * target; clicking it opens the right-hand page with the calls of exactly that type (RightPage.js).
  *
  * Division of labour, so nothing is computed twice:
- *   store.js  wfTypeBuckets()   pure derivation of the buckets from raw host nodes (ONE place)
- *   this file                    only draws what the buckets already say
- *   RightPage.js                 the same buckets, with their calls, for the opened page
+ * store.js wfTypeBuckets pure derivation of the buckets from raw host nodes (ONE place)
+ * this file only draws what the buckets already say
+ * RightPage.js the same buckets, with their calls, for the opened page
  *
  * Pure: `h` and `say` are injected, no React import, no DOM. tools/selftest-panel.mjs drives the
  * exact tree the frame mounts.
@@ -22,7 +22,7 @@
  */
 
 /* ------------------------------------------------------------------------- */
-/* geometry helpers                                                          */
+/* geometry helpers */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -59,7 +59,7 @@ function wfSatelliteLabel(say, sat) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* rendering                                                                 */
+/* rendering */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -146,7 +146,7 @@ function wfRenderSatSide(h, list, side, say, actions, ctx) {
  * anything in place (user decision), so the serial line keeps its rhythm no matter what is open.
  */
 // ---------------------------------------------------------------------------
-// 会话5 · 【需确认】 — the union of the plan's own flag and the waiting-on-human state
+// NEEDS-CONFIRM - the union of the plan's own flag and the waiting-on-human state
 // ---------------------------------------------------------------------------
 
 /**
@@ -190,13 +190,13 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
   var row = unit && typeof unit === "object" ? unit : {};
   var index = wfFinite(row.index) === null ? position : Math.round(row.index);
   var status = typeof row.status === "string" ? row.status : "pending";
-  // Two different facts, deliberately kept apart:
-  //   selected  the step the panel remembers (the last one opened) — the chain's highlight
-  //   open      the step whose page is on the right right now — the card's aria-pressed
+ // Two different facts, deliberately kept apart:
+ // selected the step the panel remembers (the last one opened) — the chain's highlight
+ // open the step whose page is on the right right now — the card's aria-pressed
   var selected = context.selectedStep === index;
   var open = context.openStep === index;
-  // The satellites' context: the SAME facts, plus THIS unit's index — a circle's click reports
-  // (stepIndex, typeKey), and without the index every circle of every step would open step null.
+ // The satellites' context: the SAME facts, plus THIS unit's index — a circle's click reports
+ // (stepIndex, typeKey), and without the index every circle of every step would open step null.
   var unitContext = Object.assign({}, context, { stepIndex: index });
   var dropped = row.dropped && typeof row.dropped === "object" ? row.dropped : {};
   var leftDropped = wfFinite(dropped.left) === null ? 0 : dropped.left;
@@ -237,14 +237,14 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
         metaBits.map(function (bit, at) {
           return h("span", { key: "bit-" + at }, bit);
         }),
-        // 「需确认」 used to live in StepColumn's meta row; the unit keeps it (and the badge order
-        // the self-test asserts) so the flag is not lost with that file.
-        // 会话5 · 「需确认」 is now the UNION of two sources, both derived:
-        //        · the plan's own `requiresConfirmation` (the step was marked as a confirm point),
-        //        · the step being WAITING on a human right now — the host folds an open approval
-        //          or an unanswered question into `row.pendingConfirm`.
-        // The flag names WHY when the row carries a reason, so the user can tell "this step was
-        // marked" from "this step is asking you something right now".
+ // "needs confirm" used to live in StepColumn's meta row; the unit keeps it (and the badge order
+ // the self-test asserts) so the flag is not lost with that file.
+ // "needs confirm" is now the UNION of two sources, both derived:
+ // · the plan's own `requiresConfirmation` (the step was marked as a confirm point),
+ // · the step being WAITING on a human right now — the host folds an open approval
+ // or an unanswered question into `row.pendingConfirm`.
+ // The flag names WHY when the row carries a reason, so the user can tell "this step was
+ // marked" versus "this step is asking you something right now".
         wfConfirmRows(row).length > 0 || row.requiresConfirmation
           ? h(
               "span",
@@ -275,8 +275,8 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
       "data-step-index": index,
       "data-status": status,
       "data-selected": selected ? "true" : "false",
-      // 会话5 · 「需确认」 on the row itself, so the card's left edge and the ring can be styled
-      // without the badge row having to be in view.
+ // "needs confirm" on the row itself, so the card's left edge and the ring can be styled
+ // without the badge row having to be in view.
       "data-confirm": wfConfirmRows(row).length > 0 || row.requiresConfirmation === true ? "true" : "false",
     },
     wfRenderSatSide(h, row.left, "left", say, actions, unitContext),
@@ -287,8 +287,8 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
         key: "center",
       },
       card,
-      // step-12 「只看标题」 still means ONE line under the card: the rail keeps its number and drops
-      // the second (timing) line, exactly as it did in the two-column layout.
+ // "Title only" still means ONE line under the card: the rail keeps its number and drops
+ // the second (timing) line, exactly as it did in the two-column layout.
       wfRenderProgressDock(h, context.compact ? Object.assign({}, row, { compact: true }) : row, say, context.asOf),
       droppedNote
     ),
@@ -299,8 +299,8 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
           key: "link",
           "aria-hidden": "true",
           "data-done": status === "done" ? "true" : "false",
-          // 会话6 · 只有「直接指向唯一正在进行的那个分步」的那一条连接线跑彩色流光。
-          // row.live 由 store 从 host 的 runningIndex 派生，所以最多一条。
+ // Only the one connector that points directly at the single running step carries the flowing gradient.
+ // row.live is derived by the store from the host's runningIndex, so at most one row qualifies.
           "data-live": row.live === true ? "true" : "false",
         })
       : null
@@ -316,8 +316,8 @@ function wfRenderMainFlow(h, model, say, actions, extras) {
   var rows = model && Array.isArray(model.steps) ? model.steps : [];
   var units = model && model.page && Array.isArray(model.page.units) ? model.page.units : [];
   var context = {
-    // `openStep` is the step whose page is on the right; `selectedStep` is the panel's remembered
-    // selection (they are usually the same, but the header can open a page without re-selecting).
+ // `openStep` is the step whose page is on the right; `selectedStep` is the panel's remembered
+ // selection (they are usually the same, but the header can open a page without re-selecting).
     openStep: wfFinite(ui.openStep) === null ? null : Math.round(ui.openStep),
     selectedStep: wfFinite(model && model.selected) === null ? null : Math.round(model.selected),
     openType: typeof ui.openType === "string" && ui.openType !== "" ? ui.openType : null,

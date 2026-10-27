@@ -1,8 +1,8 @@
 // preview-branches.mjs — the step's parallel interfaces (the branch lanes' successor), as a page.
 //
-// Run: node tools/preview-branches.mjs   (then pwsh -File tools\measure-branches.ps1)
+// Run: node tools/preview-branches.mjs (then pwsh -File tools\measure-branches.ps1)
 //
-// 会话4 replaced the two-column layout (and with it the SUBAGENT/BACKGROUND-JOB lanes of
+// replaced the two-column layout (and with it the SUBAGENT/BACKGROUND-JOB lanes of
 // Branches.js) with ONE page. What carries "this step's parallel work" now: the unit's ROUND
 // SATELLITES — one per tool/file-type bucket, stacked on the left/right of the card, each a real
 // <button> that opens that type's call list. The old measure-branches.ps1 measured the lanes
@@ -10,15 +10,15 @@
 //
 // What this page measures instead, and why a tree assertion cannot:
 //
-//   · the per-side slot cap (WF_SIDE_SLOTS = 2) really bites: a step with more types than slots
-//     draws at most 2 per side AND the card prints 「另有 N 类未画在两侧」 — the honest successor
-//     of the old 4-lane cap/banner;
-//   · every drawn satellite is a button carrying type / side / tone / count and an accessible name
-//     that states the count (「… （…）3 处，点击查看这一类调用」);
-//   · the RUNNING bucket's satellite and its row carry data-live=true — the one animated lane;
-//   · clicking a satellite really opens that type's page (the product's onOpenType handler), and
-//     the satellite flips data-open/aria-pressed;
-//   · a step whose types fit shows NO dropped note at all.
+// · the per-side slot cap (WF_SIDE_SLOTS = 2) really bites: a step with more types than slots
+// draws at most 2 per side AND the card prints "N more types are not drawn on the sides" - the honest successor
+// of the old 4-lane cap/banner;
+// · every drawn satellite is a button carrying type / side / tone / count and an accessible name
+// whose accessible name states the count ("... (...), 3 calls - click to see this type's calls");
+// · the RUNNING bucket's satellite and its row carry data-live=true — the one animated lane;
+// · clicking a satellite really opens that type's page (the product's onOpenType handler), and
+// the satellite flips data-open/aria-pressed;
+// · a step whose types fit shows NO dropped note at all.
 //
 // Expectations land in evidence/preview/branch-expect.json, derived from the product's own model.
 import fs from 'node:fs';
@@ -74,14 +74,14 @@ const node = (id, stepIndex, tool, files, at, extra) => ({
   resultHead: 'ok', error: '', at, durationMs: 10, seq: at, ...extra,
 });
 const nodes = [
-  // step 0 — reads .md, .js and .json, edits .py, runs pwsh + read: six buckets, both sides crowded
+ // step 0 — reads .md, .js and .json, edits .py, runs pwsh + read: six buckets, both sides crowded
   node('s0a', 0, 'read', ['D:\\p\\a.md'], T0 + 100),
   node('s0b', 0, 'read', ['D:\\p\\b.js'], T0 + 200),
   node('s0c', 0, 'read', ['D:\\p\\c.json'], T0 + 300),
   node('s0d', 0, 'edit', ['D:\\p\\d.py'], T0 + 400),
   node('s0e', 0, 'pwsh', [], T0 + 500),
   node('s0f', 0, 'grep', [], T0 + 600, { error: 'boom' }),
-  // step 1 — one bucket only: no dropped note anywhere
+ // step 1 — one bucket only: no dropped note anywhere
   node('s1a', 1, 'read', ['D:\\p\\only.md'], T0 + 700),
 ];
 const steps = [
@@ -242,7 +242,7 @@ function pageScript() {
   report.facts.units = all('.wf-unit').length;
   report.facts.expect = EXPECT;
 
-  // the live lane really attracts: a click on THE running bucket's satellite opens its page
+ // the live lane really attracts: a click on THE running bucket's satellite opens its page
   var liveSat = all('.wf-sat').filter(function (s) { return s.getAttribute('data-type') === EXPECT.liveType; })[0];
   if (liveSat) liveSat.click();
   var rightEl = first('[data-dsh-workflow-map="right"]');

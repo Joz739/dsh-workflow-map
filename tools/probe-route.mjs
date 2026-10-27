@@ -2,7 +2,7 @@
 // dsh-workflow-map — step-04 self-test for the HTTP VIEW ROUTE (src/route.js + its wiring in
 // lib/index.js).
 //
-//   node tools\probe-route.mjs
+// node tools\probe-route.mjs
 //
 // selftest-host.mjs proves the registration; this file proves the ROUTE — the part a browser or
 // `Invoke-WebRequest` actually talks to. It runs OFFLINE (no DSH process, no profile edit) and
@@ -11,20 +11,20 @@
 // behaviours a fake `res` cannot prove.
 //
 // What is asserted:
-//   1. composeView is the single join point and is IDEMPOTENT: composing an already-composed view
-//      (with its own plan, or with `null`) returns an equal view, and the inputs are not mutated.
-//   2. The cache validator behaves: FNV-1a known answers, content-sensitive tags, weak comparison
-//      (`W/"x"` matches `"x"`, `*` matches anything, a list is honoured).
-//   3. Every documented branch over a REAL loopback server — 200 + `{ok,view,rev}`, 304 on
-//      If-None-Match, 400 (missing/blank sessionId), 404 (unknown session), 404 (unknown sub-path),
-//      405 (wrong method), 204 (OPTIONS), 500 (source threw), 503 (view unavailable) — each with a
-//      JSON body, never a thrown exception, and the documented headers.
-//   4. The lib/index.js wiring: one prefix seat per server, shared by a second apply() (the real
-//      server throws on a duplicate path), removed by its disposers, and its view source resolves
-//      session → projection snapshot → composeView with `rev === asOfSeq`.
-//   5. REAL DATA: this workspace's own `.pae/<session>/orchestrator.json` drives the composed view
-//      (count / titles / statuses agree with the plan), the composed view passes the projection's
-//      own wire schema, and the plan file is untouched (mtime + size unchanged).
+// 1. composeView is the single join point and is IDEMPOTENT: composing an already-composed view
+// (with its own plan, or with `null`) returns an equal view, and the inputs are not mutated.
+// 2. The cache validator behaves: FNV-1a known answers, content-sensitive tags, weak comparison
+// (`W/"x"` matches `"x"`, `*` matches anything, a list is honoured).
+// 3. Every documented branch over a REAL loopback server — 200 + `{ok,view,rev}`, 304 on
+// If-None-Match, 400 (missing/blank sessionId), 404 (unknown session), 404 (unknown sub-path),
+// 405 (wrong method), 204 (OPTIONS), 500 (source threw), 503 (view unavailable) — each with a
+// JSON body, never a thrown exception, and the documented headers.
+// 4. The lib/index.js wiring: one prefix seat per server, shared by a second apply (the real
+// server throws on a duplicate path), removed by its disposers, and its view source resolves
+// session → projection snapshot → composeView with `rev === asOfSeq`.
+// 5. REAL DATA: this workspace's own `.pae/<session>/orchestrator.json` drives the composed view
+// (count / titles / statuses agree with the plan), the composed view passes the projection's
+// own wire schema, and the plan file is untouched (mtime + size unchanged).
 //
 // Exit code 0 = every assertion passed.
 
@@ -178,7 +178,7 @@ const origin = `http://127.0.0.1:${port}`;
 const stateUrl = (query) => `${origin}${STATE_PATH}${query ?? ""}`;
 
 try {
-  // -- 200 ------------------------------------------------------------------
+ // -- 200 ------------------------------------------------------------------
   const ok = await fetch(stateUrl("?sessionId=session-live"));
   const okText = await ok.text();
   equal("(3) a live session answers 200", ok.status, 200);
@@ -191,7 +191,7 @@ try {
   equal("(3) the view is served unchanged", JSON.stringify(okBody.view), JSON.stringify(servedView));
   const liveTag = ok.headers.get("etag");
 
-  // -- 304 ------------------------------------------------------------------
+ // -- 304 ------------------------------------------------------------------
   const cached = await fetch(stateUrl("?sessionId=session-live"), { headers: { "if-none-match": liveTag } });
   equal("(3) a matching If-None-Match answers 304", cached.status, 304);
   equal("(3) a 304 carries no body", await cached.text(), "");
@@ -203,13 +203,13 @@ try {
   equal("(3) a stale validator answers 200", stale.status, 200);
   await stale.text();
 
-  // -- HEAD -----------------------------------------------------------------
+ // -- HEAD -----------------------------------------------------------------
   const head = await fetch(stateUrl("?sessionId=session-live"), { method: "HEAD" });
   equal("(3) HEAD answers 200", head.status, 200);
   equal("(3) HEAD has no body", await head.text(), "");
   check("(3) HEAD still advertises the length", Number(head.headers.get("content-length")) > 0, head.headers.get("content-length"));
 
-  // -- 400 ------------------------------------------------------------------
+ // -- 400 ------------------------------------------------------------------
   const missing = await fetch(stateUrl());
   equal("(3) a missing sessionId answers 400", missing.status, 400);
   equal("(3) the 400 body says what is wrong", JSON.parse(await missing.text()).error, "sessionId is required");
@@ -218,7 +218,7 @@ try {
   equal("(3) a blank sessionId answers 400", blank.status, 400);
   await blank.text();
 
-  // -- 404 ------------------------------------------------------------------
+ // -- 404 ------------------------------------------------------------------
   const unknown = await fetch(stateUrl("?sessionId=session-nope"));
   equal("(3) an unknown session answers 404", unknown.status, 404);
   equal("(3) the 404 body is the documented one", JSON.parse(await unknown.text()).error, "unknown session");
@@ -231,7 +231,7 @@ try {
   equal("(3) the bare prefix answers 404", barePrefix.status, 404);
   await barePrefix.text();
 
-  // -- 405 / 204 ------------------------------------------------------------
+ // -- 405 / 204 ------------------------------------------------------------
   const post = await fetch(stateUrl("?sessionId=session-live"), { method: "POST" });
   equal("(3) POST on /state answers 405", post.status, 405);
   check("(3) the 405 body is JSON", (await post.text()).includes("not allowed"), "405 body");
@@ -240,7 +240,7 @@ try {
   equal("(3) OPTIONS answers 204", options.status, 204);
   equal("(3) OPTIONS advertises the allowed methods", options.headers.get("allow"), "GET, HEAD, POST, OPTIONS");
 
-  // -- 500 / 503 ------------------------------------------------------------
+ // -- 500 / 503 ------------------------------------------------------------
   const boom = await fetch(stateUrl("?sessionId=session-boom"));
   equal("(3) a throwing source answers 500, not a broken socket", boom.status, 500);
   equal("(3) the 500 body carries the reason", JSON.parse(await boom.text()).error, "boom from the fold");
@@ -253,7 +253,7 @@ try {
   equal("(3) an unavailable view answers 503", noKey.status, 503);
   await noKey.text();
 
-  // -- trailing slash -------------------------------------------------------
+ // -- trailing slash -------------------------------------------------------
   const slash = await fetch(stateUrl("/?sessionId=session-live"));
   equal("(3) a trailing slash is the same resource", slash.status, 200);
   await slash.text();
@@ -289,7 +289,7 @@ function fakeHost() {
       host.registrations.push(definition);
       return () => {};
     },
-    // What the real registry returns for `snapshot(session, [key])`.
+ // What the real registry returns for `snapshot(session, [key])`.
     snapshot(session, keys) {
       if (Array.isArray(keys) && !keys.includes(PROJECTION_KEY)) return { asOfSeq: 0, values: {} };
       return { asOfSeq: 7, values: { [PROJECTION_KEY]: host.viewFor(session) } };
@@ -350,7 +350,7 @@ equal("(4) with the documented error", JSON.parse(unknownSession.body).error, "u
 const noParam = exchange(routeHandler, { url: STATE_PATH });
 equal("(4) a missing sessionId answers 400 without a session lookup", noParam.status, 400);
 
-// A second apply() on the SAME server: the real one would throw on a duplicate path.
+// A second apply on the SAME server: the real one would throw on a duplicate path.
 apply(host);
 equal("(4) the second apply shares the seat", host.routeLog.length, 1);
 equal("(4) both owners are counted", routeInfo().owners, 2);
@@ -359,7 +359,7 @@ for (const dispose of host.effects) dispose();
 equal("(4) disposing every owner removes the route", host.routes.size, 0);
 equal("(4) no seat remains", routeInfo().servers, 0);
 
-// A server that refuses to register must not take apply() down with it.
+// A server that refuses to register must not take apply down with it.
 const refusing = fakeHost();
 refusing.webServer.register = () => {
   throw new Error("webserver: duplicate exact route \"/dsh-workflow\"");
@@ -419,7 +419,7 @@ if (found === null) {
   equal("(5) reading does not modify the plan file (size)", after.size, before.size);
 
   if (realPlan !== null) {
-    // The fold's todo-derived rows, in the plan's own order — the "todo 兜底" case.
+ // The fold's todo-derived rows, in the plan's own order - the "todo fallback" case.
     const view = foldTodos(realPlan.steps.map((step) => ({ content: step.title, status: "pending" })), 500);
     const realComposed = composeView(view, realPlan);
 
@@ -428,7 +428,7 @@ if (found === null) {
     equal("(5) the header is the plan's first line", realComposed.task, realPlan.taskTitle);
     check("(5) the plan section is the plan", realComposed.plan === realPlan, "plan section replaced");
 
-    // Independent expectation: PAE's vocabulary → the fold's, computed here rather than imported.
+ // Independent expectation: PAE's vocabulary → the fold's, computed here rather than imported.
     const expected = new Map([
       ["completed", "done"],
       ["done", "done"],
@@ -463,7 +463,7 @@ if (found === null) {
     });
     equal("(5) every row's status follows the plan", mismatches, []);
 
-    // The view the route would serialize must satisfy the projection's OWN wire schema.
+ // The view the route would serialize must satisfy the projection's OWN wire schema.
     const viewSchema = host.registrations[0]?.wire?.viewSchema;
     check("(5) the projection supplied a wire schema", typeof viewSchema?.parse === "function", "no viewSchema");
     if (typeof viewSchema?.parse === "function") {

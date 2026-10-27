@@ -1,16 +1,16 @@
 /**
- * NodeDetail.js — 「这个节点到底干了什么」, inline under the selected node card.
+ * NodeDetail.js - "what did this node actually do", inline under the selected node card.
  *
  * The card (NodeCard.js) answers what / how / how did it in one line; a click expands
  * this block, which is the only place the panel shows:
- *   head     tool name · category chip (file / command / skill / subagent / CAD / other) · status
- *   args     the host's argsText digest (≤ ARGS_CAP, monospace, pre-wrap) — a single-line
- *            preview plus a <details> that opens the whole stored text
- *   files    grouped by action: 读取 📖 / 修改 ✏️ / 写入 💾 / 查询 🔎; each row copies the path
- *   result   the first line; on an error the stored error text is shown in full
- *   meta     start clock · duration ms · event seq
+ * head tool name · category chip (file / command / skill / subagent / CAD / other) · status
+ * args the host's argsText digest (≤ ARGS_CAP, monospace, pre-wrap) — a single-line
+ * preview plus a <details> that opens the whole stored text
+ * files grouped by action: read / edited / written / queried; each row copies the path
+ * result the first line; on an error the stored error text is shown in full
+ * meta start clock · duration ms · event seq
  *
- * PRIVACY (step-11 §3): the panel never shows file CONTENT. That is structural, not a
+ * PRIVACY ( §3): the panel never shows file CONTENT. That is structural, not a
  * promise: the host's fold drops `content` / `old_str` / `new_str` when it builds argsText
  * (src/fold.mjs argsDigest), and store.js copies node fields through an explicit whitelist —
  * so a body can neither reach this renderer nor be printed by it. tools/selftest-detail.mjs
@@ -107,7 +107,7 @@ function wfDetailPath(path) {
 
 /**
  * File rows grouped by action, first occurrence of a path winning within its group.
- * A node with no files yields [] — the renderer prints 「未涉及文件」 itself.
+ * A node with no files yields [] - the renderer prints "no files touched" itself.
  */
 function wfDetailFileGroups(node) {
   var list = node && Array.isArray(node.fileList) ? node.fileList : [];
@@ -175,9 +175,9 @@ function wfRenderCopyButton(h, text, say, actions, className, labelKey, titleKey
         }
       },
     },
-    // Two spans, never a bare text node: the 1.5 s 「已复制」 repaints the status span only,
-    // so a file row keeps its basename + directory (a textContent write would erase them and
-    // React would not restore children it thinks are unchanged).
+ // Two spans, never a bare text node: the 1.5 s "Copied" repaints the status span only,
+ // so a file row keeps its basename + directory (a textContent write would erase them and
+ // React would not restore children it thinks are unchanged).
     h("span", { className: "wf-copy-label", key: "label" }, label),
     h("span", { className: "wf-copy-status", key: "status", "aria-live": "polite" }, "")
   );
@@ -197,7 +197,7 @@ function wfRenderFileRows(h, group, say, actions) {
       "div",
       { className: "wf-detail-rows", key: "rows" },
       group.files.map(function (file, position) {
-        // The whole row is the copy button: basename in the foreground, directory grey.
+ // The whole row is the copy button: basename in the foreground, directory grey.
         return h(
           "button",
           {
@@ -272,8 +272,8 @@ function wfRenderNodeDetail(h, node, say, actions, ctx) {
     )
   );
 
-  // The expansion is a native <details>: keyboard-operable, no React state, and the opened
-  // text is the WHOLE stored argsText (the host's 200-char digest, not the file body).
+ // The expansion is a native <details>: keyboard-operable, no React state, and the opened
+ // text is the WHOLE stored argsText (the host's 200-char digest, not the file body).
   var argsChildren = [
     h(
       "div",
@@ -378,7 +378,7 @@ function wfRenderNodeDetail(h, node, say, actions, ctx) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* clipboard                                                                  */
+/* clipboard */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -434,14 +434,14 @@ function wfCopyFallback(text, env) {
   try {
     if (area.parentNode) area.parentNode.removeChild(area);
   } catch (error) {
-    /* an unremovable node is still harmless: it is offscreen and empty */
+ /* an unremovable node is still harmless: it is offscreen and empty */
   }
   return copied;
 }
 
 /**
  * Repaint ONE copy control for its 1.5 s acknowledgement. Pure DOM mutation, so the
- * renderers stay state-free and a React re-render cannot strand a 「已复制」 label.
+ * renderers stay state-free and a React re-render cannot strand a "Copied" label.
  */
 function wfSetCopyState(element, state, say) {
   if (!element || typeof element !== "object") return false;
@@ -452,14 +452,14 @@ function wfSetCopyState(element, state, say) {
         ? say("panel.detail.copyfailed")
         : null;
   if (typeof element.setAttribute === "function") element.setAttribute("data-copy-state", state);
-  // Preferred: the dedicated status span. The button's label (and a file row's basename +
-  // directory) stay in place; CSS hides the label while the status is showing.
+ // Preferred: the dedicated status span. The button's label (and a file row's basename +
+ // directory) stay in place; CSS hides the label while the status is showing.
   var status = typeof element.querySelector === "function" ? element.querySelector(".wf-copy-status") : null;
   if (status && typeof status.textContent === "string") {
     status.textContent = label === null ? "" : label;
     return true;
   }
-  // Fallback for a plain element (a test double, or a future copy control without the span).
+ // Fallback for a plain element (a test double, or a future copy control without the span).
   if (typeof element.textContent === "string") {
     if (label !== null) element.textContent = label;
     else if (typeof element.getAttribute === "function") {
@@ -492,11 +492,11 @@ function wfCopyWithFeedback(text, element, say, env) {
   });
 }
 
-/** How long 「已复制」 stays on the button (step-11 §4). */
+/** How long "Copied" stays on the button. */
 var WF_COPY_FEEDBACK_MS = 1500;
 
 /* ------------------------------------------------------------------------- */
-/* keyboard + layout wiring                                                   */
+/* keyboard + layout wiring */
 /* ------------------------------------------------------------------------- */
 
 /** Escape, and not while the user is composing (IME) or holding a modifier. */
@@ -508,7 +508,7 @@ function wfEscapeIntent(event) {
 
 /**
  * Document-level Escape: collapse the details, not the panel. `actions.onEscapeDetail`
- * is fired once per Escape; returns a handle with destroy() so the hook can unmount it.
+ * is fired once per Escape; returns a handle with destroy so the hook can unmount it.
  */
 function wfBindEscape(doc, actions) {
   if (!doc || typeof doc.addEventListener !== "function") return { destroy: function () {} };
@@ -526,7 +526,7 @@ function wfBindEscape(doc, actions) {
 }
 
 /**
- * Details change the height of the scrolling columns, and the step-10 curve measures the
+ * Details change the height of the scrolling columns, and the curve measures the
  * two cards' rects. A <details> toggle does not resize any observed box, so the curve
  * would keep the old endpoints: nudge the layer through its existing resize listener
  * once the browser has laid the new height out.
@@ -537,14 +537,14 @@ function wfBindDetailNudge(doc, win) {
   var timer = typeof scope.setTimeout === "function" ? scope.setTimeout : null;
   function nudge() {
     if (!timer) return;
-    // One task later: the <details> content exists and the column has scrolled if it had to.
+ // One task later: the <details> content exists and the column has scrolled if it had to.
     timer(function () {
       try {
         if (typeof scope.dispatchEvent === "function" && typeof scope.Event === "function") {
           scope.dispatchEvent(new scope.Event("resize"));
         }
       } catch (error) {
-        /* a closed window has nothing to re-measure */
+ /* a closed window has nothing to re-measure */
       }
     }, 40);
   }

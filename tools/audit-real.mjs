@@ -1,15 +1,15 @@
 #!/usr/bin/env node
-// tools/audit-real.mjs — 真实日志只读审计：逐会话折叠本机会话日志，统计四条硬约束的违例。
+// tools/audit-real.mjs - read-only audit of real logs: fold every session log and count violations of the four hard constraints.
 //
-//   node tools\audit-real.mjs
+// node tools\audit-real.mjs
 //
-// 只读：不写 .dsh、不改插件状态。退出码 0 = 全部约束成立；1 = 有违例（逐条打印）。
+// Read-only: writes nothing under .dsh and changes no plugin state. Exit 0 = all constraints hold; 1 = violations (printed one by one).
 //
-// 判据（与 CHANGELOG / OPEN-SOURCE-GUIDE 的验收口径一致）：
-//   ① 视图分步 == 对话当前 todo 表（标题集合与顺序）
-//   ② 有且只有一个 running 分步
-//   ③ 未完成分步上的 pendingConfirm 与 plan.confirmations 至少有一处能表达「需确认」
-//   ④ 热注入行能被折叠出来（有则报，无则记 "—"）
+// Criteria (matching the acceptance wording in CHANGELOG / OPEN-SOURCE-GUIDE):
+// 1. View steps == the conversation's current todo table (title set and order)
+// 2. Exactly one running step
+// 3. On an unfinished step, pendingConfirm or plan.confirmations can express "needs confirm"
+// 4. Hot-inject rows can be folded out (report them when present, otherwise note "-")
 import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
@@ -40,7 +40,7 @@ function frames(buf) {
         parts.push(zlib.zstdDecompressSync(buf.subarray(start, stop)).toString("utf8"));
         break;
       } catch {
-        /* try the next candidate end */
+ /* try the next candidate end */
       }
     }
   }
@@ -101,14 +101,14 @@ for (const file of files) {
   scanned += 1;
   const view = buildView(state, state.asOf);
 
-  // ② exactly one running step.
+ // ② exactly one running step.
   const running = view.steps.filter((step) => step.status === "running");
   if (running.length > 1) {
     runningViolations += 1;
     samples.push(`${sessionId}: ${running.length} running steps -> ${running.map((s) => s.title.slice(0, 18)).join(" | ")}`);
   }
 
-  // ① the view must be exactly the current todo table.
+ // ① the view must be exactly the current todo table.
   if (view.todos.length > 0) {
     const wanted = new Set(view.todos.map((todo) => norm(todo.content)));
     const extra = view.steps.filter((step) => !wanted.has(norm(step.title)));

@@ -1,5 +1,5 @@
 /**
- * export.js — step-12: the workflow snapshot (Markdown / JSON) and its two delivery
+ * export.js — the workflow snapshot (Markdown / JSON) and its two delivery
  * paths (clipboard, Blob download).
  *
  * Source of truth is the SAME wire view the panel renders plus the already-derived
@@ -90,8 +90,8 @@ function wfSnapshotNode(raw, activeNodeId, say) {
     category: category,
     title: title,
     detail: wfSnapshotFlat(node.detail).slice(0, 300),
-    // The host already capped argsText at 200 chars; preserve its newlines because a
-    // command's shape is part of what the snapshot is for (the panel shows it pre-wrap).
+ // The host already capped argsText at 200 chars; preserve its newlines because a
+ // command's shape is part of what the snapshot is for (the panel shows it pre-wrap).
     argsText: typeof node.argsText === "string" ? node.argsText.slice(0, 200) : "",
     status: status,
     seq: wfFinite(node.seq),
@@ -258,7 +258,7 @@ function wfReleaseSnapshotUrls(env) {
         URLImpl.revokeObjectURL(WF_SNAPSHOT_URLS[i]);
         revoked += 1;
       } catch (error) {
-        /* an already-revoked URL is not an error */
+ /* an already-revoked URL is not an error */
       }
     }
   }

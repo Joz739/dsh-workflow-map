@@ -1,5 +1,5 @@
 /**
- * Settings.js — step-12: presentation preferences and the in-panel settings card.
+ * Settings.js — presentation preferences and the in-panel settings card.
  *
  * Everything here is display-only. A setting never reaches the host half, never
  * changes a snapshot, and never writes anything except the one localStorage record
@@ -13,7 +13,7 @@
  * Pure: `h` and `say` are injected. Inlined into client.js by tools/build-client.mjs.
  */
 
-/** The documented defaults («恢复默认» resets to exactly these values). */
+/** The documented defaults ("Reset to defaults" restores exactly these values). */
 function wfDefaultSettings() {
   return {
     palette: "rainbow",
@@ -32,7 +32,7 @@ function wfAllowed(value, allowed, fallback) {
 }
 
 /**
- * 60 / 30 / 120 / 0 — 0 is 「全部」. The string "all" is accepted on read so a
+ * 60 / 30 / 120 / 0 - 0 means "all". The string "all" is accepted on read so a
  * hand-edited record cannot strand the panel, but it is persisted as 0.
  */
 function wfSanitizeNodeLimit(value, fallback) {
@@ -156,7 +156,7 @@ function wfRenderExportDownload(h, kind, labelKey, say, actions) {
 }
 
 /**
- * The whole in-panel settings section. It replaces the step-06 diagnostic strip:
+ * The whole in-panel settings section. It replaces the diagnostic strip:
  * the endpoint / counts / rev remain at the bottom, but the top is now the actual
  * four preferences plus the two export pairs.
  */

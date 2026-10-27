@@ -1,11 +1,11 @@
 /**
  * NodeCard.js — one flow node (a tool call, a skill, a file operation…) as a card.
  *
- * The card answers four questions at a glance (step-08 §2):
- *   what kind  → a glyph per category (file / command / skill / subagent / other)
- *   what       → 「读 · step-06-client-shell.md」 — verb · target, not the raw tool name
- *   how        → subline: kind chip · tool · duration · file count
- *   how did it → a status dot: running pulses, done is green, error is red
+ * The card answers four questions at a glance ( §2):
+ * what kind → a glyph per category (file / command / skill / subagent / other)
+ * what -> "read · .md" - verb · target, not the raw tool name
+ * how → subline: kind chip · tool · duration · file count
+ * how did it → a status dot: running pulses, done is green, error is red
  *
  * Everything here is PURE and locale-injected: `h` (React.createElement) and `say`
  * are parameters, so tools/selftest-panel.mjs drives the exact tree the frame mounts
@@ -95,8 +95,8 @@ function wfNodeVerb(node, category, say) {
   var tool = node && typeof node.tool === "string" ? node.tool : "";
   var key = category === "file" ? WF_TOOL_VERB_KEY[tool] : WF_NODE_VERB_KEY[category];
   if (typeof key === "string" && typeof say === "function") return say(key);
-  // An unknown tool keeps its own name as the verb: "plugin_manager · install_bundle…"
-  // says more than a generic "工具".
+ // An unknown tool keeps its own name as the verb: "plugin_manager · install_bundle…"
+ // says more than a generic "tool".
   if (category === "tool" && tool !== "") return tool;
   return "";
 }
@@ -113,8 +113,8 @@ function wfNodeTarget(node, category, verb) {
   if (category === "skill") return wfStripToolPrefix(title, "skill") || detail || "—";
   if (category === "subagent") return wfStripToolPrefix(title, tool) || detail || "—";
   if (category === "tool") {
-    // When the verb already IS the tool name, the target must add something: the
-    // argument summary, else the title if the host gave a different one.
+ // When the verb already IS the tool name, the target must add something: the
+ // argument summary, else the title if the host gave a different one.
     var rest = wfStripToolPrefix(title, tool);
     if (rest !== "") return rest;
     if (detail !== "") return detail;
@@ -125,7 +125,7 @@ function wfNodeTarget(node, category, verb) {
 
 /**
  * The two halves of the title. A localized verb is followed by " · " only when
- * there IS a verb: a message's own text must not read "消息 · 消息".
+ * there IS a verb: a message's own text must not read "message · message".
  */
 function wfNodeTitleParts(node, category, say) {
   var verb = wfNodeVerb(node, category, say);
@@ -181,10 +181,10 @@ function wfNodeMetaBits(node, say) {
   return bits;
 }
 /**
- * step-05 · the three round-icon categories of a branch, and their glyph + locale key.
+ * the three round-icon categories of a branch, and their glyph + locale key.
  *
- * WHY THREE AND NOT ONE PER TOOL: the step asks for 「读取 / 修改 / 调用的工具」, which is exactly
- * the split the host's `files[].action` labels already carry (read/写/改/查) plus the plain tool
+ * WHY THREE AND NOT ONE PER TOOL: the step asks for "files read / files changed / tools called", which is exactly
+ * the split the host's `files[].action` labels already carry (read/write/edit/query) plus the plain tool
  * call. Deriving them from fields the host ALREADY sends means no new wire field and no host
  * round-trip: a browser-only change (F5), which is what the step promised.
  */
@@ -203,8 +203,8 @@ var WF_CHAIN_KEY = {
 };
 
 /**
- * A host file action label → the icon category. The host writes Chinese labels (读/写/改/查,
- * src/fold.mjs filesFor) and step-11's wfDetailAction reads the same four; the English spellings
+ * A host file action label -> the icon category. The host writes Chinese labels (read/write/edit/query,
+ * src/fold.mjs filesFor) and 's wfDetailAction reads the same four; the English spellings
  * are accepted too so a re-labelled payload does not silently lose a branch.
  */
 function wfChainActionKind(action) {
@@ -255,7 +255,7 @@ function wfChainBranches(node) {
     bucket.items.push({ path: file.path, base: wfBaseName(file.path), action: typeof file.action === "string" ? file.action : "" });
   }
 
-  // The call itself is always worth a branch: 「调用的工具」 is the third category the step names.
+ // The call itself is always worth a branch: "tools called" is the third category the step names.
   if (tool !== "") {
     var toolBucket = slot("tool");
     toolBucket.items.push({ path: "", base: tool, action: "" });
@@ -278,8 +278,8 @@ function wfChainBranches(node) {
  * draws between the two columns, so the whole panel's curves come from one idea.
  */
 /** Two decimals, the same rounding the curve layer writes into its `d`. Local on purpose: this
- *  chunk is inlined BEFORE FlowEffects.js, and a helper that only exists later in the file would
- *  work only through hoisting — a dependency the reader cannot see is a bug waiting to ship. */
+ * chunk is inlined BEFORE FlowEffects.js, and a helper that only exists later in the file would
+ * work only through hoisting — a dependency the reader cannot see is a bug waiting to ship. */
 function wfChainRound(value) {
   var n = wfFinite(value);
   return n === null ? 0 : Math.round(n * 100) / 100;
@@ -298,7 +298,7 @@ function wfChainStrokePath(width, height) {
 }
 
 /**
- * Round icon, one per branch category (step-05 §4). `<circle>` in the stroke layer plus this
+ * Round icon, one per branch category ( §4). `<circle>` in the stroke layer plus this
  * button as the glyph on top: 22 px (WF_CHAIN_ICON), the step allows 20–24.
  *
  * The click is `actions.onChainBranch(kind)`, NOT onSelectNode: the circle is not a node, it opens
@@ -322,8 +322,8 @@ function wfRenderChainBranch(h, branch, say, actions, ctx) {
       "data-count": String(count),
       "data-live": context.chainLive === true ? "true" : "false",
     },
-    // The dash: the layer is an SVG so the path is a real `d` (the browser measurement reads the
-    // `C` out of it), and it is pointer-events:none so it can never eat the icon's click.
+ // The dash: the layer is an SVG so the path is a real `d` (the browser measurement reads the
+ // `C` out of it), and it is pointer-events:none so it can never eat the icon's click.
     h(
       "svg",
       {
@@ -363,7 +363,7 @@ function wfRenderChainBranch(h, branch, say, actions, ctx) {
 
 /**
  * The node the opened circle's detail renders. It is NOT a new renderer (the step forbids a second
- * one): it is the SAME node, narrowed to the observations of ONE category, so step-11's
+ * one): it is the SAME node, narrowed to the observations of ONE category, so 's
  * wfRenderNodeDetail draws its usual blocks — head, args, file rows, result, meta — from fields
  * that already exist on the wire. Nothing is invented: the paths come from the host's fileList and
  * the args/result are the call's own.
@@ -424,7 +424,7 @@ function wfRenderChainDetail(h, node, branches, kind, say, actions) {
 }
 /**
  * One node card. `ctx` carries `{activeNodeId, selectedNodeId}`; `actions.onSelectNode`
- * is called with the node id; step-11 opens the inline detail for the selected id, and the
+ * is called with the node id; opens the inline detail for the selected id, and the
  * card itself keeps its one-line summary (no popover, no second window).
  */
 function wfRenderNodeCard(h, node, say, actions, ctx) {
@@ -435,8 +435,8 @@ function wfRenderNodeCard(h, node, say, actions, ctx) {
   var parts = wfNodeTitleParts(node, category, say);
   var bits = wfNodeMetaBits(node, say);
   var selected = context.selectedNodeId !== null && context.selectedNodeId === node.id;
-  // step-12 「只看标题」: no meta line, no live chip, no inline detail. The card keeps
-  // its icon/title/status so the flow is still scannable.
+ // "Title only": no meta line, no live chip, no inline detail. The card keeps
+ // its icon/title/status so the flow is still scannable.
   var compact = context.detail === "title";
 
   var titleChildren = [];
@@ -445,18 +445,18 @@ function wfRenderNodeCard(h, node, say, actions, ctx) {
     titleChildren.push(" · ");
   }
   titleChildren.push(h("span", { className: "wf-node-target", key: "target" }, parts.target));
-  // step-05 §4: the branch strip exists ONLY under the node that is being called right now.
-  // `status` already answers that question (wfNodeStatus: active && no result → running), so a
-  // finished card and a not-yet-started card both render `null` here — no branch DOM at all,
-  // which is what the acceptance check looks for rather than a hidden-but-present element.
+ // §4: the branch strip exists ONLY under the node that is being called right now.
+ // `status` already answers that question (wfNodeStatus: active && no result → running), so a
+ // finished card and a not-yet-started card both render `null` here — no branch DOM at all,
+ // which is what the acceptance check looks for rather than a hidden-but-present element.
   var branches = status === "running" && !compact ? wfChainBranches(node) : [];
   var branching =
     branches.length > 0
       ? h(
           "div",
           {
-            // NOT "chain": that name belongs to the measured curve layer, and two elements with
-            // the same anchor would make every querySelector('chain') ambiguous.
+ // NOT "chain": that name belongs to the measured curve layer, and two elements with
+ // the same anchor would make every querySelector('chain') ambiguous.
             "data-dsh-workflow-map": "chain-strip",
             key: "branching",
             "data-node-id": node.id,
@@ -515,8 +515,8 @@ function wfRenderNodeCard(h, node, say, actions, ctx) {
                 return h("span", { key: "bit-" + position }, bit);
               })
             ),
-        // 「正在 …」 on the node that is being called this instant (step-10). Only the active
-        // node gets it: every finished card stays quiet, so a long flow does not blink all over.
+ // "working ..." on the node that is being called this instant. Only the active
+ // node gets it: every finished card stays quiet, so a long flow does not blink all over.
         status === "running" && !compact ? wfRenderLive(h, say, "node") : null
       ),
       h("span", {
@@ -535,11 +535,11 @@ function wfRenderNodeCard(h, node, say, actions, ctx) {
         ),
       })
     ),
-    // step-11: the selected node opens its detail INLINE, inside the same <li>, so the
-    // spine dot and the card stay where the eye left them (no popover, no new window).
+ // the selected node opens its detail INLINE, inside the same <li>, so the
+ // spine dot and the card stay where the eye left them (no popover, no new window).
     selected && !compact ? wfRenderNodeDetail(h, node, say, actions, context) : null,
-    // The branch strip hangs under the CARD but inside the same <li>, so the link drawn by
-    // FlowColumn's channel (or the spine) still points at the cards, never at the branches.
+ // The branch strip hangs under the CARD but inside the same <li>, so the link drawn by
+ // FlowColumn's channel (or the spine) still points at the cards, never at the branches.
     branching
   );
 }

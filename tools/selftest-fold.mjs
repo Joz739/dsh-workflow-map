@@ -1,23 +1,23 @@
 #!/usr/bin/env node
 // dsh-workflow-map — step-02 self-test for src/fold.mjs.
 //
-//   node tools\selftest-fold.mjs
+// node tools\selftest-fold.mjs
 //
 // WHAT THIS PROVES (and how)
-//   Every case below builds a SYNTHETIC event sequence with the exact envelope the real
-//   session log carries ({ type, seq, time, data }) and drives the shipping fold. The
-//   expected values are written out by hand in terms of what a human would say the view
-//   should be — not by re-running the implementation — so a wrong fold fails here.
+// Every case below builds a SYNTHETIC event sequence with the exact envelope the real
+// session log carries ({ type, seq, time, data }) and drives the shipping fold. The
+// expected values are written out by hand in terms of what a human would say the view
+// should be — not by re-running the implementation — so a wrong fold fails here.
 //
-//   (a) todo-only session           — no PAE plan at all, steps come from the todo table
-//   (b) PAE 3 steps + anchorSeqs    — plan summary, instructions, reports, anchors
-//   (c) read/write/edit/glob/grep/pwsh nodes — the files[] the UI draws
-//   (d) an error result             — error text on the node, not silently swallowed
-//   (e) truncation                  — 350 nodes -> 300 kept, 50 counted, text bounded
-//   (f) consecutive same-tool runs  — 4 reads of one directory fold into one group
-//   (g) empty session               — nothing invented, nothing throws
-//   plus: no clock read in the module, idempotent re-fold, lossless-JSON view,
-//         unrelated events keep the state reference, the exported versions.
+// (a) todo-only session — no PAE plan at all, steps come from the todo table
+// (b) PAE 3 steps + anchorSeqs — plan summary, instructions, reports, anchors
+// (c) read/write/edit/glob/grep/pwsh nodes — the files[] the UI draws
+// (d) an error result — error text on the node, not silently swallowed
+// (e) truncation — 350 nodes -> 300 kept, 50 counted, text bounded
+// (f) consecutive same-tool runs — 4 reads of one directory fold into one group
+// (g) empty session — nothing invented, nothing throws
+// plus: no clock read in the module, idempotent re-fold, lossless-JSON view,
+// unrelated events keep the state reference, the exported versions.
 //
 // Exit code 0 = every assertion passed. Anything else = 1, with the failing line first.
 
@@ -143,8 +143,8 @@ function foldAll(events) {
     "tool/read/read reader.js",
     "tool/write/write selftest-reader.mjs",
   ]);
-  // The 5000-character write body must never enter the persisted state: the node keeps the
-  // parameter digest (keys + short values), and `content` / `old_str` / `new_str` are dropped.
+ // The 5000-character write body must never enter the persisted state: the node keeps the
+ // parameter digest (keys + short values), and `content` / `old_str` / `new_str` are dropped.
   const writeNode = view.nodes.find((node) => node.tool === "write");
   check(
     "(a) the write's body is dropped from the node digest",
@@ -156,7 +156,7 @@ function foldAll(events) {
     view.nodes.every((node) => node.detail.length <= 200 && node.resultHead.length <= 200),
     "a field is longer than its bound",
   );
-  // A pending step has no start stamp, so it has no number at all (never a made-up 0%).
+ // A pending step has no start stamp, so it has no number at all (never a made-up 0%).
   equal("(a) a pending step shows no percent", view.steps[1].percent, null);
   equal("(a) unresolved work keeps baseline off when there is no evidence", view.steps[1].percentSource, "none");
 }
@@ -167,8 +167,8 @@ function foldAll(events) {
 
 {
   resetSeq();
-  // Order matters: the fold is seq-ordered (the host always delivers in seq order), so every
-  // event is built in the order it happens, not in the order the assertions read.
+ // Order matters: the fold is seq-ordered (the host always delivers in seq order), so every
+ // event is built in the order it happens, not in the order the assertions read.
   const taskMessage = userMessage("三件小事");
   const kickoff = ev("user/message", {
     content: [{ type: "text", text: "Plan-and-Execute 编排开始（任务文本见上方用户消息）。" }],
@@ -276,9 +276,9 @@ function foldAll(events) {
   const state = foldAll(events);
   const view = buildView(state, state.asOf);
 
-  // 会话6 · 「严格与会话界面同步」: the map shows EXACTLY the rows the live todo table lists.
-  // The synthetic 「规划与调研」 row is therefore gone once the three plan rows exist — it is the
-  // pre-plan scratch pad, not a step the conversation still shows.
+ // "Strictly in sync with the conversation UI": the map shows EXACTLY the rows the live todo table lists.
+ // The synthetic "planning & research" row is therefore gone once the three plan rows exist - it is the
+ // pre-plan scratch pad, not a step the conversation still shows.
   equal("(b) the view is exactly the todo table's rows, in ITS order", view.steps.length, 3);
   equal("(b) the synthetic planning row is not a step any more", view.steps.map((step) => step.title), [
     "第一步",
@@ -300,15 +300,15 @@ function foldAll(events) {
   equal(
     "(b) each node lands on the step whose anchor range contains its seq",
     view.nodes.map((node) => node.stepIndex),
-    // read + its self-report -> step 1; write -> step 2; edit -> step 3 (the kickoff node belonged
-    // to the dropped planning row and went with it)
+ // read + its self-report -> step 1; write -> step 2; edit -> step 3 (the kickoff node belonged
+ // to the dropped planning row and went with it)
     [0, 0, 1, 2],
   );
   equal(
     "(b) a finished step reads 100% (done means done)",
-    // Two closed steps read 100 %. The third is the running one: it has no model report of its
-    // own, so it carries the time-baseline estimate (a real number, capped at 90) — never a fake
-    // 100 and never a null that would leave the rail without a fill.
+ // Two closed steps read 100 %. The third is the running one: it has no model report of its
+ // own, so it carries the time-baseline estimate (a real number, capped at 90) — never a fake
+ // 100 and never a null that would leave the rail without a fill.
     view.steps.map((step) => (step.status === "running" ? "running" : step.percent)),
     [100, 100, "running"],
   );
@@ -357,7 +357,7 @@ function foldAll(events) {
   check("(c) pwsh detail mentions the inferred path", view.nodes[5].detail.indexOf("路径推断") >= 0, view.nodes[5].detail);
   equal("(c) skill shows its name", view.nodes[6].title, "skill cordis-plugin-development");
   check("(c) subagent keeps its description", view.nodes[7].title.indexOf("review the fold module") >= 0, view.nodes[7].title);
-  // Titles use the BASENAME, never the full path (a path is not a title).
+ // Titles use the BASENAME, never the full path (a path is not a title).
   check("(c) titles never carry a whole path", view.nodes.every((node) => node.title.indexOf("C:\\") === -1), "a title contains a drive path");
 }
 
@@ -447,7 +447,7 @@ function foldAll(events) {
   );
   equal("(f) a single node is never a group", view.steps[0].groups[0].lastId, step.nodeIds[3]);
 
-  // A different tool resets the run: the write is not folded into the reads.
+ // A different tool resets the run: the write is not folded into the reads.
   resetSeq();
   const shortRun = foldAll([
     todos([["两条同读", "in_progress"]]),
@@ -472,7 +472,7 @@ function foldAll(events) {
   equal("(g) no task", view.task, "");
   equal("(g) zero counts", view.counts, { steps: 0, nodes: 0, running: 0, completed: 0 });
   equal("(g) the view still declares its version", view.ver, SCHEMA_VERSION);
-  // A null/garbage state must not throw either.
+ // A null/garbage state must not throw either.
   equal("(g) buildView(null) is the empty view", buildView(null, 0).counts.steps, 0);
   equal("(g) foldEvent(null, garbage) returns an initial state", foldEvent(null, 42).stateVersion, STATE_VERSION);
 }
@@ -482,8 +482,8 @@ function foldAll(events) {
 // ---------------------------------------------------------------------------
 
 {
-  // The recorded-log path: the launcher call, then its ACK ("started subagent <id>").
-  // The subagent bus events are NOT session events, so the lane is born from the call.
+ // The recorded-log path: the launcher call, then its ACK ("started subagent <id>").
+ // The subagent bus events are NOT session events, so the lane is born from the call.
   resetSeq();
   const acked = foldAll([
     todos([["派子代理调研", "in_progress"]]),
@@ -501,8 +501,8 @@ function foldAll(events) {
   equal("(h) branch rows never enter the main flow", ackView.nodes.map((node) => node.tool), ["subagent"]);
   equal("(h) the main flow count ignores the lane", ackView.counts.nodes, 1);
 
-  // The child's answer and its settlement arrive as USER messages (measured source kinds):
-  // `agent-message` is the relayed answer, `subagent-settled` is the closing notice.
+ // The child's answer and its settlement arrive as USER messages (measured source kinds):
+ // `agent-message` is the relayed answer, `subagent-settled` is the closing notice.
   resetSeq();
   const settledLane = foldAll([
     todos([["派子代理调研", "in_progress"]]),
@@ -532,7 +532,7 @@ function foldAll(events) {
   check("(h) the message row keeps the child's answer", settledView.branches[0].nodes[1].detail.indexOf("没问题") >= 0, settledView.branches[0].nodes[1].detail);
   check("(h) the settlement row keeps the summary", settledView.branches[0].nodes[2].detail.indexOf("finished") >= 0, settledView.branches[0].nodes[2].detail);
 
-  // A blocking host (the result carries the child's final text) closes it at the result.
+ // A blocking host (the result carries the child's final text) closes it at the result.
   resetSeq();
   const blocking = foldAll([
     todos([["派子代理", "in_progress"]]),
@@ -541,7 +541,7 @@ function foldAll(events) {
   ]);
   equal("(h) a blocking result closes the lane at once", buildView(blocking, blocking.asOf).branches[0].status, "done");
 
-  // The bus path (a host that DOES record the lifecycle): start opens, end closes.
+ // The bus path (a host that DOES record the lifecycle): start opens, end closes.
   resetSeq();
   const bus = foldAll([
     todos([["派子代理", "in_progress"]]),
@@ -591,7 +591,7 @@ function foldAll(events) {
 // ---------------------------------------------------------------------------
 
 {
-  // The SYNCHRONOUS order: registration -> settlement -> the call's own result.
+ // The SYNCHRONOUS order: registration -> settlement -> the call's own result.
   resetSeq();
   const sync = foldAll([
     todos([["同步命令", "in_progress"]]),
@@ -603,7 +603,7 @@ function foldAll(events) {
   equal("(j) a job that settles before its result never draws a lane", buildView(sync, sync.asOf).branches.length, 0);
   equal("(j) no pending job is left behind", sync.pendingJobs.length, 0);
 
-  // The BACKGROUND order: registration -> result (job still open) -> settlement.
+ // The BACKGROUND order: registration -> result (job still open) -> settlement.
   resetSeq();
   const bg = foldAll([
     todos([["后台长任务", "in_progress"]]),
@@ -623,7 +623,7 @@ function foldAll(events) {
   check("(j) the settle row keeps the outcome detail", lane.nodes[1].detail.indexOf("exit 1") >= 0, lane.nodes[1].detail);
   equal("(j) the job's own tool call stays in the main flow", bgView.nodes.map((node) => node.tool), ["pwsh"]);
 
-  // 13 launcher lanes: the state keeps BRANCH_TOTAL and counts every dropped one.
+ // 13 launcher lanes: the state keeps BRANCH_TOTAL and counts every dropped one.
   resetSeq();
   const many = [todos([["多任务", "in_progress"]])];
   for (let i = 0; i < 13; i += 1) {
@@ -649,7 +649,7 @@ function foldAll(events) {
   equal("(k) at most BRANCH_NODES rows are kept", lane.nodes.length, BRANCH_NODES);
   equal("(k) the dropped head is reported honestly", lane.truncated, 46 - BRANCH_NODES);
 
-  // No subagent / workflow / job anywhere: the view has no branch list content at all.
+ // No subagent / workflow / job anywhere: the view has no branch list content at all.
   equal("(k) an empty session has no branches", buildView(createInitialState(), 0).branches, []);
   const plain = buildView(foldAll([todos([["只读文件", "in_progress"]]), toolCall("read", { path: "C:\\r\\a.js" }, "x"), toolResult("x", "a")]), T0 + 9000);
   equal("(k) a plain tool session has no branches", plain.branches, []);
@@ -662,8 +662,8 @@ function foldAll(events) {
 
 {
   resetSeq();
-  // The flag is the TURN, not the step rows: PAE keeps a step 'running' after the turn ends,
-  // so the browser half would never pause its animations if it read the rows instead.
+ // The flag is the TURN, not the step rows: PAE keeps a step 'running' after the turn ends,
+ // so the browser half would never pause its animations if it read the rows instead.
   equal("(l) a fresh state has no open turn", buildView(createInitialState(), 0).running, false);
 
   const opened = foldAll([
@@ -696,19 +696,19 @@ function foldAll(events) {
   ]);
   equal("(l) a later turn reopens it", buildView(reopened, reopened.asOf).running, true);
 
-  // The flag must ride through the persisted state (a checkpoint restored mid-turn).
+ // The flag must ride through the persisted state (a checkpoint restored mid-turn).
   const roundTrip = JSON.parse(JSON.stringify(opened));
   equal("(l) the turn flag is plain JSON", roundTrip.turnActive, true);
 }
 
 // ---------------------------------------------------------------------------
-// (m) lastEstimateAt — the stamp the rail's "N 分钟前估计" measures from
+// (m) lastEstimateAt - the stamp the rail's "estimated N minutes ago" measures from
 // ---------------------------------------------------------------------------
 
 {
   resetSeq();
-  // A step that has only started has no progress number yet, so it has no estimate stamp:
-  // the honest answer is 0, which the browser renders as NO segment (never "0 秒前").
+ // A step that has only started has no progress number yet, so it has no estimate stamp:
+ // the honest answer is 0, which the browser renders as NO segment (never "0 seconds ago").
   const started = foldAll([
     userMessage("开工"),
     todos([["甲", "in_progress"]]),
@@ -718,8 +718,8 @@ function foldAll(events) {
   equal("(m) a bare step/start is itself an estimate stamp", startedView.steps[0].lastEstimateAt, started.asOf);
   equal("(m) the stamp is published on the wire view", typeof startedView.steps[0].lastEstimateAt, "number");
 
-  // A step with NO step event and NO report at all (todo table only, nothing folded onto it):
-  // 0 — the rail then renders no "ago" segment instead of a fabricated "0 秒前".
+ // A step with NO step event and NO report at all (todo table only, nothing folded onto it):
+ // 0 - the rail then renders no "ago" segment instead of a fabricated "0 seconds ago".
   const untouched = foldAll([
     userMessage("还没开始"),
     todos([["甲", "pending"], ["乙", "pending"]]),
@@ -727,7 +727,7 @@ function foldAll(events) {
   const untouchedView = buildView(untouched, untouched.asOf);
   equal("(m) a step nothing was ever reported on keeps 0", untouchedView.steps[0].lastEstimateAt, 0);
 
-  // A `stepProgress/report` IS the moment a number came into being: its own event time.
+ // A `stepProgress/report` IS the moment a number came into being: its own event time.
   const reported = foldAll([
     userMessage("开工"),
     todos([["甲", "in_progress"]]),
@@ -736,7 +736,7 @@ function foldAll(events) {
   equal("(m) a report stamps the step it reported on", reported.steps[0].lastEstimateAt, reported.asOf);
   equal("(m) the stamp equals the view's asOf", buildView(reported, reported.asOf).steps[0].lastEstimateAt, reported.asOf);
 
-  // A LATER report moves the stamp; the first one does not win.
+ // A LATER report moves the stamp; the first one does not win.
   resetSeq();
   const twice = foldAll([
     userMessage("开工"),
@@ -749,7 +749,7 @@ function foldAll(events) {
   equal("(m) a second report REPLACES the stamp", twice.steps[0].lastEstimateAt, twice.asOf);
   equal("(m) the newer percent wins too", buildView(twice, twice.asOf).steps[0].percent, 70);
 
-  // A `step/start` inside the running plan step also refreshes it (activity = a fresh read).
+ // A `step/start` inside the running plan step also refreshes it (activity = a fresh read).
   resetSeq();
   const stepped = foldAll([
     userMessage("开工"),
@@ -759,7 +759,7 @@ function foldAll(events) {
   ]);
   equal("(m) a model step start refreshes the stamp", stepped.steps[0].lastEstimateAt, stepped.asOf);
 
-  // The stamp is per-step: a second step's report must not touch the first's.
+ // The stamp is per-step: a second step's report must not touch the first's.
   resetSeq();
   const two = foldAll([
     userMessage("两件事"),
@@ -772,7 +772,7 @@ function foldAll(events) {
   equal("(m) each step keeps its own stamp", twoStamps, [two.steps[0].lastEstimateAt, two.steps[1].lastEstimateAt]);
   check("(m) the two stamps differ (they are per-step facts)", two.steps[0].lastEstimateAt !== two.steps[1].lastEstimateAt, JSON.stringify(two.steps.map((s) => s.lastEstimateAt)));
 
-  // The stamp survives the checkpoint round trip and the fold stays idempotent.
+ // The stamp survives the checkpoint round trip and the fold stays idempotent.
   resetSeq();
   const seq = [
     userMessage("开工"),
@@ -786,7 +786,7 @@ function foldAll(events) {
   for (const event of seq) replay = foldEvent(replay, event);
   equal("(m) re-delivering the same events changes nothing", JSON.stringify(replay), JSON.stringify(once));
 
-  // A closed step keeps the stamp it earned: the rail still shows how old that number is.
+ // A closed step keeps the stamp it earned: the rail still shows how old that number is.
   resetSeq();
   const closed = foldAll([
     userMessage("完工"),
@@ -803,12 +803,12 @@ function foldAll(events) {
 // ---------------------------------------------------------------------------
 
 {
-  // step-03 added the session identity to the state (`sessionId` / `cwd`) so the plan reader
-  // can name `.pae/<sessionId>/orchestrator.json` from a wire view; a checkpoint written at
-  // version 1 cannot carry it, hence the bump.
-  // step-03-unsteer bumps it again for the inbox LEDGER (`inboxIds`): a version-2 checkpoint
-  // carries no ledger, and answering a later cancellation from a missing ledger would be a
-  // wrong answer, so the registry must rebuild rather than hydrate.
+ // step-03 added the session identity to the state (`sessionId` / `cwd`) so the plan reader
+ // can name `.pae/<sessionId>/orchestrator.json` from a wire view; a checkpoint written at
+ // version 1 cannot carry it, hence the bump.
+ // step-03-unsteer bumps it again for the inbox LEDGER (`inboxIds`): a version-2 checkpoint
+ // carries no ledger, and answering a later cancellation from a missing ledger would be a
+ // wrong answer, so the registry must rebuild rather than hydrate.
   equal("stateVersion is 3", STATE_VERSION, 3);
   equal("schemaVersion is 1", SCHEMA_VERSION, 1);
 
@@ -816,7 +816,7 @@ function foldAll(events) {
   const clockHits = ["Date.now", "new Date", "performance.now", "Math.random"].filter((needle) => source.indexOf(needle) !== -1);
   equal("the fold module reads no clock and no RNG", clockHits, []);
 
-  // A realistic-ish mixed sequence, folded twice in two different ways.
+ // A realistic-ish mixed sequence, folded twice in two different ways.
   resetSeq();
   const events = [
     userMessage("混合会话"),
@@ -839,7 +839,7 @@ function foldAll(events) {
   const twice = foldAll(events);
   equal("folding the same sequence twice gives the same state", JSON.stringify(once), JSON.stringify(twice));
 
-  // Re-delivering every event on top of the finished state must change nothing.
+ // Re-delivering every event on top of the finished state must change nothing.
   let replayed = once;
   for (const event of events) replayed = foldEvent(replayed, event);
   equal("re-delivering the same events changes nothing (idempotent)", JSON.stringify(replayed), JSON.stringify(once));
@@ -847,7 +847,7 @@ function foldAll(events) {
   const view = buildView(once, once.asOf);
   equal("the view survives a JSON round trip (lossless)", JSON.parse(JSON.stringify(view)), view);
 
-  // Unrelated events keep the very same state reference (no downstream work).
+ // Unrelated events keep the very same state reference (no downstream work).
   const unrelated = ["job/progress", "llm/retry", "compaction/start", "request/header", "assistant/attempt", "session"];
   let sameRef = true;
   for (const type of unrelated) {
@@ -856,7 +856,7 @@ function foldAll(events) {
   }
   check("unrelated events return the same state reference", sameRef, "a state copy was produced");
 
-  // The fold answers to each declared type; none of them throws on an empty payload.
+ // The fold answers to each declared type; none of them throws on an empty payload.
   const declared = [
     "todo/write",
     "tool/call",
@@ -877,7 +877,7 @@ function foldAll(events) {
     "workflow/end",
     "user-questions/request",
     "approval/request",
-    // step-09: the branch vocabulary of a recorded log and of the plugin bus.
+ // step-09: the branch vocabulary of a recorded log and of the plugin bus.
     "job/registered",
     "job/settled",
     "tool-workflow/run-start",
@@ -898,11 +898,11 @@ function foldAll(events) {
   }
   equal("every declared event type tolerates an empty/garbage payload", threw, "");
 
-  // -------------------------------------------------------------------------
-  // 会话5 遗留的断言缺口 · 会话6 补齐：injects / 审批 / 提问 / 唯一 running / 严格同步
-  // -------------------------------------------------------------------------
+ // -------------------------------------------------------------------------
+ // Assertion gaps closed here: injects / approvals / questions / the single running step / strict sync
+ // -------------------------------------------------------------------------
 
-  // (h) hot-inject history: spliced -> pending, then the admitting user/message -> picked.
+ // (h) hot-inject history: spliced -> pending, then the admitting user/message -> picked.
   {
     resetSeq();
     const fresh = [
@@ -947,7 +947,7 @@ function foldAll(events) {
     );
     equal("(h) another plugin's message is not in our history", foreign.injects.length, 0);
 
-    // 会话6 · 未被拾取时的可撤销：宿主发 `agent/inbox/discarded` 才变“已撤销”，未发则永远不是。
+ // Revocable only before pickup: the row becomes "revoked" only when the host emits `agent/inbox/discarded`; otherwise it never does.
     const discarded = buildView(
       foldAll([
         ...fresh,
@@ -974,9 +974,9 @@ function foldAll(events) {
     );
     equal("(h) an already-taken row is never flipped to revoked", takenFirst.injects[0].canceled, undefined);
 
-    // 会话6 · 撤销的**持久那半**：宿主记的是「下标 + 移除了几个」，不是 id。只有把
-    // `agent/inbox/spliced` 按位置重放到 inboxIds 台账上，才答得出「那是哪一条」。
-    // 这条用例就是当年漏写 inboxApplySplice 时应该红掉的那一条。
+ // The PERSISTENT half of a revoke: the host records "start index + removed count", not an id. Only by
+ // replaying `agent/inbox/spliced` by position onto the inboxIds ledger can we answer "which row was it".
+ // This case is exactly the one that should have gone red when inboxApplySplice went missing.
     const ourMessage = {
       id: "inj-2",
       role: "user",
@@ -992,7 +992,7 @@ function foldAll(events) {
     const ledgerInserted = foldAll(insertedBoth);
     equal("(h) the ledger records both pending ids positionally", ledgerInserted.inboxIds["next-step"], ["h-1", "inj-2"]);
 
-    // The cancellation names index 1 of `next-step` and nothing else: it resolves to OUR message.
+ // The cancellation names index 1 of `next-step` and nothing else: it resolves to OUR message.
     const revokedByLedger = buildView(
       foldAll([...insertedBoth, ev("agent/inbox/spliced", { target: "next-step", start: 1, removedCount: 1, inserted: [], outcome: "canceled" })]),
       T0 + 100000,
@@ -1001,7 +1001,7 @@ function foldAll(events) {
     equal("(h) the row it resolved to is marked revoked", revokedByLedger.injects[0].canceled, true);
     equal("(h) it is still not 'taken'", revokedByLedger.injects[0].pickedUp, false);
 
-    // The same event naming index 0 resolves to the human's message: our rows must not move.
+ // The same event naming index 0 resolves to the human's message: our rows must not move.
     const foreignRevoked = buildView(
       foldAll([...insertedBoth, ev("agent/inbox/spliced", { target: "next-step", start: 0, removedCount: 1, inserted: [], outcome: "canceled" })]),
       T0 + 100000,
@@ -1012,8 +1012,8 @@ function foldAll(events) {
       ev("agent/inbox/spliced", { target: "next-step", start: 0, removedCount: 1, inserted: [], outcome: "canceled" }),
     ]).inboxIds["next-step"], ["inj-2"]);
 
-    // A splice the fold cannot place (index past the end, negative, garbage) must degrade to a
-    // no-op — never throw: a throw here is `SESSION_QUERY_CORRUPT_SESSION` for the whole session.
+ // A splice the fold cannot place (index past the end, negative, garbage) must degrade to a
+ // no-op — never throw: a throw here is `SESSION_QUERY_CORRUPT_SESSION` for the whole session.
     const outOfRange = foldAll([
       ...insertedBoth,
       ev("agent/inbox/spliced", { target: "next-step", start: 99, removedCount: 5, inserted: [], outcome: "canceled" }),
@@ -1026,8 +1026,8 @@ function foldAll(events) {
     equal("(h) an unknown target never invents a list", Object.keys(outOfRange.inboxIds).sort(), ["next-step", "next-turn"]);
     equal("(h) the clamp keeps an over-long cancel from eating the ledger", buildView(outOfRange, T0 + 100000).injects[0].canceled, undefined);
 
-    // A REPEATED event is the honest worry: a replayed log, or a host that announces the same
-    // removal twice. Both cancellation shapes must be idempotent — same row, no throw.
+ // A REPEATED event is the honest worry: a replayed log, or a host that announces the same
+ // removal twice. Both cancellation shapes must be idempotent — same row, no throw.
     const repeatDiscard = [
       ...fresh,
       ev("agent/inbox/discarded", { message: { id: "inj-1", source: { kind: "plugin:dsh-workflow-map" } } }),
@@ -1046,7 +1046,7 @@ function foldAll(events) {
     equal("(h) and an empty index cannot un-revoke or invent a victim", repeatedLedgerCancel.inboxIds["next-step"], ["h-1"]);
   }
 
-  // (i) 【需确认】: an open approval, an unanswered question, and their settled forms.
+ // (i) needs-confirm: an open approval, an unanswered question, and their settled forms.
   {
     resetSeq();
     const base = [todos([["需要审批的步", "in_progress"]])];
@@ -1084,7 +1084,7 @@ function foldAll(events) {
     equal("(i) an answered question clears the flag", answered.steps[0].pendingConfirm.length, 0);
   }
 
-  // (j) 会话6 · exactly ONE running step, whatever the table says.
+ // (j) exactly ONE running step, whatever the table says.
   {
     resetSeq();
     const two = buildView(
@@ -1101,7 +1101,7 @@ function foldAll(events) {
     equal("(j) counts.running agrees with the rows", both.counts.running, 1);
   }
 
-  // (k) 会话6 · the view is EXACTLY the current todo table (no orphan history rows).
+ // (k) the view is EXACTLY the current todo table (no orphan history rows).
   {
     resetSeq();
     const synced = buildView(
@@ -1117,34 +1117,34 @@ function foldAll(events) {
     equal("(k) every published node points at a surviving row", synced.nodes.every((n) => n.stepIndex >= 0 && n.stepIndex < 2), true);
   }
 
-  // The view's node count never exceeds what the state keeps.
+ // The view's node count never exceeds what the state keeps.
   check("the view never publishes more nodes than one step holds", view.nodes.length <= view.steps.length * NODES_PER_STEP);
 }
 
 // ---------------------------------------------------------------------------
-// (n) 会话6 · the two percent distortions (the host-side projection is GONE)
+// (n) the two percent distortions (the host-side projection is GONE)
 // ---------------------------------------------------------------------------
 // Every number below is written out by hand from the arithmetic the plan promises, never by
 // re-running the implementation: a wrong median, a wrong clamp or a wrong source fails here.
 //
-// 会话6 (2026-10-26) · the projected REMAINING time was deleted by user request: the host no longer
+// The projected REMAINING time was deleted by user request: the host no longer
 // computes it, no view carries it and the browser half no longer reads it. The old (n1)/(n1b)/(n1c
 // upper clamp)/(n1d lower clamp)/(n2 forced sub-minute) assertions pinned that projection's bounds;
 // those numbers no longer exist, so each is replaced by the PERCENT side of the SAME scenario (the
-// routes step-02 introduced and 会话6 kept) plus the "no such field survives anywhere" contract in
+// routes introduced earlier) plus the "no such field survives anywhere" contract in
 // (n7)/(n8). Not one of them was merely deleted, and the finished-step duration pool those scenarios
 // produce is still asserted — the time baseline still divides by it.
 
 {
-  /** A `todo/write` at an explicit time (the module-level builder always uses T0 + seq·1000). */
+ /** A `todo/write` at an explicit time (the module-level builder always uses T0 + seq·1000). */
   const todoWrite = (rows, time) =>
     ev("todo/write", { todos: rows.map(([content, status]) => ({ content, status })) }, time === undefined ? {} : { time });
-  /** The view the host would build `afterMs` past the last folded event. */
+ /** The view the host would build `afterMs` past the last folded event. */
   const laterView = (state, afterMs) => buildView(state, state.asOf + afterMs);
-  /** `[['r2','pending'], …]` — a run of plain rows. */
+ /** `[['r2','pending'], …]` — a run of plain rows. */
   const pendingRows = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => [`r${from + i}`, "pending"]);
 
-  // --- (n1) the finished-step pool still feeds the baseline; the checklist ratio carries the bar ---
+ // --- (n1) the finished-step pool still feeds the baseline; the checklist ratio carries the bar ---
   resetSeq();
   const twoStep = foldAll([
     userMessage("两步任务"),
@@ -1156,11 +1156,11 @@ function foldAll(events) {
   equal("(n1) the checklist ratio is what the bar shows", [n1.steps[1].percent, n1.steps[1].percentSource], [50, "todos"]);
   equal("(n1) a closed step stays pinned at 100 % with its own source", [n1.steps[0].percent, n1.steps[0].percentSource], [100, "closed"]);
 
-  // The time baseline only speaks when the table has NO done row to measure — the PAE path in
-  // section (b) covers that. Here the row exists, so 400 s later the same 50 % still stands.
+ // The time baseline only speaks when the table has NO done row to measure — the PAE path in
+ // section (b) covers that. Here the row exists, so 400 s later the same 50 % still stands.
   equal("(n1b) 400 s later the two-row checklist still reads 50 %", [laterView(twoStep, 400000).steps[1].percent, laterView(twoStep, 400000).steps[1].percentSource], [50, "todos"]);
 
-  // --- (n1c) the upper clamp: an underestimated percent cannot project for ever -----------------
+ // --- (n1c) the upper clamp: an underestimated percent cannot project for ever -----------------
   resetSeq();
   const oneOf20 = foldAll([
     userMessage("二十行"),
@@ -1171,7 +1171,7 @@ function foldAll(events) {
   equal("(n1c) the measured ratio really is 1 of 20", [oneOf20.todos.filter((item) => item.status === "completed").length, oneOf20.todos.length], [1, 20]);
   equal("(n1c) 1 of 20 rows reads 5 % measured, never the pinned 100", [n1c.steps[1].percent, n1c.steps[1].percentSource], [5, "todos"]);
 
-  // --- (n1d) nineteen of twenty rows is still a MEASUREMENT, capped at 99 % for an open step -----
+ // --- (n1d) nineteen of twenty rows is still a MEASUREMENT, capped at 99 % for an open step -----
   resetSeq();
   const nineteenOf20 = foldAll([
     userMessage("十九行"),
@@ -1181,7 +1181,7 @@ function foldAll(events) {
   const n1d = laterView(nineteenOf20, 300000);
   equal("(n1d) 19 of 20 rows reads 95 % measured", [n1d.steps[19].percent, n1d.steps[19].percentSource], [95, "todos"]);
 
-  // --- (n2) a ≥90 % self-report still stands alone with no done row to measure ------------------
+ // --- (n2) a ≥90 % self-report still stands alone with no done row to measure ------------------
   resetSeq();
   const claimed = foldAll([
     userMessage("自报九成五"),
@@ -1192,13 +1192,13 @@ function foldAll(events) {
   equal("(n2) the percent really is the model's own report", n2.steps[0].percentSource, "model");
   equal("(n2) an hour later the report still stands (nothing measures it down)", n2.steps[0].percent, 95);
 
-  // --- (n3) one row and no finished step: still no number to show --------------------------------
+ // --- (n3) one row and no finished step: still no number to show --------------------------------
   resetSeq();
   const single = foldAll([userMessage("一件事"), todoWrite([["只此一步", "in_progress"]])]);
   const n3 = laterView(single, 600000);
   equal("(n3) one step and no finished step ⇒ no number and no source", [n3.steps[0].percent, n3.steps[0].percentSource], [null, "none"]);
 
-  // --- (n4) an inflated self-report no longer pins the bar -------------------------------------
+ // --- (n4) an inflated self-report no longer pins the bar -------------------------------------
   resetSeq();
   const inflated = foldAll([
     userMessage("自报虚高"),
@@ -1210,7 +1210,7 @@ function foldAll(events) {
   equal("(n4) the measured ratio is what the bar shows", [n4.steps[0].percent, n4.steps[0].percentSource], [40, "todos"]);
   equal("(n4) the high-water record is kept, not rolled back", n4.steps[0].maxPercent, 85);
 
-  // --- (n5) a stale low report cannot hide measured work ---------------------------------------
+ // --- (n5) a stale low report cannot hide measured work ---------------------------------------
   resetSeq();
   const staleLow = foldAll([
     userMessage("自报偏低"),
@@ -1220,13 +1220,13 @@ function foldAll(events) {
   const n5 = laterView(staleLow, 60000);
   equal("(n5) measured work above the report wins too", [n5.steps[0].percent, n5.steps[0].percentSource], [60, "todos"]);
 
-  // --- (n6) the cold-start bar from the plan's own ordinal -------------------------------------
+ // --- (n6) the cold-start bar from the plan's own ordinal -------------------------------------
   resetSeq();
   const ordinalPlan = foldAll([userMessage("三步计划"), todoWrite([["1. 甲", "pending"], ["2. 乙", "in_progress"], ["3. 丙", "pending"]])]);
   const n6 = laterView(ordinalPlan, 60000);
   equal("(n6) no finished step ⇒ the plan's ordinal carries the bar", [n6.steps[1].percent, n6.steps[1].percentSource], [67, "baseline:steps"]);
-  // The ordinal route is an extrapolation like the time baseline, so it is capped at 90 %: “step 3 of
-  // 3 is in progress” must not print a finished-looking 100 %.
+ // The ordinal route is an extrapolation like the time baseline, so it is capped at 90 %: “step 3 of
+ // 3 is in progress” must not print a finished-looking 100 %.
   resetSeq();
   const lastOfPlan = foldAll([userMessage("三步计划"), todoWrite([["1. 甲", "pending"], ["2. 乙", "pending"], ["3. 丙", "in_progress"]])]);
   equal("(n6) the last ordinal of a plan is capped at 90 %, never a pinned 100", [lastOfPlan.steps[2].percent, lastOfPlan.steps[2].percentSource], [90, "baseline:steps"]);
@@ -1234,12 +1234,12 @@ function foldAll(events) {
   const firstOfPlan = foldAll([userMessage("三步计划"), todoWrite([["1. 甲", "in_progress"], ["2. 乙", "pending"], ["3. 丙", "pending"]])]);
   equal("(n6) the FIRST step gets no ordinal bar (0 of N is not progress)", [firstOfPlan.steps[0].percent, firstOfPlan.steps[0].percentSource], [null, "none"]);
 
-  // --- (n7) the projected-remaining field is GONE — from the state AND from the view --------------
+ // --- (n7) the projected-remaining field is GONE — from the state AND from the view --------------
   check("(n7) the state never carries etaMs", JSON.stringify(inflated).indexOf("etaMs") === -1 && Object.keys(inflated.steps[0]).indexOf("etaMs") === -1, Object.keys(inflated.steps[0]).join(","));
   check("(n7) the view does NOT carry it either (no consumer-less field)", !Object.prototype.hasOwnProperty.call(n4.steps[0], "etaMs") && !Object.prototype.hasOwnProperty.call(n4.steps[1], "etaMs") && JSON.stringify(n4).indexOf("etaMs") === -1, Object.keys(n4.steps[0]).join(","));
   equal("(n7) the view stays lossless JSON with the field gone", JSON.parse(JSON.stringify(n4)), n4);
 
-  // --- (n8) replay / idempotence with the new branches ------------------------------------------
+ // --- (n8) replay / idempotence with the new branches ------------------------------------------
   resetSeq();
   const mixed = [
     userMessage("混合"),

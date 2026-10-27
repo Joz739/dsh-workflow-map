@@ -1,25 +1,25 @@
 // preview-typeflow.mjs — the type page (the old "flow column"'s successor) as a browser page.
 //
-// Run: node tools/preview-typeflow.mjs   (then pwsh -File tools\measure-flow.ps1)
+// Run: node tools/preview-typeflow.mjs (then pwsh -File tools\measure-flow.ps1)
 //
-// 会话4 replaced the two-column layout with ONE page: a step's flow is no longer a column of
+// replaced the two-column layout with ONE page: a step's flow is no longer a column of
 // node cards, it is the RIGHT PAGE's per-type call list (RightPage.js wfRenderTypeBody). The old
-// measure-flow.ps1 measured the retired column (60-node window, fold rows, 展开全部 strip) and
+// measure-flow.ps1 measured the retired column (60-node window, fold rows, an "expand all" strip) and
 // scored 7/27. This page measures what a type page really promises today:
 //
-//   selected-step type page   the calls of exactly that bucket, in wire order, each row a button
-//                             carrying the node id, its status dot, a verb · target label and
-//                             aria-expanded — the honest successor of "the step's flow";
-//   the cap, honestly stated  a bucket's `count` counts FILE occurrences while its `nodes` list
-//                             calls: three .md files on one call render ONE row and the page says
-//                             「另有 N 处调用未随视图发送」 instead of inventing two rows;
-//   the session-scope page    merges every step's bucket but can dereference no calls (the wire
-//                             ships only the selected step's nodes) → it says 「这一类还没有可列出
-//                             的调用」 rather than listing ids it cannot resolve;
-//   the stale key             a (kind, key) pair that no longer resolves CLOSES the page instead
-//                             of showing somebody else's record;
-//   the interaction           clicking a call opens wfRenderNodeDetail under it (aria-expanded
-//                             flips, the detail mounts), and Escape runs the panel's own binding.
+// selected-step type page the calls of exactly that bucket, in wire order, each row a button
+// carrying the node id, its status dot, a verb · target label and
+// aria-expanded — the honest successor of "the step's flow";
+// the cap, honestly stated a bucket's `count` counts FILE occurrences while its `nodes` list
+// calls: three .md files on one call render ONE row and the page says
+// "N more calls were not sent with the view" instead of inventing two rows;
+// the session-scope page merges every step's bucket but can dereference no calls (the wire
+// ships only the selected step's nodes) -> it says "no call of this type to list
+// yet" rather than listing ids it cannot resolve;
+// the stale key a (kind, key) pair that no longer resolves CLOSES the page instead
+// of showing somebody else's record;
+// the interaction clicking a call opens wfRenderNodeDetail under it (aria-expanded
+// flips, the detail mounts), and Escape runs the panel's own binding.
 //
 // The pages mount the renderer's own tree into a live DOM with the real WF_CSS and the real
 // handlers (a mini prefs state, exactly the component's updatePrefs loop). Expectations land in
@@ -177,7 +177,7 @@ function pageScript() {
       return el;
     }
 
-    // The mini prefs state: exactly the component's updatePrefs → re-render loop.
+ // The mini prefs state: exactly the component's updatePrefs → re-render loop.
     var state = { selectedStep: 0, rightOpen: true, rightKind: 'type', rightKey: '0|' + EXPECT.mdKey, openCall: null, closes: 0 };
     var noop = function () {};
     var actions = {
@@ -244,23 +244,23 @@ function pageScript() {
     render();
     report.steps.push(snapshot('selectedStepTypePage'));
 
-    // the honest cap: one row, three files, and the page says two more calls were not sent
+ // the honest cap: one row, three files, and the page says two more calls were not sent
     var firstCall = first('[data-dsh-workflow-map="call"]');
     if (firstCall) { firstCall.click(); await delay(80); report.steps.push(snapshot('afterCallClick')); }
     var again = first('[data-dsh-workflow-map="call"]');
     if (again) { again.click(); await delay(80); report.steps.push(snapshot('afterSecondClick')); }
 
-    // the session-scope page: merged bucket, no dereferenceable calls
+ // the session-scope page: merged bucket, no dereferenceable calls
     state.selectedStep = 0; state.rightKind = 'type'; state.rightKey = 'session|' + EXPECT.sessionKey; state.openCall = null;
     render();
     report.steps.push(snapshot('sessionScope'));
 
-    // a (kind,key) pair that no longer resolves closes the page
+ // a (kind,key) pair that no longer resolves closes the page
     state.rightKind = 'type'; state.rightKey = EXPECT.staleKey;
     render();
     report.steps.push(snapshot('staleKey'));
 
-    // Escape: the panel's own binding, through the product's code
+ // Escape: the panel's own binding, through the product's code
     state.rightKind = 'type'; state.rightKey = '0|' + EXPECT.sessionKey; state.rightOpen = true;
     render();
     var opened = !!first('[data-dsh-workflow-map="right"]');
@@ -269,7 +269,7 @@ function pageScript() {
     bind.destroy();
     report.facts.escape = { opened: opened, closes: state.closes, rightOpen: !!first('[data-dsh-workflow-map="right"]') };
 
-    // a stale page never invents a title
+ // a stale page never invents a title
     report.facts.expect = EXPECT;
     finish();
   }

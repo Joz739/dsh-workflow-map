@@ -1,23 +1,23 @@
-// check-branches.mjs — prove the branch lanes (step-09) against the RAW session log.
+// check-branches.mjs — prove the branch lanes against the RAW session log.
 //
 // Run: node tools/check-branches.mjs [path-to-session.v4.jsonl.zstd]
 //
-// The step-09 acceptance criterion is a data claim:
-//   「用 subagent 起一个子任务后，面板出现一条带标签的支线，子任务结束后状态变为完成/失败」
+// The acceptance criterion is a data claim:
+// "after starting a subtask with a subagent, a labelled lane appears in the panel, and its status becomes done/failed when the subtask ends"
 // so this script decompresses the session's own event log, folds it with the SHIPPING fold
 // (src/fold.mjs — the module the host projection and the browser model both derive from),
 // and compares the lanes with the raw events that produced them:
 //
-//   * every launcher call (`subagent` / `subagent_fork` / `workflow`) opens exactly ONE lane,
-//     labelled with that call's own `description`;
-//   * the launcher's result is an ACK ("started subagent <id>"), NOT a completion: the lane
-//     stays RUNNING until the child's `subagent-settled` user message arrives (measured);
-//   * a `job/*` pair opens a lane ONLY when its result arrives while the job is still open —
-//     synchronous commands (registration → settlement → result, the ordering every `pwsh`
-//     call in this session shows) must NOT produce a lane;
-//   * a lane NEVER appears in `view.nodes`, and the main-flow node count stays the tool/call
-//     count (parallel work must not enter the step's own sequence);
-//   * a session with no launcher and no background job has `view.branches === []`.
+// * every launcher call (`subagent` / `subagent_fork` / `workflow`) opens exactly ONE lane,
+// labelled with that call's own `description`;
+// * the launcher's result is an ACK ("started subagent <id>"), NOT a completion: the lane
+// stays RUNNING until the child's `subagent-settled` user message arrives (measured);
+// * a `job/*` pair opens a lane ONLY when its result arrives while the job is still open —
+// synchronous commands (registration → settlement → result, the ordering every `pwsh`
+// call in this session shows) must NOT produce a lane;
+// * a lane NEVER appears in `view.nodes`, and the main-flow node count stays the tool/call
+// count (parallel work must not enter the step's own sequence);
+// * a session with no launcher and no background job has `view.branches === []`.
 //
 // Writes evidence/step09-branches.json and exits non-zero on any failure.
 import fs from 'node:fs';

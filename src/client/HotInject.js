@@ -1,6 +1,6 @@
 /**
- * HotInject.js — step-04-hot-inject: the right-hand column that hot-injects a prompt.
- * step-03-unsteer adds its undo: the 「撤回」 button on a history row (`POST /dsh-workflow/unsteer`).
+ * HotInject.js — the right-hand column that hot-injects a prompt.
+ * adds its undo: the "revoke" button on a history row (`POST /dsh-workflow/unsteer`).
  *
  * WHY THIS FILE EXISTS. The panel's other chunks are pure renderers of data the host already
  * folded. This one owns the plugin's TWO writes: a `POST /dsh-workflow/steer` that puts one
@@ -11,35 +11,35 @@
  *
  * THE SEND STATE MACHINE (four states, one source of truth):
  *
- *   idle ──send──▶ sending ──{ok:true}──▶ sent ──1.5 s──▶ idle
- *                     │                     ▲
- *                     └──{ok:false}──▶ failed ──1.5 s──▶ idle
+ * idle ──send──▶ sending ──{ok:true}──▶ sent ──1.5 s──▶ idle
+ * │ ▲
+ * └──{ok:false}──▶ failed ──1.5 s──▶ idle
  *
  * `sent` and `failed` are ACKNOWLEDGEMENTS, not resting states: they clear themselves after
- * WF_INJECT_ACK_MS so the panel never sits on a stale "已注入". The textarea is never cleared
- * by the machine — only the user's own 取消 does that — so a failed send keeps what was typed.
+ * WF_INJECT_ACK_MS so the panel never sits on a stale "injected" state. The textarea is never cleared
+ * by the machine — only the user's own cancel does that — so a failed send keeps what was typed.
  *
  * THE REVOKE STATE MACHINE (a second, separate one — one revocation at a time):
  *
- *   idle ──click──▶ revoking ──{ok:true}──▶ revoked ──(the folded row stops being pending)──▶ gone
- *                        │
- *                        └──{ok:false}──▶ failed  (the host's own reason, under that row)
+ * idle ──click──▶ revoking ──{ok:true}──▶ revoked ──(the folded row stops being pending)──▶ gone
+ * │
+ * └──{ok:false}──▶ failed (the host's own reason, under that row)
  *
  * `revoked` is deliberately NOT optimistic: the host's 200 means the message left the inbox, and
- * the row turns 「已撤销」 on the next poll, from the host's own durable
- * `agent/inbox/spliced { outcome: 'canceled' }`. Until then the button reads 撤回中… and is dead,
+ * the row turns "revoked" on the next poll, from the host's own durable
+ * `agent/inbox/spliced { outcome: 'canceled' }`. Until then the button reads "revoking..." and is disabled,
  * which is what stops a second click from becoming a second post.
  *
  * HONESTY RULES (each one has an assertion):
- *   1. Sending is refused while `state === "sending"` — no double post, ever.
- *   2. Empty text is refused before any request leaves (the host would answer 400 anyway, but a
- *      round trip for something the browser already knows is not honest either).
- *   3. A success is claimed ONLY on `{ok:true}` from the host. On anything else the panel shows
- *      the host's OWN reason verbatim — never "注入失败" invented here.
- *   4. A 409 carries the host's text ("会话未在运行，热注入不可用"), and it is rendered as a
- *      failure with that text, not silently swallowed.
- *   5. `sessionId` is required: without one there is no session to address, so the button is
- *      disabled rather than posting something the host will reject.
+ * 1. Sending is refused while `state === "sending"` — no double post, ever.
+ * 2. Empty text is refused before any request leaves (the host would answer 400 anyway, but a
+ * round trip for something the browser already knows is not honest either).
+ * 3. A success is claimed ONLY on `{ok:true}` from the host. On anything else the panel shows
+ * the host's OWN reason verbatim - never an invented "injection failed".
+ * 4. A 409 carries the host's text ("session is not running, hot injection unavailable"), and it is rendered as a
+ * failure with that text, not silently swallowed.
+ * 5. `sessionId` is required: without one there is no session to address, so the button is
+ * disabled rather than posting something the host will reject.
  *
  * Pure: `h` and `say` are injected. Inlined into client.js by tools/build-client.mjs.
  */
@@ -47,7 +47,7 @@
 /** The text bound, mirroring the host's STEER_TEXT_LIMIT (src/route.js). */
 var WF_INJECT_LIMIT = 2000;
 
-/** How long 「已注入」/ a failure line stays on screen (the step-11 copy receipt's rhythm). */
+/** How long "injected" / a failure line stays on screen (the copy receipt's rhythm). */
 var WF_INJECT_ACK_MS = 1500;
 
 /** The four states. Anything else is treated as idle: a corrupted record cannot wedge the UI. */
@@ -107,12 +107,12 @@ function wfInjectAckDone(state) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* step-03-unsteer · the revoke state machine                                 */
+/* the revoke state machine */
 /* ------------------------------------------------------------------------- */
 
 /**
  * The four states of ONE revocation. `idle` = nothing in flight, `revoking` = the POST is out,
- * `revoked` = the host said 200 and the row is waiting for the next poll to say 「已撤销」,
+ * `revoked` = the host said 200 and the row is waiting for the next poll to say "revoked",
  * `failed` = the host refused and its own reason is on screen. `revoked` does NOT disappear by
  * itself: it disappears when the folded row stops being `pending`, which is the host's own
  * durable proof that the message really left the inbox.
@@ -156,7 +156,7 @@ function wfInjectCounter(text, say) {
   return fire("panel.inject.counter", { used: used, left: left, max: WF_INJECT_LIMIT });
 }
 
-/** step-04-inject-prominence · how many rows still wait for the turn — the header badge's only input. */
+/** how many rows still wait for the turn — the header badge's only input. */
 function wfPendingInjectCount(rows) {
   if (!Array.isArray(rows)) return 0;
   var n = 0;
@@ -176,7 +176,7 @@ function wfInjectStatusKey(status) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* the request                                                               */
+/* the request */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -196,7 +196,7 @@ function wfPostSteer(fetchImpl, url, sessionId, text, signal) {
 /**
  * One `POST /dsh-workflow/unsteer` — the SAME transport, one different body field.
  *
- * This is the round trip the history row's 「撤回」 button makes. It answers 200 only when the
+ * This is the round trip the history row's "revoke" button makes. It answers 200 only when the
  * message was still in the inbox; 409 means the running turn already took it (or it never was
  * there), and that reason is printed verbatim in the row.
  *
@@ -216,9 +216,9 @@ function wfPostJson(fetchImpl, url, payload, signal) {
   return Promise.resolve()
     .then(function () {
       if (typeof fetchImpl !== "function") throw new Error("fetch unavailable");
-      // 会话6 · 发送前可取消：请求还没落地时用户点“取消发送”，fetch 立即中止。
-      // 这只能拦住**还在路上**的请求；一旦宿主已经返回 200（消息已入收件箱），
-      // 抽回就不再靠中止请求，而是靠 step-03 的 `POST /dsh-workflow/unsteer`（宿主收件箱撤销）。
+  // Cancellable before send: while the request is in flight the user can press cancel and the fetch aborts immediately.
+  // This only stops requests that are STILL IN FLIGHT; once the host has returned 200 (the message is in the inbox),
+  // pulling it back relies on `POST /dsh-workflow/unsteer` (host inbox revoke) instead of aborting the request.
       return fetchImpl(url, {
         method: "POST",
         cache: "no-store",
@@ -230,8 +230,8 @@ function wfPostJson(fetchImpl, url, payload, signal) {
     .then(function (response) {
       var status = response && wfFinite(response.status) !== null ? response.status : 0;
       if (!response || response.ok !== true) {
-        // The host answers JSON on every failure branch, so read it: its `error` is the reason
-        // the panel must print verbatim (rule 3).
+ // The host answers JSON on every failure branch, so read it: its `error` is the reason
+ // the panel must print verbatim (rule 3).
         return Promise.resolve()
           .then(function () {
             return response && typeof response.json === "function" ? response.json() : null;
@@ -273,7 +273,7 @@ function wfPostJson(fetchImpl, url, payload, signal) {
 }
 
 /* ------------------------------------------------------------------------- */
-/* the renderer                                                              */
+/* the renderer */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -289,8 +289,8 @@ function wfRenderHotInject(h, say, actions, extras) {
   var state = wfInjectState(ui.state);
   var text = typeof ui.text === "string" ? ui.text : "";
   var reason = typeof ui.reason === "string" ? ui.reason : "";
-  // step-03-unsteer · the ONE revocation currently on screen. `revokeId` names the history row it
-  // belongs to, so a failure line lands under ITS row and never under a neighbour's.
+ // the ONE revocation currently on screen. `revokeId` names the history row it
+ // belongs to, so a failure line lands under ITS row and never under a neighbour's.
   var revokeId = typeof ui.revokeId === "string" ? ui.revokeId : "";
   var revokeState = wfRevokeState(ui.revokeState);
   var revokeReason = typeof ui.revokeReason === "string" ? ui.revokeReason : "";
@@ -306,9 +306,9 @@ function wfRenderHotInject(h, say, actions, extras) {
           : reason
         : "";
 
-  // 会话5 · the HISTORY rows (newest last in the model, drawn newest first so the latest send is
-  // the one the user sees without scrolling). Purely derived from the fold: nothing here talks
-  // to the host, and an empty list renders the honest "none yet" line instead of a blank block.
+ // the HISTORY rows (newest last in the model, drawn newest first so the latest send is
+ // the one the user sees without scrolling). Purely derived from the fold: nothing here talks
+ // to the host, and an empty list renders the honest "none yet" line instead of a blank block.
   var history = [];
   if (Array.isArray(ui.history)) history = ui.history.slice().reverse();
 
@@ -379,8 +379,8 @@ function wfRenderHotInject(h, say, actions, extras) {
         },
         sending ? say("panel.inject.sending") : say("panel.inject.send")
       ),
-      // 会话6 · 发送中显示“取消发送”：中止还在路上的请求（fetch signal）。
-      // 已经返回 200（宿主已入收件箱）后不出现这个按钮，因为那时无法抽回。
+  // While sending, show "cancel": abort the in-flight request (fetch signal).
+  // After a 200 (message already in the inbox) this button disappears, because it can no longer be pulled back.
       sending
         ? h(
             "button",
@@ -398,8 +398,8 @@ function wfRenderHotInject(h, say, actions, extras) {
           )
         : null
     ),
-    // The acknowledgement: one line, present only while the state is sent/failed. It carries
-    // `aria-live` so a screen reader hears the host's own reason, not just a colour change.
+ // The acknowledgement: one line, present only while the state is sent/failed. It carries
+ // `aria-live` so a screen reader hears the host's own reason, not just a colour change.
     note === ""
       ? null
       : h(
@@ -413,9 +413,9 @@ function wfRenderHotInject(h, say, actions, extras) {
           },
           note
         ),
-    // 会话5 · the history block. It sits UNDER the acknowledgement so the composer's shape does
-    // not change; the newest row is first, and each row states the one thing the user asked to
-    // know: was this one taken by the running turn, or is it still waiting.
+ // the history block. It sits UNDER the acknowledgement so the composer's shape does
+ // not change; the newest row is first, and each row states the one thing the user asked to
+ // know: was this one taken by the running turn, or is it still waiting.
     h(
       "div",
       { className: "wf-inject-history", key: "history", "data-dsh-workflow-map": "inject-history", "data-count": history.length },
@@ -426,12 +426,12 @@ function wfRenderHotInject(h, say, actions, extras) {
             "ul",
             { className: "wf-inject-list", key: "list", role: "list" },
             history.map(function (row) {
-              // 会话6 · 三态：已接下 / 待拾取 / 已撤销。第三态只来自宿主自己的日志事件
-              // （step-03 起：`agent/inbox/spliced` 的 `outcome: 'canceled'`，即撤回成功的持久记录）。
+  // Three states: picked up / awaiting pickup / revoked. The third comes only from the host's own log event
+  // (`agent/inbox/spliced` with `outcome: 'canceled'`, the durable record of a successful revoke).
               var status = wfInjectStatusKey(row.status);
-              // step-03-unsteer · 「撤回」 exists for exactly one window: a row the turn has NOT
-              // claimed yet. A `picked` row cannot be un-read, and a `canceled` row has nothing
-              // left to take back, so neither renders the button (not a disabled one — none).
+  // "revoke" exists for exactly one window: a row the turn has NOT
+ // claimed yet. A `picked` row cannot be un-read, and a `canceled` row has nothing
+ // left to take back, so neither renders the button (not a disabled one — none).
               var pending = row.status === "pending";
               var mine = pending && revokeId === row.id;
               var inFlight = mine && (revokeState === "revoking" || revokeState === "revoked");
@@ -463,8 +463,8 @@ function wfRenderHotInject(h, say, actions, extras) {
                         className: "wf-link wf-inject-row-revoke",
                         "data-inject": "revoke",
                         "data-inject-id": row.id,
-                        // Two clicks must not become two posts: the button is dead from the moment
-                        // the request leaves until the row stops being `pending`.
+ // Two clicks must not become two posts: the button is dead from the moment
+ // the request leaves until the row stops being `pending`.
                         disabled: inFlight ? true : undefined,
                         title: say("panel.inject.revoke.hint"),
                         "aria-label": say("panel.inject.revoke"),
@@ -475,8 +475,8 @@ function wfRenderHotInject(h, say, actions, extras) {
                       inFlight ? say("panel.inject.revoking") : say("panel.inject.revoke")
                     )
                   : null,
-                // The host's own words, verbatim, under the row that failed (rule 3). The stylesheet
-                // makes it span the row so it never reads as a fourth column.
+ // The host's own words, verbatim, under the row that failed (rule 3). The stylesheet
+ // makes it span the row so it never reads as a fourth column.
                 mine && revokeState === "failed"
                   ? h(
                       "span",
@@ -498,7 +498,7 @@ function wfRenderHotInject(h, say, actions, extras) {
 }
 
 /**
- * step-04-inject-prominence · the PERSISTENT dock: one row at the right page's foot, rendered for
+ * the PERSISTENT dock: one row at the right page's foot, rendered for
  * every page kind that is NOT the composer, so a prompt can be typed without opening it first.
  *
  * It shares ONE piece of state with the full composer (`inject.text`): both render the same
@@ -518,7 +518,7 @@ function wfRenderInjectDock(h, say, actions, extras) {
   var sending = state === "sending";
   var canSend = wfInjectCanSend(state, sessionId, text);
   var history = Array.isArray(ui.history) ? ui.history : [];
-  // The model keeps the newest LAST (wfInjectRows), so the newest row is the last element.
+ // The model keeps the newest LAST (wfInjectRows), so the newest row is the last element.
   var latest = history.length > 0 ? history[history.length - 1] : null;
 
   var note =
@@ -573,9 +573,9 @@ function wfRenderInjectDock(h, say, actions, extras) {
           var value = event && event.target ? event.target.value : "";
           wfFire(fire.onInjectText, value);
         },
-        // Enter is the dock's whole point: one line, no reaching for the button. The gate is the
-        // SAME wfInjectCanSend the full composer uses, so an empty / over-long / session-less text
-        // simply does nothing instead of posting something the host would reject.
+ // Enter is the dock's whole point: one line, no reaching for the button. The gate is the
+ // SAME wfInjectCanSend the full composer uses, so an empty / over-long / session-less text
+ // simply does nothing instead of posting something the host would reject.
         onKeyDown: function (event) {
           if (!event || event.key !== "Enter") return;
           if (typeof event.preventDefault === "function") event.preventDefault();
@@ -609,8 +609,8 @@ function wfRenderInjectDock(h, say, actions, extras) {
           )
         : null
     ),
-    // The acknowledgement, verbatim: the host's own reason on failure, 「已注入」 only on a real
-    // {ok:true}. It sits inside the bar, under the row, so a 409 is never silent.
+ // The acknowledgement, verbatim: the host's own reason on failure, "injected" only on a real
+ // {ok:true}. It sits inside the bar, under the row, so a 409 is never silent.
     note === ""
       ? null
       : h(

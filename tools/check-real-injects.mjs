@@ -1,5 +1,5 @@
-// Real-log verification of the 会话5 additions: fold a REAL session log and show
-// (a) the hot-inject history, (b) the 【需确认】 derivation.
+// Real-log verification of the additions: fold a REAL session log and show
+// (a) the hot-inject history, (b) the "needs confirm" derivation.
 // Read-only: it never writes to .dsh and never touches the plugin's state.
 import fs from "node:fs";
 import path from "node:path";
@@ -25,7 +25,7 @@ function frames(buf) {
         parts.push(zlib.zstdDecompressSync(buf.subarray(start, stop)).toString("utf8"));
         break;
       } catch {
-        /* try the next candidate end */
+ /* try the next candidate end */
       }
     }
   }
@@ -94,7 +94,7 @@ for (const file of files) {
     approvalSessions += 1;
     console.log(`  【需确认】 ${sessionId}: ` + confirm.map((s) => `#${s.index + 1}(${s.pendingConfirm.map((r) => r.kind).join("+")})`).join(" "));
   }
-  // JSON round trip: the view travels through a snapshot.
+ // JSON round trip: the view travels through a snapshot.
   try {
     JSON.parse(JSON.stringify(view));
   } catch {

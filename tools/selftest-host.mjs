@@ -1,27 +1,27 @@
 #!/usr/bin/env node
-// dsh-workflow-map — step-02 self-test for the HOST HALF (lib/index.js).
+// dsh-workflow-map — self-test for the HOST HALF (lib/index.js).
 //
-//   node tools\selftest-host.mjs
+// node tools\selftest-host.mjs
 //
 // tools/selftest-fold.mjs proves the fold; this file proves the REGISTRATION around it,
-// without a live host: a fake `ctx` captures what `apply()` hands the projection registry,
+// without a live host: a fake `ctx` captures what `apply` hands the projection registry,
 // and the captured options are then exercised the way the registry exercises them
 // (init → apply per event → wire.view → viewSchema.parse; stateSchema.parse on restore).
 //
 // What is asserted:
-//   1. apply() registers exactly one projection, under `workflowView`, at STATE_VERSION.
-//   2. init() is the fold's own empty state (no clock, no host input needed).
-//   3. registry.apply(state, event) IS foldEvent — same result as calling the module directly.
-//   4. wire.view(state) IS buildView(state, state.asOf): no host-only extras, and the view
-//      passes its own schema.
-//   5. viewSchema is a real tripwire: it rejects a deliberately broken view.
-//   6. stateSchema never throws on garbage and repairs instead of resetting, and a well-formed
-//      state survives it byte-identically (that is what a cold read does).
-//   7. a host without the sessionProjections service fails the mount loudly — it does NOT
-//      register nothing silently.
-//   8. apply() attaches exactly one HTTP route (step-04): the `/dsh-workflow` prefix seat,
-//      SHARED across repeated applies (the real server throws on a duplicate path), and its
-//      disposer really removes it.
+// 1. apply registers exactly one projection, under `workflowView`, at STATE_VERSION.
+// 2. init is the fold's own empty state (no clock, no host input needed).
+// 3. registry.apply(state, event) IS foldEvent — same result as calling the module directly.
+// 4. wire.view(state) IS buildView(state, state.asOf): no host-only extras, and the view
+// passes its own schema.
+// 5. viewSchema is a real tripwire: it rejects a deliberately broken view.
+// 6. stateSchema never throws on garbage and repairs instead of resetting, and a well-formed
+// state survives it byte-identically (that is what a cold read does).
+// 7. a host without the sessionProjections service fails the mount loudly — it does NOT
+// register nothing silently.
+// 8. apply attaches exactly one HTTP route : the `/dsh-workflow` prefix seat,
+// SHARED across repeated applies (the real server throws on a duplicate path), and its
+// disposer really removes it.
 //
 // Exit code 0 = every assertion passed.
 
@@ -49,7 +49,7 @@ function equal(label, actual, expected) {
 // ---------------------------------------------------------------------------
 
 /** Key-order-insensitive JSON: two equal states must compare equal even if a repair rebuilt
- *  their property order (the repair builds a fixed order on purpose). */
+ * their property order (the repair builds a fixed order on purpose). */
 function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
   if (value !== null && typeof value === "object") {
@@ -92,7 +92,7 @@ const ctx = {
       return () => {};
     },
   },
-  // A session store the route can look up in; no session is live in this offline test.
+ // A session store the route can look up in; no session is live in this offline test.
   sessions: { get: () => undefined },
   webServer,
   effect(execute) {
@@ -119,7 +119,7 @@ equal("(1) inject declares the registry, the session store, the web server and t
 ]);
 check("(1) selfCheck lists the registration", selfCheck.registrations.some((row) => row.endsWith(PROJECTION_KEY)), JSON.stringify(selfCheck.registrations));
 
-// (1b) the HTTP view route (step-04).
+// (1b) the HTTP view route.
 equal("(1) exactly one HTTP route is attached", routeLog.length, 1);
 const attachedRoute = routeLog[0] || {};
 equal("(1) the seat is the /dsh-workflow prefix", [attachedRoute.kind, attachedRoute.path], ["prefix", "/dsh-workflow"]);
@@ -143,7 +143,7 @@ const initial = projection.init();
 equal("(2) init is the fold's empty state", initial, createInitialState());
 
 // (2b) the session identity the plan reader needs. This file has no filesystem access of its
-// own; it only records WHERE the plan would be (and mirrors PAE's `header.cwd ?? process.cwd()`).
+// own; it only records WHERE the plan would be (and mirrors PAE's `header.cwd ?? process.cwd`).
 const withHeader = projection.init({ id: "session-x", cwd: "C:\\repo" });
 equal("(2) init records the session identity", [withHeader.sessionId, withHeader.cwd], ["session-x", "C:\\repo"]);
 const withoutCwd = projection.init({ id: "session-y" });
@@ -170,7 +170,7 @@ for (const event of events) direct = foldEvent(direct, event);
 equal("(3) registry.apply is the fold itself", JSON.stringify(state), JSON.stringify(direct));
 
 const view = projection.wire.view(state);
-// From step-03 the wire view is `buildView(...)` PLUS the `plan` section, which is read from
+// From the wire view is `buildView(...)` PLUS the `plan` section, which is read from
 // `.pae/<sessionId>/orchestrator.json` on the wire. Everything except that one key must still
 // be the fold's own output — that is what keeps "tested" and "shipped" identical.
 const planless = { ...view };
@@ -235,7 +235,7 @@ check("(5) rejects a non-object", threwOnNull, "the schema accepted null");
 const goodState = JSON.parse(JSON.stringify(state));
 equal("(6) a well-formed state survives intact (key order aside)", canonical(projection.stateSchema.parse(goodState)), canonical(goodState));
 
-// step-10: the open-turn flag must survive a checkpoint restore, and a damaged one must repair to
+// the open-turn flag must survive a checkpoint restore, and a damaged one must repair to
 // a boolean rather than leaking "true"/1 into the view.
 {
   const midTurn = JSON.parse(JSON.stringify(state));
@@ -248,9 +248,9 @@ equal("(6) a well-formed state survives intact (key order aside)", canonical(pro
   equal("(6) the wire view exposes running", typeof projection.wire.view(state).running, "boolean");
 }
 
-// 会话6 · the inbox ledger and the revocation flag are part of the DURABLE state: a checkpoint must
+// the inbox ledger and the revocation flag are part of the DURABLE state: a checkpoint must
 // carry them through a restore, or a restarted host replays later splices against an empty ledger
-// (every cancellation then answers “unknown”) and a revoked row silently goes back to “待拾取”.
+// (every cancellation then answers "unknown") and a revoked row silently goes back to "awaiting pickup".
 {
   const withLedger = JSON.parse(JSON.stringify(state));
   withLedger.inboxIds = { "next-turn": ["m-1"], "next-step": ["m-2", "m-3"] };
@@ -283,7 +283,7 @@ const repairedViews = [];
 for (const value of garbage) {
   try {
     const repaired = projection.stateSchema.parse(value);
-    // A repaired state must still be foldable and viewable — that is the whole point.
+ // A repaired state must still be foldable and viewable — that is the whole point.
     const nextState = projection.apply(repaired, events[0]);
     repairedViews.push(projection.wire.view(nextState));
   } catch (error) {

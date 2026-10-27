@@ -2,14 +2,14 @@
 //
 // Run: node tools/check-flow.mjs [path-to-session.v4.jsonl.zstd]
 //
-// The step-08 acceptance criterion is a data claim, not a pixel claim:
-//   「节点数量与 tool/call 事件数一致（在一步内抽查 5 条工具调用，逐条能对上 name 与文件）」
+// The acceptance criterion is a data claim, not a pixel claim:
+// "the node count matches the tool/call event count (spot-check 5 calls within one step; each must match name and files)"
 // so this script decompresses the session's own event log, counts the real `tool/call`
 // events per step, and compares them with what the client model draws:
-//   - every step with no truncation:  tool/call count == tool node count
-//   - the one truncated step:         the difference is exactly the dropped middle
-//   - EVERY node, not just 5:         its `at` timestamp exists in the raw log
-//   - 5 tool calls in one step:       name + file path match the call's own arguments
+// - every step with no truncation: tool/call count == tool node count
+// - the one truncated step: the difference is exactly the dropped middle
+// - EVERY node, not just 5: its `at` timestamp exists in the raw log
+// - 5 tool calls in one step: name + file path match the call's own arguments
 //
 // The log is a multi-frame zstd file (one frame per append), which Node's zstd
 // stream stops after the first frame, so frames are split on the zstd magic.
@@ -118,8 +118,8 @@ for (let index = 0; index < view.steps.length; index += 1) {
   const stepCalls = inLog.filter((event) => event.seq >= from && event.seq < to);
   const model = T.buildModel(view, { ...prefs, selectedStep: index });
   const toolNodes = model.flow.nodes.filter((node) => node.kind === 'tool');
-  // Nodes this step no longer has: the per-step cap AND the global 1200-node cap (which
-  // prunes ids without touching truncatedNodes) — the same honest gap the header shows.
+ // Nodes this step no longer has: the per-step cap AND the global 1200-node cap (which
+ // prunes ids without touching truncatedNodes) — the same honest gap the header shows.
   const missing = Math.max(0, (Number(step.nodeCount) || 0) - model.flow.nodes.length);
   const dropped = stepCalls.length - toolNodes.length;
   totalCalls += stepCalls.length;

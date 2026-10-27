@@ -1,15 +1,15 @@
 /**
- * Branches.js — the parallel lanes beside a step's flow (step-09).
+ * Branches.js — the parallel lanes beside a step's flow.
  *
  * What a lane is: a subagent, a workflow run or a background job started by this plan
  * step. Its activity runs IN PARALLEL with the step, so it is drawn as a branch off the
  * main flow track instead of being mixed into the node list:
  *
- *   main track (FlowColumn)          lane (this file)
- *   ─ ● 读 · a.js                    ┌ ⧉ 子代理 · review the fold module   ●
- *   ─ ● 改 · b.js          ──────6px─┤   ▸ 子代理启动          21:03:07
- *   ─ ● 命令 · npm test              │   ▪ 完成                21:04:12
- *                                    └ (click the head to fold the lane)
+ * main track (FlowColumn) lane (this file)
+ * ─ ● read · a.js ┌ ⧉ subagent · review the fold module ●
+ * ─ ● edit · b.js ──────6px─┤ ▸ subagent started 21:03:07
+ * ─ ● command · npm test │ ▪ done 21:04:12
+ * └ (click the head to fold the lane)
  *
  * The lane data comes from `view.branches` (src/fold.mjs): branches NEVER enter
  * `state.nodes`, so the main flow's node count, its same-tool groups, both caps and the
@@ -22,7 +22,7 @@
 
 /**
  * One hue per lane (index into this list), so two adjacent lanes never read as one.
- * Deliberately not kind-based: the badge text already says 子代理 / 工作流 / 后台任务.
+ * Deliberately not kind-based: the badge text already says subagent / workflow / background job.
  */
 var WF_BRANCH_HUES = [268, 196, 152, 32, 340, 224];
 
@@ -51,7 +51,7 @@ function wfBranchStatus(branch) {
   return "running";
 }
 
-/** Lane kind → the locale key of its badge (子代理 / 工作流 / 后台任务). */
+/** Lane kind -> the locale key of its badge (subagent / workflow / background job). */
 function wfBranchBadgeKey(kind) {
   if (kind === "workflow") return "panel.branch.workflow";
   if (kind === "job") return "panel.branch.job";
@@ -77,7 +77,7 @@ function wfBranchIsCollapsed(state, branchId) {
 }
 
 /**
- * One activity row. It is a BUTTON because step-11 mounts the same detail view for any
+ * One activity row. It is a BUTTON because mounts the same detail view for any
  * row; until then the click only reports the id through `actions.onSelectNode`.
  */
 function wfRenderBranchRow(h, node, say, actions, ctx) {
@@ -159,8 +159,8 @@ function wfRenderBranch(h, branch, index, flowState, say, actions, ctx) {
     {
       className: "wf-branch",
       key: "branch-" + branch.id,
-      // Concrete colours, not a CSS colour function: the panel must not depend on the
-      // Electron build supporting the space-separated hsl() syntax.
+ // Concrete colours, not a CSS colour function: the panel must not depend on the
+ // Electron build supporting the space-separated hsl syntax.
       style: {
         "--wf-branch-h": String(hue),
         "--wf-branch-line": `hsl(${hue}, 78%, 62%)`,
@@ -186,7 +186,7 @@ function wfRenderBranch(h, branch, index, flowState, say, actions, ctx) {
           "data-dsh-workflow-map": "branch-head",
           "data-branch-id": branch.id,
           "aria-expanded": collapsed ? "false" : "true",
-          // Mirrored on the card (data-expanded) as well, so a test can read either.
+ // Mirrored on the card (data-expanded) as well, so a test can read either.
           title: say(collapsed ? "panel.branch.expand" : "panel.branch.collapse"),
           onClick: function () {
             if (typeof fire.onToggleBranch === "function") fire.onToggleBranch(branch.id);

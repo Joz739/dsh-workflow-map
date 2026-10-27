@@ -1,21 +1,21 @@
 // preview-effects.mjs — the living layer of the SINGLE PAGE, rendered for a browser measurement.
 //
-// Run: node tools/preview-effects.mjs   (then pwsh -File tools\measure-effects.ps1)
+// Run: node tools/preview-effects.mjs (then pwsh -File tools\measure-effects.ps1)
 //
-// 会话4 rewrote the layout into ONE page; session7 (2026-10-27) rewrote this preview to
+// rewrote the layout into ONE page; session7 (2026-10-27) rewrote this preview to
 // match it. The old page measured the step↔node curve of the two-column layout, which
 // no longer exists. What still moves on today's page, and what this preview proves IN A
 // REAL BROWSER (a tree assertion cannot — the animation has to actually run):
 //
-//   · the running unit's ring breathes (wf-ring, 1.6 s) and its card carries the flowing
-//     brand wrap (wf-fx-wrap, 2.6 s) on the card's own frame (the ::after running frame);
-//   · the running row's connector is the ONE line that flows (data-live=true on the
-//     unit-link: the flowing gradient, wf-prog-flow), while a done row's line is static;
-//   · the running card's rail keeps the live progress bar scrolling (wf-prog-flow);
-//   · data-motion='static' on the root (the product's 「减少动效」 setting) turns EVERY
-//     animation inside the panel to none — document.getAnimations() must go to 0;
-//   · data-idle='1' (session idle) PAUSES every animation (playState 'paused');
-//   · the reduced-motion MEDIA rule does the same as static even when the root says css.
+// · the running unit's ring breathes (wf-ring, 1.6 s) and its card carries the flowing
+// brand wrap (wf-fx-wrap, 2.6 s) on the card's own frame (the ::after running frame);
+// · the running row's connector is the ONE line that flows (data-live=true on the
+// unit-link: the flowing gradient, wf-prog-flow), while a done row's line is static;
+// · the running card's rail keeps the live progress bar scrolling (wf-prog-flow);
+// - data-motion='static' on the root (the product's "reduce motion" setting) turns EVERY
+// animation inside the panel to none — document.getAnimations must go to 0;
+// · data-idle='1' (session idle) PAUSES every animation (playState 'paused');
+// · the reduced-motion MEDIA rule does the same as static even when the root says css.
 //
 // The pages mount the renderer's own tree into a live DOM with the REAL WF_CSS, so
 // getComputedStyle and document.getAnimations answer for the shipped stylesheet, not a
@@ -147,8 +147,8 @@ function pageScript(mode) {
     onEscapeDetail: noop, onCopy: noop, onSetting: noop,
   };
 
-  // MODE: 'running' (css + live), 'static' (「减少动效」→ data-motion=static),
-  // 'idle' (live session gone idle → data-idle=1), 'reduced' (OS media query matches).
+ // MODE: 'running' (css + live), 'static' ("reduce motion" -> data-motion=static),
+ // 'idle' (live session gone idle → data-idle=1), 'reduced' (OS media query matches).
   var motion = MODE === 'static' ? 'static' : 'css';
   var idle = MODE === 'idle' ? true : false;
 

@@ -1,6 +1,6 @@
-// preview-settings.mjs — step-12 settings + snapshot export, rendered for browser measurement.
+// preview-settings.mjs — settings + snapshot export, rendered for browser measurement.
 //
-// Run: node tools/preview-settings.mjs   (then pwsh -File tools\measure-settings.ps1)
+// Run: node tools/preview-settings.mjs (then pwsh -File tools\measure-settings.ps1)
 //
 // The page carries the REAL bundle. It starts from the real default prefs, clicks the
 // real segmented buttons (by re-rendering from T.applyPrefsPatch), verifies the DOM
@@ -88,9 +88,9 @@ for (let i = 0; i < 72; i += 1) {
 }
 const view = {
   asOf: T0 + 2000,
-  // The session is NOT working right now (view.running=false) while one step is still marked
-  // running — the honest case the three motion options differ on: 「运行中」freezes it,
-  // 「始终」keeps it moving.
+ // The session is NOT working right now (view.running=false) while one step is still marked
+ // running - the honest case the three motion options differ on: "while running" freezes it,
+ // "always" keeps it moving.
   running: false,
   task: 'step-12 面板设置与工作流快照导出',
   steps: [
@@ -168,8 +168,8 @@ function pageScript(corrupt) {
 (function () {
   var CFG = window.__wfConfig;
   var report = { page: CFG.file, corrupt: CFG.corrupt, error: '', facts: {}, copy: {}, storage: {}, download: {} };
-  // __wfToHtml is a GLOBAL function; its free variables resolve on window, not in
-  // this IIFE, so the three serializer helpers must be global too.
+ // __wfToHtml is a GLOBAL function; its free variables resolve on window, not in
+ // this IIFE, so the three serializer helpers must be global too.
   window.esc = window.__wfEsc;
   window.kebab = window.__wfKebab;
   window.PLAIN_ATTRS = new Set(window.__wfPlainAttrs || []);
@@ -221,17 +221,17 @@ function pageScript(corrupt) {
         panelWidth: panel ? round(panel.getBoundingClientRect().width) : 0,
         visibleButtons: segButtons.filter(function (b) { return b.getBoundingClientRect().width > 0; }).length,
       } : null,
-      // 会话4 single page: the units ARE the step cards (one per step).
+ // single page: the units ARE the step cards (one per step).
       units: units.length,
       stepCards: all('[data-dsh-workflow-map="step"]').length,
-      // The rail's second line — the thing 「只看标题」 takes away.
+ // The rail's second line - the thing "Title only" takes away.
       subLines: all('.wf-prog-sub').length,
       agoLines: all('.wf-prog-ago').length,
       nodeDetail: all('[data-dsh-workflow-map="node-detail"]').length,
       stepDetail: all('[data-dsh-workflow-map="step-detail"]').length,
       dockTiming: first('.wf-prog-dock') ? first('.wf-prog-dock').getAttribute('data-timing') : null,
-      // The living layer that actually exists today: the running unit's ring, its card frame and
-      // the running rail's fill. The old .wf-fx-core / .wf-fx-stop-* SVG belonged to the retired curve.
+ // The living layer that actually exists today: the running unit's ring, its card frame and
+ // the running rail's fill. The old .wf-fx-core / .wf-fx-stop-* SVG belonged to the retired curve.
       ring: style(first('.wf-unit[data-status="running"] .wf-unit-ring')),
       cardFrame: style(first('.wf-unit[data-status="running"] .wf-unit-card'), '::after'),
       runningFill: style(first('.wf-prog-dock[data-status="running"] .wf-prog-fill')),
@@ -276,7 +276,7 @@ function pageScript(corrupt) {
       right: null, pageStep: null, pageType: null, openCall: null, asOf: model.asOf, sessionId: CFG.session,
       injectState: 'idle', injectText: '', injectReason: '',
       motion: prefs.motion === 'static' ? 'static' : 'css',
-      // The component's own rule: 「始终」keeps the living layer moving even when the session is idle.
+ // The component's own rule: "always" keeps the living layer moving even when the session is idle.
       idle: prefs.motion === 'always' ? false : !model.running,
     });
     currentTree = tree;
@@ -353,7 +353,7 @@ function pageScript(corrupt) {
     saveAndRender(CFG.corrupt ? corruptLoad : T.defaultPrefs());
     report.facts.default = facts();
 
-    // brand palette
+ // brand palette
     var brand = first('[data-setting="palette"][data-value="brand"]', host);
     brand.click();
     await delay(60);
@@ -361,18 +361,18 @@ function pageScript(corrupt) {
     try { report.storage.brand = JSON.parse(localStorage.getItem(T.constants().prefsKey)); } catch (error) { report.storage.brandError = String(error); }
     report.storage.loadBack = T.loadPrefs();
 
-    // always motion (idle session still animates)
+ // always motion (idle session still animates)
     first('[data-setting="motion"][data-value="always"]', host).click();
     await delay(60);
     report.facts.always = facts();
     report.storage.always = T.loadPrefs();
 
-    // title-only detail
+ // title-only detail
     first('[data-setting="detail"][data-value="title"]', host).click();
     await delay(60);
     report.facts.title = facts();
 
-    // node windows: 30 then all
+ // node windows: 30 then all
     first('[data-setting="nodeLimit"][data-value="30"]', host).click();
     await delay(60);
     report.facts.limit30 = facts();
@@ -380,20 +380,20 @@ function pageScript(corrupt) {
     await delay(60);
     report.facts.all = facts();
 
-    // soft palette + static motion
+ // soft palette + static motion
     first('[data-setting="palette"][data-value="soft"]', host).click();
     first('[data-setting="motion"][data-value="static"]', host).click();
     await delay(60);
     report.facts.softStatic = facts();
 
-    // restore defaults (documented values, not the previous save)
+ // restore defaults (documented values, not the previous save)
     first('[data-action="reset-prefs"]', host).click();
     await delay(60);
     report.facts.reset = facts();
     try { report.storage.reset = JSON.parse(localStorage.getItem(T.constants().prefsKey)); } catch (error) { report.storage.resetError = String(error); }
     report.storage.resetLoad = T.loadPrefs();
 
-    // real snapshot text + copy path
+ // real snapshot text + copy path
     first('[data-export="copy-md"]', host).click();
     await delay(120);
     first('[data-export="copy-json"]', host).click();
@@ -404,7 +404,7 @@ function pageScript(corrupt) {
     report.copy.mdHasSecret = (report.copy.md || '').indexOf('WF_SECRET_SHOULD_NOT_BE_EXPORTED') >= 0;
     report.copy.jsonHasSecret = JSON.stringify(report.copy.json || {}).indexOf('WF_SECRET_SHOULD_NOT_BE_EXPORTED') >= 0;
 
-    // Blob + URL.createObjectURL + revoke on cleanup
+ // Blob + URL.createObjectURL + revoke on cleanup
     first('[data-export="download-md"]', host).click();
     await delay(90);
 

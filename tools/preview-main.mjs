@@ -1,17 +1,17 @@
-// preview-main.mjs — 会话4 · the single page, rendered for a browser measurement.
+// preview-main.mjs — the single page, rendered for a browser measurement.
 //
-// Run: node tools/preview-main.mjs   (then pwsh -File tools\measure-main.ps1)
+// Run: node tools/preview-main.mjs (then pwsh -File tools\measure-main.ps1)
 //
 // WHY A PAGE AND NOT ONLY A SELF-TEST: every claim the user made is a LAYOUT or INTERACTION fact —
-//   「主流程之间间距尽量大」                     → the real card-to-card distance between units
-//   「接口末端由圆形图标结尾」                   → the circle's measured box (30×30, radius 50%)
-//   「用直线相连」                               → the connector's box: 2 px wide, a straight run
-//   「正在调用的工具文件…用彩色流光包裹」         → ::after animationName on THAT circle
-//   「链接该圆形图标和该主流程的线也变为彩色流光」→ the live row's line: flowing gradient + animation
-//   「正在进行的主流程打开默认保持居中」           → the REAL wfCenterRunning, then the measured error
-//   「点击主流程或圆形图标…启用右边那页」         → the click really opens the aside and changes kind
+// "as much spacing as possible between main-flow units" -> the real card-to-card distance between units
+// "each interface ends in a round icon" -> the circle's measured box (30x30, radius 50%)
+// "connected with straight lines" -> the connector's box: 2 px wide, a straight run
+// "the tool file being called ... is wrapped in flowing colour" -> ::after animationName on THAT circle
+// "the line linking that icon and the unit also becomes flowing colour" -> the live row's line: flowing gradient + animation
+// "the running unit is centred by default when opened" -> the REAL wfCenterRunning, then the measured error
+// "clicking the unit or an icon ... opens the right-hand page" -> the click really opens the aside and changes kind
 // The page therefore MOUNTS the renderer's tree into a live DOM (handlers included, the same
-// technique as the step-02/03/04 measure pages) and drives the REAL action names the component
+// technique as the /03/04 measure pages) and drives the REAL action names the component
 // passes (onOpenStep / onOpenType / onSelectCall / onClosePage / onToggleInject) through a mini
 // prefs state — exactly the updatePrefs → re-render loop the React component runs. The centring
 // runs T.centerRunning, the product's own function, not a copy.
@@ -186,7 +186,7 @@ function pageScript({ mode, prefsPatch }) {
   var say = T.makeSay(undefined);
   var host = document.getElementById('wf-slot');
 
-  /* a real DOM mount of the renderer's own tree (handlers included) */
+ /* a real DOM mount of the renderer's own tree (handlers included) */
   var SVG_NS = 'http://www.w3.org/2000/svg';
   function mount(node) {
     if (node === null || node === undefined || node === false) return null;
@@ -206,7 +206,7 @@ function pageScript({ mode, prefsPatch }) {
     return el;
   }
 
-  /* the mini state: the same prefs → re-render loop the React component runs */
+ /* the mini state: the same prefs → re-render loop the React component runs */
   var state = { prefs: Object.assign({}, T.defaultPrefs(), PREFS_PATCH), openCall: null };
   function setPrefs(patch) {
     var next = Object.assign({}, state.prefs);
@@ -327,9 +327,9 @@ function pageScript({ mode, prefsPatch }) {
     if (!button) return null;
     var b = box(button);
     var cs = getComputedStyle(button);
-    // session7: the header button is painted with a SOLID brand fill via the CSS var
-    // --dsw-alias-brand-primary, so the honest fact is backgroundColor — backgroundImage is
-    // 'none' on that rule and always was.
+ // session7: the header button is painted with a SOLID brand fill via the CSS var
+ // --dsw-alias-brand-primary, so the honest fact is backgroundColor — backgroundImage is
+ // 'none' on that rule and always was.
     return { text: (button.textContent || '').trim(), width: b.width, height: b.height, background: cs.backgroundImage, backgroundColor: cs.backgroundColor };
   }
   function report(phase, extra) {
@@ -346,8 +346,8 @@ function pageScript({ mode, prefsPatch }) {
   }
   function click(el) { if (el) el.click(); }
 
-  // the mini component's centring policy: the product's own wfShouldCenter with the SAME state the
-  // hook keeps (centeredStep + scrolled), applied after every render exactly like the effect does.
+ // the mini component's centring policy: the product's own wfShouldCenter with the SAME state the
+ // hook keeps (centeredStep + scrolled), applied after every render exactly like the effect does.
   var centeredStep = null;
   var scrolled = false;
   function autoCenter(model) {
@@ -361,7 +361,7 @@ function pageScript({ mode, prefsPatch }) {
   function run() {
     var phases = [];
     var model = render();
-    // centring: the product's OWN policy + function, then the measured truth afterwards
+ // centring: the product's OWN policy + function, then the measured truth afterwards
     var centering = autoCenter(model);
     phases.push(report('initial', { centering: centering }));
     click(document.querySelector('.wf-unit[data-status="running"] .wf-unit-card'));
@@ -374,13 +374,13 @@ function pageScript({ mode, prefsPatch }) {
     phases.push(report('after-inject-click'));
     click(document.querySelector('[data-dsh-workflow-map="page-close"]'));
     var afterClose = report('after-close');
-    // 6. the manual scroll: the wheel event marks "scrolled" (the product's guard), the user's own
-    // 6. the manual scroll: the wheel event marks "scrolled" (the product's guard), the user's own
-    // scroll moves the chain, and a re-render after that must NOT re-centre it.
+ // 6. the manual scroll: the wheel event marks "scrolled" (the product's guard), the user's own
+ // 6. the manual scroll: the wheel event marks "scrolled" (the product's guard), the user's own
+ // scroll moves the chain, and a re-render after that must NOT re-centre it.
     var scroll = document.querySelector('[data-dsh-workflow-map="page-scroll"]');
     if (scroll) {
-      // session7: establish a REAL offset first — after the earlier phases the scroller sits at 0,
-      // so "before - 240" used to clamp to 0 and the check could not tell a scroll from a no-op.
+ // session7: establish a REAL offset first — after the earlier phases the scroller sits at 0,
+ // so "before - 240" used to clamp to 0 and the check could not tell a scroll from a no-op.
       scroll.scrollTop = scroll.scrollHeight;
       var before = round(scroll.scrollTop);
       scroll.dispatchEvent(new WheelEvent('wheel', { bubbles: true }));

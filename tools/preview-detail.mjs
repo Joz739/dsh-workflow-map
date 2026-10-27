@@ -1,8 +1,8 @@
 // preview-detail.mjs — the node / step details ON THE RIGHT PAGE, rendered for a browser measurement.
 //
-// Run: node tools/preview-detail.mjs   (then pwsh -File tools\measure-detail.ps1)
+// Run: node tools/preview-detail.mjs (then pwsh -File tools\measure-detail.ps1)
 //
-// session7 (2026-10-27) rewrote both halves to the 会话4 single-page layout. The old pages
+// session7 (2026-10-27) rewrote both halves to the single-page layout. The old pages
 // fed wfRenderPanel the retired extras contract (flow / stepDetail / selectedNode), so the
 // old run rendered NO details at all and 39 of 54 checks failed on missing nodes. Today the
 // details live on the RIGHT PAGE, and the page's whole content is derived by
@@ -10,15 +10,15 @@
 // React component passes. The five pages therefore only patch PREFS and let the product's
 // own spec resolver mount:
 //
-//   edit      rightKind 'step' + rightKey 'step:0'  → the step page: type summary rows +
-//             wfRenderStepDetail (report, artifacts, stats, copy rows)
-//   command   rightKind 'type' + rightKey '1|<key>' + openCall 'p1' → the type page with the
-//             pwsh call expanded: wfRenderNodeDetail with the real <details> command block
-//   error     rightKind 'type' + rightKey '2|<key>' + openCall 'err1' → the red error node
-//   noreport  rightKind 'step' + rightKey 'step:2'  → a step with no PAE report says so
-//   closed    rightKind 'step' + rightKey 'step:0'  → the step-detail's own × control folded
-//             the report away (closedStep drives wfStepDetailOpen — the state lives in the
-//             product's own pure functions)
+// edit rightKind 'step' + rightKey 'step:0' → the step page: type summary rows +
+// wfRenderStepDetail (report, artifacts, stats, copy rows)
+// command rightKind 'type' + rightKey '1|<key>' + openCall 'p1' → the type page with the
+// pwsh call expanded: wfRenderNodeDetail with the real <details> command block
+// error rightKind 'type' + rightKey '2|<key>' + openCall 'err1' → the red error node
+// noreport rightKind 'step' + rightKey 'step:2' → a step with no PAE report says so
+// closed rightKind 'step' + rightKey 'step:0' → the step-detail's own × control folded
+// the report away (closedStep drives wfStepDetailOpen — the state lives in the
+// product's own pure functions)
 //
 // WHAT ONLY A REAL BROWSER PROVES (the tree self-test cannot): the monospace / pre-wrap
 // CSS really applies, Clipboard/execCommand really run, Escape and the resize nudge fire
@@ -181,7 +181,7 @@ const expect = {
   stepCount: steps.length,
   artifactCount: 2,
   artifactPaths: [ARTIFACT_A, ARTIFACT_B],
-  // Derived from the product's own step-detail builder, so the checker asserts what the model says.
+ // Derived from the product's own step-detail builder, so the checker asserts what the model says.
   step0Tools: step0Detail.tools,
   step0Files: step0Detail.files,
   step0Nodes: step0Detail.nodes,
@@ -267,7 +267,7 @@ function pageScript(config) {
       onCloseStepDetail: function (index) { state.closedStep = index; render(); },
     };
 
-    // The mini state: prefs drive the RIGHT PAGE exactly as the component's updatePrefs does.
+ // The mini state: prefs drive the RIGHT PAGE exactly as the component's updatePrefs does.
     var state = { closedStep: null, openCall: CFG.openCall || null };
     function prefs() {
       return Object.assign({}, T.defaultPrefs(), {
@@ -279,9 +279,9 @@ function pageScript(config) {
       var p = prefs();
       var model = T.buildModel(VIEW, p, T0);
       var right = T.rightPageSpec(model, p);
-      // The page's content IS the spec the product derives; nothing is patched here. A page
-      // whose step is not the selected one gets stepDetail null from wfRightPageSpec itself
-      // (that is the notloaded page: the panel says so instead of showing another step's report).
+ // The page's content IS the spec the product derives; nothing is patched here. A page
+ // whose step is not the selected one gets stepDetail null from wfRightPageSpec itself
+ // (that is the notloaded page: the panel says so instead of showing another step's report).
       var tree = T.renderPanel(model, p, say, actions, {
         settingsOpen: false, status: 'live', error: '', rev: 11,
         endpoint: '/dsh-workflow/state?sessionId=session-detail', nodeTotal: VIEW.nodes.length,
@@ -305,7 +305,7 @@ function pageScript(config) {
     var stepCopyRows = stepDetail ? all('[data-wf-copy]', stepDetail) : [];
     var more = nodeDetail ? first('.wf-detail-more', nodeDetail) : null;
 
-    // The command page starts with the <details> CLOSED, measures the default summary, then opens it.
+ // The command page starts with the <details> CLOSED, measures the default summary, then opens it.
     var commandClosed = more ? { open: more.open, summary: text(first('summary', more)), body: text(first('pre', more)) } : null;
     if (CFG.detailsOpen && more) {
       more.open = true;
@@ -352,11 +352,11 @@ function pageScript(config) {
         if (!card) return null;
         var dot = first('.wf-flow-status', card);
         var dotStyle = style(dot || card);
-        // The error state is painted on the DOT's background (theme.js: background:var(--dsw-alias-state-error-primary,#e85a5a)), not on its colour.
+ // The error state is painted on the DOT's background (theme.js: background:var(--dsw-alias-state-error-primary,#e85a5a)), not on its colour.
         return { nodeId: card.getAttribute('data-node-id'), status: dot ? dot.getAttribute('data-status') : '', background: dotStyle ? dotStyle.background : '', text: text(card) };
       })(),
-      // The step detail's × is still rendered; the real component wires no onCloseStepDetail, so this
-      // page records it as the inert control it is today rather than pretending it folds anything.
+ // The step detail's × is still rendered; the real component wires no onCloseStepDetail, so this
+ // page records it as the inert control it is today rather than pretending it folds anything.
       stepClose: (function () {
         var close = first('[data-wf-step-close]');
         return close ? { present: true, index: close.getAttribute('data-wf-step-close'), text: text(close) } : { present: false };
@@ -366,8 +366,8 @@ function pageScript(config) {
         return { target: row.getAttribute('data-wf-copy'), label: row.getAttribute('data-wf-copy-label') };
       }),
       privacy: { secretPresent: bodyText.indexOf(EXPECT.secret) >= 0, note: 'a content body is dropped by store.js' },
-      // The two honest-empty sentences, read from the page's OWN dictionary text (the expect file
-      // carries the strings, so no wording is hardcoded in the checker).
+ // The two honest-empty sentences, read from the page's OWN dictionary text (the expect file
+ // carries the strings, so no wording is hardcoded in the checker).
       honest: {
         noReport: bodyText.indexOf(EXPECT.noReportText) >= 0,
         notLoaded: bodyText.indexOf(EXPECT.notLoadedText) >= 0,
@@ -375,11 +375,11 @@ function pageScript(config) {
       },
     };
 
-    // Copy: exercise the PRODUCTION routine on the real node path row (Clipboard stubbed).
-    // Copy: exercise the PRODUCTION routine on ONE REAL row of this page (Clipboard stubbed).
-    // The row is whichever copy control the page actually rendered — a node-detail row on the
-    // type pages, a step-detail artifact row on the step pages — and the report records which
-    // scope it came from, so the checker asserts the page it is looking at, not a guess.
+ // Copy: exercise the PRODUCTION routine on the real node path row (Clipboard stubbed).
+ // Copy: exercise the PRODUCTION routine on ONE REAL row of this page (Clipboard stubbed).
+ // The row is whichever copy control the page actually rendered — a node-detail row on the
+ // type pages, a step-detail artifact row on the step pages — and the report records which
+ // scope it came from, so the checker asserts the page it is looking at, not a guess.
     var nodeEls = nodeDetail ? all('[data-wf-copy]', nodeDetail) : [];
     var stepEls = stepDetail ? all('[data-wf-copy]', stepDetail) : [];
     var rowEl = nodeEls[0] || stepEls[0] || null;
@@ -402,14 +402,14 @@ function pageScript(config) {
     var rowOk = rowEl ? await T.copyWithFeedback(target, rowEl, T.makeSay(undefined), { clipboard: clipboard }) : false;
     var rowState = rowEl ? { text: rowEl.textContent, state: rowEl.getAttribute('data-copy-state') } : null;
 
-    // Escape: the real binding on the real document.
+ // Escape: the real binding on the real document.
     var escapes = 0;
     var escBind = T.bindEscape(document, { onEscapeDetail: function () { escapes += 1; } });
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     escBind.destroy();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 
-    // The resize nudge: bind, toggle a <details>, and count the resize events it dispatches.
+ // The resize nudge: bind, toggle a <details>, and count the resize events it dispatches.
     var resizes = 0;
     function onResize() { resizes += 1; }
     window.addEventListener('resize', onResize);

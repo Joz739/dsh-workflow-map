@@ -41,6 +41,7 @@
     "locale/*.json",
     "icon.svg",
     "README.md",
+    "README.en.md",
     "CHANGELOG.md",
     "LICENSE",
     "docs/OPEN-SOURCE-GUIDE.md",

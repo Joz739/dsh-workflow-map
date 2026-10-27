@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// dsh-workflow-map — step-04-hot-inject self-test for the STEER CHANNEL
+// dsh-workflow-map — self-test for the STEER CHANNEL
 // (src/route.js POST /dsh-workflow/steer + lib/index.js makeSteerSource), extended by
-// step-03-unsteer for its undo (`POST /dsh-workflow/unsteer` + makeUnsteerSource).
+// for its undo (`POST /dsh-workflow/unsteer` + makeUnsteerSource).
 //
-//   node tools\probe-steer.mjs
+// node tools\probe-steer.mjs
 //
 // probe-route.mjs proves the READ endpoint; this file proves the TWO WRITES — the only paths in
 // this plugin that mutate anything. It runs OFFLINE (no DSH process, no live session) over a
@@ -11,24 +11,24 @@
 // ceiling are transport behaviours a fake `res` cannot prove.
 //
 // What is asserted:
-//   1. Method surface: POST is the only accepted verb on /steer and /unsteer (405 for
-//      GET/HEAD/PUT/DELETE), OPTIONS preflight advertises the ALLOW, and /state is untouched
-//      (still GET/HEAD only, still 405 on POST, still ETag/304).
-//   2. Every documented failure branch over real HTTP, each with a JSON body and never a thrown
-//      exception: 400 (unparseable body), 400 (non-object body), 400 (missing sessionId),
-//      400 (blank text / missing messageId), 404 (unknown session), 409 (session not running),
-//      413 (text over the 2000-character limit), 413 (body over 64 KiB), 503 (no source),
-//      500 (source threw).
-//   3. The success path: 200 {ok:true, messageId} and the agent REALLY received one steer.
-//   4. THE MESSAGE SHAPE is the acceptance criterion — role "user", one text block carrying the
-//      caller's text verbatim, source.kind "plugin" (never inherited "user"), the plugin's own
-//      name, and a non-empty id. No `cancel` is ever called: the whole point is that the running
-//      turn is NOT aborted.
-//   5. makeSteerSource's own branches, driven directly (agents service absent / get throws /
-//      unknown session / not running / steer throws), each as data and never as a throw.
-//   7. THE UNSTEER CHANNEL end to end: the id /steer hands back is the id /unsteer takes out of
-//      the SAME inbox double; a second revoke, an unqueued id, an idle session and a missing
-//      inbox/route each answer their documented 409/503 and never a 500 by accident.
+// 1. Method surface: POST is the only accepted verb on /steer and /unsteer (405 for
+// GET/HEAD/PUT/DELETE), OPTIONS preflight advertises the ALLOW, and /state is untouched
+// (still GET/HEAD only, still 405 on POST, still ETag/304).
+// 2. Every documented failure branch over real HTTP, each with a JSON body and never a thrown
+// exception: 400 (unparseable body), 400 (non-object body), 400 (missing sessionId),
+// 400 (blank text / missing messageId), 404 (unknown session), 409 (session not running),
+// 413 (text over the 2000-character limit), 413 (body over 64 KiB), 503 (no source),
+// 500 (source threw).
+// 3. The success path: 200 {ok:true, messageId} and the agent REALLY received one steer.
+// 4. THE MESSAGE SHAPE is the acceptance criterion — role "user", one text block carrying the
+// caller's text verbatim, source.kind "plugin" (never inherited "user"), the plugin's own
+// name, and a non-empty id. No `cancel` is ever called: the whole point is that the running
+// turn is NOT aborted.
+// 5. makeSteerSource's own branches, driven directly (agents service absent / get throws /
+// unknown session / not running / steer throws), each as data and never as a throw.
+// 7. THE UNSTEER CHANNEL end to end: the id /steer hands back is the id /unsteer takes out of
+// the SAME inbox double; a second revoke, an unqueued id, an idle session and a missing
+// inbox/route each answer their documented 409/503 and never a 500 by accident.
 //
 // Exit code 0 = every assertion passed.
 
@@ -86,8 +86,8 @@ function liveAgent(record, status = "running", inbox = null) {
     followup(message) {
       record.push({ kind: "followup", message });
     },
-    // 会话6 · the host's own `ReactLoopInbox`. `remove(id)` answers TRUE only while the id is still
-    // pending; false means the running turn already claimed it (or it never was there).
+ // the host's own `ReactLoopInbox`. `remove(id)` answers TRUE only while the id is still
+ // pending; false means the running turn already claimed it (or it never was there).
     ...(inbox === null ? {} : { inbox }),
   };
 }
@@ -116,7 +116,7 @@ const agents = fakeAgents({
     ["session-running", liveAgent(steered, "running", fakeInbox(["inj-live", "inj-twice"], removed))],
     ["session-idle", liveAgent(steered, "idle", fakeInbox(["inj-live"], removed))],
     ["session-no-steer", { status: "running" }],
-    // A running session whose agent has no inbox at all: the composition case, not a client error.
+ // A running session whose agent has no inbox at all: the composition case, not a client error.
     ["session-no-inbox", { status: "running" }],
   ],
 });
@@ -170,12 +170,12 @@ async function post(path, body) {
 }
 
 try {
-  // -- the success path -----------------------------------------------------
+ // -- the success path -----------------------------------------------------
   const ok = await post(STEER_PATH, { sessionId: "session-running", text: "请顺便复核第 3 步" });
   equal("(3) a live session answers 200", ok.status, 200);
   check("(3) the answer is JSON", ok.isJson, ok.raw);
-  // step-03-unsteer · the 200 now carries the message id the host wrote, which is exactly what
-  // 「撤回」 addresses. Everything else about the answer is unchanged.
+ // the 200 now carries the message id the host wrote, which is exactly what
+ // "Revoke" addresses. Everything else about the answer is unchanged.
   equal("(3) the answer says ok", [ok.body.ok, ok.body.sessionId], [true, "session-running"]);
   check("(3) and reports the id it wrote", typeof ok.body.messageId === "string" && ok.body.messageId.length > 0, JSON.stringify(ok.body));
   equal("(3) exactly one steer reached the agent", steered.length, 1);
@@ -183,7 +183,7 @@ try {
   equal("(3) it was a steer, not a followup or a cancel", call.kind, "steer");
   equal("(3) the reported id is the id on the message the agent received", ok.body.messageId, (call.message || {}).id);
 
-  // -- the message shape (the acceptance criterion) --------------------------
+ // -- the message shape (the acceptance criterion) --------------------------
   const message = call.message || {};
   equal("(4) the role is user", message.role, "user");
   equal("(4) one text block, carrying the caller's text verbatim", message.content, [
@@ -208,19 +208,19 @@ try {
   ]);
   check("(4) no cancel was ever issued", steered.every((entry) => entry.kind !== "cancel"), JSON.stringify(steered.map((e) => e.kind)));
 
-  // -- 405: every other verb -------------------------------------------------
+ // -- 405: every other verb -------------------------------------------------
   for (const method of ["GET", "HEAD", "PUT", "DELETE"]) {
     const response = await fetch(url(STEER_PATH), { method });
     const text = await response.text();
     equal(`(1) ${method} on /steer answers 405`, response.status, 405);
-    // HEAD answers no body by contract (HTTP), so only the status is assertable for it.
+ // HEAD answers no body by contract (HTTP), so only the status is assertable for it.
     if (method !== "HEAD") check(`(1) ${method}'s 405 body is JSON`, text.includes("not allowed"), text);
   }
   const options = await fetch(url(STEER_PATH), { method: "OPTIONS" });
   equal("(1) OPTIONS answers 204", options.status, 204);
   equal("(1) OPTIONS advertises POST too", options.headers.get("allow"), "GET, HEAD, POST, OPTIONS");
 
-  // -- /state is untouched ---------------------------------------------------
+ // -- /state is untouched ---------------------------------------------------
   const stateOk = await fetch(url(`${ROUTE_PREFIX}/state?sessionId=session-live`));
   equal("(1) /state still answers 200", stateOk.status, 200);
   const etag = stateOk.headers.get("etag");
@@ -230,7 +230,7 @@ try {
   const statePost = await fetch(url(`${ROUTE_PREFIX}/state?sessionId=session-live`), { method: "POST" });
   equal("(1) POST on /state is still 405", statePost.status, 405);
 
-  // -- 400 family ------------------------------------------------------------
+ // -- 400 family ------------------------------------------------------------
   const badJson = await post(STEER_PATH, "{not json");
   equal("(2) an unparseable body answers 400", badJson.status, 400);
   equal("(2) and says so", badJson.body, { ok: false, error: "body must be JSON" });
@@ -253,7 +253,7 @@ try {
   const noTextField = await post(STEER_PATH, { sessionId: "session-running" });
   equal("(2) a missing text field answers 400", noTextField.status, 400);
 
-  // -- 404 / 409 / 500 -------------------------------------------------------
+ // -- 404 / 409 / 500 -------------------------------------------------------
   const unknown = await post(STEER_PATH, { sessionId: "session-nope", text: "hi" });
   equal("(2) an unknown session answers 404", unknown.status, 404);
   equal("(2) with the documented error", unknown.body, { ok: false, error: "unknown session" });
@@ -273,7 +273,7 @@ try {
   equal("(2) a throwing source answers 500, not a broken socket", boom.status, 500);
   check("(2) and carries the reason", String(boom.body.error).includes("exploded"), JSON.stringify(boom.body));
 
-  // -- 413: the text bound and the body bound --------------------------------
+ // -- 413: the text bound and the body bound --------------------------------
   const tooLong = await post(STEER_PATH, { sessionId: "session-running", text: "字".repeat(2001) });
   equal("(2) 2001 characters answers 413", tooLong.status, 413);
   check("(2) the error names the bound", String(tooLong.body.error).includes("2000"), JSON.stringify(tooLong.body));
@@ -285,21 +285,21 @@ try {
   equal("(2) a body over 64 KiB answers 413", huge.status, 413);
   check("(2) the error names the body", String(huge.body.error).includes("too large"), JSON.stringify(huge.body));
 
-  // -- an empty body: a valid POST with nothing in it ------------------------
+ // -- an empty body: a valid POST with nothing in it ------------------------
   const empty = await fetch(url(STEER_PATH), { method: "POST", headers: { "content-type": "application/json" }, body: "" });
   const emptyText = await empty.text();
   equal("(2) an empty body answers 400", empty.status, 400);
   check("(2) as JSON, not a crash", emptyText.includes("must be JSON"), emptyText);
 
-  // -- an unknown sub-path is still 404 -------------------------------------
+ // -- an unknown sub-path is still 404 -------------------------------------
   const subPath = await post(`${ROUTE_PREFIX}/other`, { sessionId: "session-running", text: "hi" });
   equal("(2) an unknown sub-path answers 404", subPath.status, 404);
 
-  // -- (7) the unsteer channel: every branch, over the same loopback server ----
-  //
-  // The lifecycle this asserts is the whole point of step-03: a message the host wrote can be
-  // taken back while it is still unclaimed (200), cannot be taken back twice (409), and can never
-  // be taken back from a session that is not running (409) or whose agent has no inbox (503).
+ // -- (7) the unsteer channel: every branch, over the same loopback server ----
+ //
+ // The lifecycle this asserts is the whole point of a message the host wrote can be
+ // taken back while it is still unclaimed (200), cannot be taken back twice (409), and can never
+ // be taken back from a session that is not running (409) or whose agent has no inbox (503).
   const removedCount0 = removed.length;
 
   const revokeOk = await post(UNSTEER_PATH, { sessionId: "session-running", messageId: "inj-live" });
@@ -359,8 +359,8 @@ try {
   equal("(7) a throwing source answers 500, not a broken socket", revokeBoom.status, 500);
   check("(7) and carries the reason", String(revokeBoom.body.error).includes("unsteer source exploded"), JSON.stringify(revokeBoom.body));
 
-  // The honest end-to-end: /steer hands back an id, /unsteer takes exactly that id back out of the
-  // SAME agent double. This is the round trip the panel's 「撤回」 button makes.
+ // The honest end-to-end: /steer hands back an id, /unsteer takes exactly that id back out of the
+ // SAME agent double. This is the round trip the panel's "Revoke" button makes.
   const roundTripAgents = fakeAgents({ agents: [["s-rt", liveAgent([], "running", fakeInbox([], []))]] });
   const steerSource = makeSteerSource({ agents: roundTripAgents });
   const unsteerSource = makeUnsteerSource({ agents: roundTripAgents });
@@ -376,10 +376,10 @@ try {
   const unsteerSameId = makeUnsteerSource({ agents: emptyInboxAgents });
   equal("(7) while it IS queued, that same id revokes", unsteerSameId("s-rt2", wrote.messageId), { ok: true });
 
-  // -- 503: the row mounted with no steer source -----------------------------
-  //
-  // Driven with an EventEmitter as `req`: the handler subscribes to data/end, and this is the
-  // one branch that must be answered before any body arrives.
+ // -- 503: the row mounted with no steer source -----------------------------
+ //
+ // Driven with an EventEmitter as `req`: the handler subscribes to data/end, and this is the
+ // one branch that must be answered before any body arrives.
   const { EventEmitter } = await import("node:events");
   const bare = createViewHandler({ snapshot: () => ({ ok: false, status: 404, error: "unknown session" }) });
   const req = new EventEmitter();
@@ -409,7 +409,7 @@ try {
   equal("(2) a route with no steer source answers 503", out.status, 503);
   equal("(2) with the documented error", JSON.parse(out.body), { ok: false, error: "workflow steer source is unavailable" });
 
-  // -- 503: and with no unsteer source either (same handler, other endpoint) --
+ // -- 503: and with no unsteer source either (same handler, other endpoint) --
   const reqUnsteer = new EventEmitter();
   reqUnsteer.method = "POST";
   reqUnsteer.url = UNSTEER_PATH;
@@ -502,7 +502,7 @@ check("(6) selfCheck lists the steer route", selfCheck.registrations.includes(`h
 equal("(6) selfCheck.steerRoute is the path", selfCheck.steerRoute, "/dsh-workflow/steer");
 equal("(6) the endpoint constant", STEER_ENDPOINT, "/steer");
 
-// 会话7 · the unsteer route is the THIRD registration: a plugin that forgot to declare it would
+// the unsteer route is the THIRD registration: a plugin that forgot to declare it would
 // still serve it, which is exactly the drift this list exists to catch.
 check("(6) selfCheck lists the unsteer route", selfCheck.registrations.includes(`httpRoute:${UNSTEER_PATH}`), JSON.stringify(selfCheck.registrations));
 equal("(6) selfCheck.unsteerRoute is the path", selfCheck.unsteerRoute, "/dsh-workflow/unsteer");

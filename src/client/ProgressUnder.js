@@ -1,36 +1,36 @@
 /**
  * ProgressUnder.js — the rail that hangs UNDER a step card's frame.
  *
- * Contract (step-07):
- *   - exactly WF_STEP_GAP (8 px) of air between the card's bottom border and the
- *     rail: the rail belongs to the card but must not be glued to its frame;
- *   - a WF_STEP_RAIL (6 px) track whose fill is coloured by state — running
- *     flows, done is solid, failed is red, not started leaves the track empty;
- *   - the number on the right says WHICH KIND of number it is:
- *       "~62% 估算"  a time-baseline extrapolation (percentSource "baseline", and its cold-start
- *                    sub-variant "baseline:steps", which keeps the same visible flavour)
- *       "62% 自报"   the model's own report    (percentSource "model")
- *       "62% 实测"   the todo table's measured completion ratio (percentSource "todos")
- *       "100%"       a closed step's pinned value
- *   - a step that has NOT started never shows a percentage, even when the wire
- *     payload carries a stale one. No number is better than a fake number.
+ * Contract :
+ * - exactly WF_STEP_GAP (8 px) of air between the card's bottom border and the
+ * rail: the rail belongs to the card but must not be glued to its frame;
+ * - a WF_STEP_RAIL (6 px) track whose fill is coloured by state — running
+ * flows, done is solid, failed is red, not started leaves the track empty;
+ * - the number on the right says WHICH KIND of number it is:
+ * "~62% estimated" a time-baseline extrapolation (percentSource "baseline", and its cold-start
+ * sub-variant "baseline:steps", which keeps the same visible flavour)
+ * "62% self-reported" the model's own report (percentSource "model")
+ * "62% measured" the todo table's measured completion ratio (percentSource "todos")
+ * "100%" a closed step's pinned value
+ * - a step that has NOT started never shows a percentage, even when the wire
+ * payload carries a stale one. No number is better than a fake number.
  *
- * step-03 adds a SECOND line under the rail — one secondary fact about the
+ * adds a SECOND line under the rail — one secondary fact about the
  * number, never about the work:
- *   - `ago`: how long ago that number was estimated (`view.asOf − step.lastEstimateAt`).
- *     Data freshness: a 40-minute-old estimate on a still-running step is not a
- *     lie, but the user deserves to know it is stale. `lastEstimateAt` is 0 when
- *     no estimate ever arrived, and then the segment is NOT rendered at all —
- *     "0 秒前" would be a fabricated number, which is exactly what this plugin
- *     refuses to print.
+ * - `ago`: how long ago that number was estimated (`view.asOf − step.lastEstimateAt`).
+ * Data freshness: a 40-minute-old estimate on a still-running step is not a
+ * lie, but the user deserves to know it is stale. `lastEstimateAt` is 0 when
+ * no estimate ever arrived, and then the segment is NOT rendered at all —
+ * "0 seconds ago" would be a fabricated number, which is exactly what this plugin
+ * refuses to print.
  *
- * 会话6 (2026-10-26) · the projected REMAINING half is GONE by user request. It used to be shipped
+ * (2026-10-26) · the projected REMAINING half is GONE by user request. It used to be shipped
  * by the host as a derived millisecond field (median of the finished steps, hard-bounded) and
- * rendered as 「剩余 ≈N 分钟」; the host no longer computes it and this rail no longer renders it.
+ * rendered as "remaining ~N minutes"; the host no longer computes it and this rail no longer renders it.
  * One line, one fact, no consumer-less field — and a payload that still carries that field (an
  * older host) is simply not read.
  *
- * Layout (step-03): two right-aligned lines. Line 1 = track + percent (unchanged).
+ * Layout : two right-aligned lines. Line 1 = track + percent (unchanged).
  * Line 2 = ago, one font step and one colour step down, so it reads as
  * secondary. With no age to show the whole line is omitted — never a placeholder.
  * In the narrow container (`data-detail='title'`) only line 1 exists — the host
@@ -47,21 +47,21 @@
 function wfProgressLabel(percent, source, status, say) {
   var value = wfFinite(percent);
   if (value === null) return null;
-  // A step that has not started has no progress to report. Showing a number here
-  // would be the exact lie the acceptance criterion forbids.
+ // A step that has not started has no progress to report. Showing a number here
+ // would be the exact lie the acceptance criterion forbids.
   if (status === "pending" || status === "skipped") return null;
   var rounded = Math.round(wfClamp(value, 0, 100));
-  // step-02 · the cold-start sub-variant of the baseline keeps the SAME visible flavour (~N% 估算):
-  // the sub-division is machine-readable (`baseline:steps`), and falling through to the closed
-  // flavour would print it as a pinned 100 %-style number, which it is not.
+  // the cold-start sub-variant of the baseline keeps the SAME visible flavour (~N% estimated):
+ // the sub-division is machine-readable (`baseline:steps`), and falling through to the closed
+ // flavour would print it as a pinned 100 %-style number, which it is not.
   if (source === "baseline" || source === "baseline:steps") {
     return { kind: "estimate", percent: rounded, text: say("panel.percent.estimate", { percent: rounded }) };
   }
   if (source === "model") {
     return { kind: "self", percent: rounded, text: say("panel.percent.self", { percent: rounded }) };
   }
-  // 会话6 · a MEASURED number (the todo table's own completion ratio). It must read differently
-  // from both "self-reported" and "estimated", or the user cannot tell a fact from a guess.
+ // a MEASURED number (the todo table's own completion ratio). It must read differently
+ // from both "self-reported" and "estimated", or the user cannot tell a fact from a guess.
   if (source === "todos") {
     return { kind: "real", percent: rounded, text: say("panel.percent.real", { percent: rounded }) };
   }
@@ -86,9 +86,9 @@ function wfProgressIndeterminate(row) {
 }
 
 /**
- * step-03: 180_000 → "3 分钟", 5_400 → "54 秒", 3_720_000 → "62 分钟".
+ * 180_000 -> "3 minutes", 5_400 -> "54 seconds", 3_720_000 -> "62 minutes".
  * One decimal below ten seconds, integers above — a clock's precision, not a
- * stopwatch's. 0 or less returns "" (never "0 秒": see the caller).
+ * stopwatch's. 0 or less returns "" (never "0 seconds": see the caller).
  */
 function wfProgressDurationText(ms) {
   var value = wfFinite(ms);
@@ -106,23 +106,23 @@ function wfProgressDurationText(ms) {
 }
 
 /**
- * step-03: the ONE secondary fact left — how stale the number being quoted is — or null. Pure
+ * the ONE secondary fact left — how stale the number being quoted is — or null. Pure
  * arithmetic on the row the host already shipped; no clock is read here (the caller passes `asOf`).
  *
  * `ago` needs a real `lastEstimateAt` AND an `asOf` after it: a step that has never carried a
  * number gets no segment, and a future stamp (a re-ordered event log) is clamped to nothing
  * rather than shown as a negative duration. A missing field produces NO segment — never a
- * fabricated 0 or "—" (会话6: the ETA half went with the host's derived field).
+ * fabricated 0 or "—" (the ETA half went with the host's derived field).
  */
 function wfProgressTiming(row, asOf) {
   var status = row && typeof row.status === "string" ? row.status : "pending";
   var now = wfFinite(asOf);
   var estimateAt = wfFinite(row ? row.lastEstimateAt : null);
-  // The gate mirrors the percent label's: only a step that HAS a live progress number can read
-  // "N 分钟前估计", because the sentence is about that number. A pending row with a leftover stamp
-  // (a re-plan that reset a step, say) would otherwise advertise an estimate it never made — the
-  // same "no number beats a fake number" rule the percent label already follows. `ago` is a fact
-  // about the PAST, so it only needs a number to have existed at all: percent > 0.
+ // The gate mirrors the percent label's: only a step that HAS a live progress number can read
+ // "estimated N minutes ago", because the sentence is about that number. A pending row with a leftover stamp
+ // (a re-plan that reset a step, say) would otherwise advertise an estimate it never made — the
+ // same "no number beats a fake number" rule the percent label already follows. `ago` is a fact
+ // about the PAST, so it only needs a number to have existed at all: percent > 0.
   var livePercent = wfFinite(row ? row.percent : null);
   var hasAnyNumber = livePercent !== null && livePercent > 0 && status !== "pending";
   var ago = null;
@@ -155,9 +155,9 @@ function wfRenderProgressDock(h, row, say, asOf) {
     trackProps["aria-valuetext"] = label.text;
   }
 
-  // step-03: the second line — ONE fact (the age of the number), so there is no bits array and
-  // no separator any more. 会话6: the projected remainder is gone, so `data-timing` converged to
-  // none|one; nothing at all renders when there is no age (never a placeholder).
+ // the second line — ONE fact (the age of the number), so there is no bits array and
+ // no separator any more. the projected remainder is gone, so `data-timing` converged to
+ // none|one; nothing at all renders when there is no age (never a placeholder).
   var subline = ago === null
     ? null
     : h(
@@ -192,8 +192,8 @@ function wfRenderProgressDock(h, row, say, asOf) {
         className: "wf-prog-fill",
         key: "fill",
         "data-indeterminate": indeterminate ? "true" : "false",
-        // 会话6 · 有且只有一个分步的进度条带彩色流光：由调用方给的 row.live 决定（host 只标记
-        // 唯一的 running 行），而不是“凡是 running 都动”。没有这个字段时退回旧行为（running 即动）。
+  // Exactly one step's rail carries the flowing gradient: decided by the caller's row.live (the host marks only
+  // the single running row), not "everything running animates". Without that field it falls back to the old behaviour.
         "data-live": (row && row.live === true) || (row && row.live === undefined && status === "running") ? "true" : "false",
         style: { width: width + "%" },
       })),
