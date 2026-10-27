@@ -25,3 +25,6 @@ npm-debug.log*
 
 # the whole evidence directory is local-only
 evidence/
+
+# scratch scripts
+tools/_*.tmp.mjs
