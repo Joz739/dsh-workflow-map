@@ -1,0 +1,24 @@
+# generated / local artefacts
+client.js.bak
+*.bak
+*.bak-*
+*.bak-step*
+client.step05.bak
+
+# local verification output (re-generatable, never shipped)
+evidence/_tmp_*
+evidence/_tmp_chrome/
+evidence/preview/
+evidence/*.json
+evidence/*.ps1.log
+
+# editor / OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# node
+node_modules/
+npm-debug.log*

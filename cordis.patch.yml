@@ -1,0 +1,13 @@
+# dsh-workflow-map bundle patch: mounts the host row (empty apply at step-01).
+#
+# The browser half is the SAME package's ./client, loaded through the `dsh.client`
+# section in package.json (`platform: web`), which is why this patch carries no
+# client row of its own.
+#
+# `id: workflow-map` is unique in the profile patch layer; no existing entry
+# uses it (checked against the desktop profile's cordis.patch.yml at step-01).
+#
+# Install (step-05): the Desktop-hosted CLI, see README.md.
+- insert:
+    - id: workflow-map
+      name: 'dsh-workflow-map'

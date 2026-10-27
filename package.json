@@ -1,0 +1,64 @@
+{
+  "name": "dsh-workflow-map",
+  "version": "0.3.0",
+  "description": "工作流地图插件（DeepSeek Harness bundle）：在会话标签栏、左栏菜单与主内容区以同一份面板展示当前会话的分步总览、每步的工具/文件类型明细、唯一彩色流光进度条，并支持热注入（steer）与「需确认」标注。宿主半折叠会话事件并读取 PAE 计划，经本地 HTTP 视图供数据；浏览器半渲染面板。",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "cordis",
+    "plugin",
+    "bundle",
+    "workflow",
+    "progress",
+    "ui"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_GITHUB_USERNAME/dsh-workflow-map.git"
+  },
+  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/dsh-workflow-map#readme",
+  "bugs": {
+    "url": "https://github.com/YOUR_GITHUB_USERNAME/dsh-workflow-map/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "src",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "docs",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "node tools/build-client.mjs",
+    "test": "node tools/selftest-fold.mjs && node tools/selftest-host.mjs && node tools/selftest-orchestrator.mjs && node tools/selftest-shape.mjs && node tools/selftest-panel.mjs && node tools/selftest-detail.mjs && node tools/selftest-effects.mjs && node tools/selftest-settings.mjs && node tools/probe-route.mjs && node tools/probe-steer.mjs",
+    "test:real": "node tools/check-real-injects.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}
