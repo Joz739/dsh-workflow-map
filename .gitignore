@@ -22,3 +22,6 @@ Thumbs.db
 # node
 node_modules/
 npm-debug.log*
+
+# the whole evidence directory is local-only
+evidence/
