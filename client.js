@@ -850,7 +850,8 @@ window.__ModuleLoader__.load({
       ".wf-root[data-palette='brand'] .wf-fx-core,.wf-root[data-palette='brand'] .wf-fx-glow{stroke:url(#wf-fx-brand)}",
       ".wf-root[data-palette='brand'] .wf-fx-cap{fill:url(#wf-fx-brand)}",
       ".wf-root[data-palette='brand'] .wf-step-item[data-status='running']>.wf-step-card::after," +
-        ".wf-root[data-palette='brand'] .wf-node[data-status='running']::after{background:linear-gradient(90deg," +
+        ".wf-root[data-palette='brand'] .wf-node[data-status='running']::after," +
+        ".wf-root[data-palette='brand'] .wf-unit[data-status='running']>.wf-unit-center>.wf-unit-card::after{background:linear-gradient(90deg," +
         "var(--dsw-alias-brand-primary,#5b8cff),#8f7bea,var(--dsw-alias-brand-primary,#5b8cff));background-size:300% 100%}",
       ".wf-root[data-palette='brand'] .wf-prog-dock[data-status='running'] .wf-prog-fill{background:linear-gradient(90deg," +
         "var(--dsw-alias-brand-primary,#5b8cff),#8f7bea,var(--dsw-alias-brand-primary,#5b8cff));background-size:200% 100%}",
@@ -7062,6 +7063,7 @@ window.__ModuleLoader__.load({
             { className: "wf-page-sub", key: "sub" },
             say("panel.page.typeSub", {
               step: context.scopeStep === null ? say("panel.page.wholeSession") : "第 " + (context.scopeStep + 1) + " 步",
+              count: wfFinite(ui.bucket && ui.bucket.count) === null ? 0 : Math.max(0, Math.round(ui.bucket.count)),
             })
           ),
           wfRenderTypeBody(h, ui.bucket, ui.nodes, say, actions, context),

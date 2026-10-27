@@ -101,8 +101,9 @@ try {
   $live = Step $page 'selectedStepTypePage'
   Add-Check 'flow.page.open' ($live.rightOpen -eq $true -and $live.kind -eq 'type') "open=$($live.rightOpen) kind=$($live.kind)"
   Add-Check 'flow.page.title' ((HasText $live.title '第 1 步') -and (HasText $live.title 'md')) "title=$($live.title)"
-  # OPEN-2: only the scope half is asserted (the {count} placeholder leak is documented, not blessed).
-  Add-Check 'flow.page.subScope' ((HasText $live.sub '第 1 步') -and $live.sub -notmatch '^\s*$') "sub=$($live.sub)"
+  # OPEN-2 fixed: the subtitle carries the bucket's own count; a raw {count} token must never
+  # survive into the rendered page. The expected count is derived from the preview model.
+  Add-Check 'flow.page.subScope' ((HasText $live.sub '第 1 步') -and $live.sub -notmatch '\{\w+\}' -and (HasText $live.sub ([string]$expect.bucketCount))) "sub=$($live.sub) count=$($expect.bucketCount)"
   Add-Check 'flow.page.bodyRight' ($live.bodyRight -eq 'true') "data-right=$($live.bodyRight)"
   Add-Check 'flow.calls.count' (@($live.calls).Count -eq [int]$expect.listedCalls) "calls=$(@($live.calls).Count) expected=$($expect.listedCalls)"
   $row = @($live.calls)[0]

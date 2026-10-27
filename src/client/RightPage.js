@@ -236,6 +236,7 @@ function wfRenderRightPage(h, model, say, actions, extras) {
         { className: "wf-page-sub", key: "sub" },
         say("panel.page.typeSub", {
           step: context.scopeStep === null ? say("panel.page.wholeSession") : "第 " + (context.scopeStep + 1) + " 步",
+          count: wfFinite(ui.bucket && ui.bucket.count) === null ? 0 : Math.max(0, Math.round(ui.bucket.count)),
         })
       ),
       wfRenderTypeBody(h, ui.bucket, ui.nodes, say, actions, context),

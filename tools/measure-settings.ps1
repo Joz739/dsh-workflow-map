@@ -107,11 +107,10 @@ try {
   $b = $page.facts.brand
   Add-Check 'settings.brand.attributes' ($b.root.palette -eq 'brand' -and (ActiveHas $b 'palette=brand')) ($b.root | ConvertTo-Json -Compress)
   Add-Check 'settings.brand.fillSwitches' (HasText $b.runningFill.backgroundImage $expect.brandFirst) "fill=$($b.runningFill.backgroundImage)"
-  # KNOWN GAP (OPEN-1 in evidence/session7-rerun.md): the brand rule for the running card's
-  # frame still names the pre-会话4 selectors (.wf-step-item>.wf-step-card / .wf-node), so the
-  # new .wf-unit-card::after keeps the rainbow gradient. The measured truth is recorded here
-  # instead of asserting a behaviour the product does not have.
-  Add-Check 'settings.brand.frameUnmigrated' (HasText $b.cardFrame.backgroundImage $expect.rainbowFirst) 'brand palette does not reach .wf-unit-card::after yet (OPEN-1)'
+  # OPEN-1 fixed: the brand rule now also names the live card's own selector
+  # (.wf-unit[data-status='running']>.wf-unit-center>.wf-unit-card::after), so the running
+  # frame follows the brand token exactly like the fill already did.
+  Add-Check 'settings.brand.frameMigrated' (HasText $b.cardFrame.backgroundImage $expect.brandFirst) "frame=$($b.cardFrame.backgroundImage)"
   Add-Check 'settings.brand.persisted' ($page.storage.brand.palette -eq 'brand' -and $page.storage.loadBack.palette -eq 'brand') "stored=$($page.storage.brand.palette) loaded=$($page.storage.loadBack.palette)"
   Add-Check 'settings.brand.unitsUnchanged' ($b.units -eq $expect.stepCount) "units=$($b.units)"
 
