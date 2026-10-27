@@ -44,6 +44,8 @@
     "CHANGELOG.md",
     "LICENSE",
     "docs/OPEN-SOURCE-GUIDE.md",
+    "docs/screenshot.png",
+    "docs/screenshot-detail.png",
     "package.json"
   ],
   "scripts": {
