@@ -40,8 +40,27 @@ const existing = fs
   .readdirSync(ROOT)
   .filter((f) => !DEV_ONLY_ENTRIES.has(f) && !f.startsWith('.') && !f.endsWith('.bak'));
 const whitelist = new Set(pkg.files);
+// A top-level DIRECTORY is covered either by a bare entry (`docs`), by a glob (`locale/*.json`),
+// or by naming EVERY file inside it (`docs/OPEN-SOURCE-GUIDE.md`). The last form is what the
+// 2026-10-27 hotfix uses: `docs/` used to be shipped wholesale, which swept a personal
+// publish-checklist and a hand-holding tutorial (both carrying this machine's absolute paths)
+// into the tarball. Naming the file is STRICTER than naming the directory, so it must pass.
+function coveredBy(f) {
+  if (whitelist.has(f)) return true;
+  if (f === 'locale') return whitelist.has('locale/*.json');
+  let entries = [];
+  try {
+    const stat = fs.statSync(path.join(ROOT, f));
+    if (!stat.isDirectory()) return false;
+    entries = fs.readdirSync(path.join(ROOT, f)).filter((one) => !one.startsWith('.'));
+  } catch {
+    return false;
+  }
+  if (entries.length === 0) return false;
+  return entries.every((one) => whitelist.has(`${f}/${one}`));
+}
 for (const f of existing) {
-  const covered = whitelist.has(f) || (f === 'locale' && whitelist.has('locale/*.json'));
+  const covered = coveredBy(f);
   check(`files.whitelist.${f}`, covered, covered ? 'listed' : 'MISSING from files[]');
 }
 check('files.whitelist.localeDir', whitelist.has('locale/*.json'), 'locale/*.json');
