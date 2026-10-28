@@ -875,6 +875,16 @@ window.__ModuleLoader__.load({
         "var(--wf-soft-1),var(--wf-soft-2),var(--wf-soft-1));background-size:300% 100%}",
       ".wf-root[data-palette='soft'] .wf-prog-dock[data-status='running'] .wf-prog-fill{background:linear-gradient(90deg," +
         "var(--wf-soft-1),var(--wf-soft-2),var(--wf-soft-1));background-size:200% 100%}",
+    // The live single-page structure: the unit card frame, its status ring and the satellite glow are
+    // the elements that actually render now, so soft must cover them too — otherwise they fall back to
+    // the rainbow WF_FX_RING / the brand blue. The StepColumn + FlowColumn selectors above stay as they
+    // are: selftest-panel, selftest-settings and the preview-* fixtures still build those nodes.
+      ".wf-root[data-palette='soft'] .wf-unit[data-status='running']>.wf-unit-center>.wf-unit-card::after{background:linear-gradient(90deg," +
+        "var(--wf-soft-1),var(--wf-soft-2),var(--wf-soft-1));background-size:300% 100%}",
+      ".wf-root[data-palette='soft'] .wf-unit[data-status='running'] .wf-unit-ring{color:var(--wf-soft-1)}",
+      ".wf-root[data-palette='soft'] .wf-sat[data-live='true']::after," +
+        ".wf-root[data-palette='soft'] .wf-sat-row[data-live='true'] .wf-sat-line{background:linear-gradient(90deg," +
+        "var(--wf-soft-1),var(--wf-soft-2),var(--wf-soft-1));background-size:300% 100%}",
     ].join("\n");
 
     /* ===== the split body and the inject column ===== */

@@ -4,6 +4,8 @@
 #
 # Why a browser: step-12's claims are about real interaction and browser APIs —
 #   「切 palette/motion/detail/nodeLimit 立即改变面板表现，F5 后保留」
+#   （2026-10 起 soft 已迁移：运行中卡片外框与运行中单元的 status ring 也跟着 --wf-soft-1/2，
+#    故这两条断言的是 soft token，不再是彩虹）
 #   「导出 Markdown/JSON：步骤数、节点数、标题与面板逐条一致」
 #   「下载文件名含 sessionId 前缀」
 #   「localStorage 损坏时用缺省值并自愈，不白屏」
@@ -134,7 +136,10 @@ try {
   Add-Check 'settings.soft.stopColor' ([string]$s.root.softOne -eq [string]$expect.softOne) "soft1=$($s.root.softOne)"
   Add-Check 'settings.soft.fillGradient' (HasText $s.runningFill.backgroundImage $expect.softFill) "fill=$($s.runningFill.backgroundImage)"
   Add-Check 'settings.static.noAnimation' ($s.ring.animationName -eq 'none' -and $s.root.motion -eq 'static') "anim=$($s.ring.animationName) motion=$($s.root.motion)"
-  Add-Check 'settings.soft.keepsRainbowRing' (HasText $s.cardFrame.backgroundImage $expect.rainbowFirst) "frame=$($s.cardFrame.backgroundImage)"
+  # soft palette now names the live selectors too: the running card's frame follows --wf-soft-1/2
+  # exactly like the rail fill does, and so does the running unit's status ring.
+  Add-Check 'settings.soft.frameMigrated' (HasText $s.cardFrame.backgroundImage $expect.softFill) "frame=$($s.cardFrame.backgroundImage)"
+  Add-Check 'settings.soft.ringColor' ([string]$s.ring.color -eq [string]$expect.softFill) "ring=$($s.ring.color)"
 
   $r = $page.facts.reset
   Add-Check 'settings.reset.attributes' ($r.root.palette -eq 'rainbow' -and $r.root.motionPref -eq 'full' -and $r.root.detail -eq 'summary' -and [string]$r.root.nodeLimit -eq '60') ($r.root | ConvertTo-Json -Compress)

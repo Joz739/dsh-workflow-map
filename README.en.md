@@ -18,7 +18,7 @@ opened for a step (type list, step detail). Bottom: the persistent injection bar
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.0-success)
+![version](https://img.shields.io/badge/version-0.3.1-success)
 
 ---
 
@@ -162,6 +162,11 @@ can collapse the host's composer on that page; switching back unmounts the view 
 
 ## 3. Installation
 
+> **Fastest route**: with DSH running, open the **DSH market** (Plugins → Discover), search
+> `workflow`, and install **dsh-workflow-map** from there — no terminal needed.
+> Restart DSH when prompted. This route needs the version to be published on npm and picked up by
+> the market index; if it does not show up yet, use the command line below (3.2) — same package.
+
 ### 3.1 Install through the agent
 
 ```
@@ -175,6 +180,11 @@ A returned `application: applied` means it took effect; no other value does.
 ```bash
 cd "$HOME/.dsh/profiles/desktop"
 pnpm add dsh-workflow-map
+```
+
+```powershell
+# One command into the desktop profile (the bundled DSH CLI forwards the rest to that profile's pnpm; use the full path if it is not on PATH)
+dsh plugin --profile desktop add dsh-workflow-map
 ```
 
 Then append `"dsh-workflow-map"` to the `dsh.profile.bundles` array in that directory's `package.json`.
@@ -298,7 +308,7 @@ steps, their status, the percentage source, the node list and the report artifac
 # after editing src/client/*.js, rebuild the browser half
 node tools/build-client.mjs
 
-# offline self-tests (10 suites, 1505 assertions)
+# offline self-tests (10 suites, 1507 assertions)
 node tools/selftest-fold.mjs          # fold semantics
 node tools/selftest-host.mjs          # registration, schema, projection wiring
 node tools/selftest-orchestrator.mjs  # plan file reading and merging
@@ -315,7 +325,7 @@ node tools/check-real-injects.mjs     # fold historical logs in bulk
 node tools/audit-real.mjs             # four-constraint audit
 ```
 
-Browser measurements (needs a Chromium; the scripts auto-detect Chrome / Edge; 307 assertions):
+Browser measurements (needs a Chromium; the scripts auto-detect Chrome / Edge; 308 assertions):
 
 ```bash
 pwsh -File tools/measure-panel.ps1
@@ -355,12 +365,16 @@ Every threshold is defined once and asserted by the tests, so this table cannot 
 ---
 
 ## 11. Known issues
-| # | Symptom | Impact | Scope |
-|---|---|---|---|
-| 1 | With the brand palette the running unit's frame still uses the default gradient | Appearance only | That palette's frame rule does not cover the new structure's selector |
-| 2 | The type page subtitle shows an unsubstituted `{count}` placeholder | Wording only | That view passes one parameter short |
 
-Neither affects functionality or accessibility.
+Both defects recorded in 0.3.0 are closed:
+
+| Original # | Symptom | Status |
+|---|---|---|
+| 1 | With the brand palette the running unit's frame used the default gradient | Fixed (`8bf6f2c`); the same residue under the `soft` palette was fixed in 0.3.1 |
+| 2 | The type page subtitle showed an unsubstituted `{count}` placeholder | Fixed (`8bf6f2c`) |
+
+There are no known functional defects at present. Changes to the host half need a DSH process restart;
+that is how activation works, not a defect.
 
 ---
 

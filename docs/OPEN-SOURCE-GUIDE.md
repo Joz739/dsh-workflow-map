@@ -30,6 +30,8 @@
 
 ## 二、发布到 GitHub
 
+> 下面的 `v0.3.0` 只是示例版本号；**当前版本见 `package.json`** 的 `version` 字段。
+
 ### 2.1 建仓库
 
 在 <https://github.com/new> 建一个**空**仓库，仓库名与 `package.json` 的 `name` 一致。
@@ -71,6 +73,9 @@ git push origin v0.3.0
 ---
 
 ## 三、发布到 npm
+
+> 当前版本见 `package.json` 的 `version`；`pnpm pack --dry-run` 的版本行、`npm publish`
+> 与 `git tag` 都以该值为准。
 
 ### 3.1 先自验包内容
 
@@ -163,7 +168,7 @@ node tools/probe-route.mjs            # 真实 HTTP 路由
 node tools/probe-steer.mjs            # 注入 / 撤回通道
 ```
 
-合计 **1505 条离线断言**。也可一条命令：
+合计 **1507 条离线断言**。也可一条命令：
 
 ```bash
 npm test
@@ -191,7 +196,7 @@ pwsh -File tools/measure-settings.ps1  # 设置卡与导出
 pwsh -File tools/measure-main.ps1      # 单页几何与交互
 ```
 
-合计 **307 条浏览器量测**。
+合计 **308 条浏览器量测**。
 
 > `tools/retired/` 里是量「已移除界面」的历史脚本，**不属于验证链**，不期望通过。
 

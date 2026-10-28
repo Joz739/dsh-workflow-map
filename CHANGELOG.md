@@ -3,6 +3,35 @@
 `dsh-workflow-map` 的所有重要变更记录在此。
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [SemVer](https://semver.org/)。
 
+## [0.3.1] - 2026-10-28
+
+### Fixed
+
+- **`soft` 配色的同类残留**。0.3.0 已让 `brand` 配色下运行中卡片的外框跟随品牌色，
+  但 `soft` 配色的规则仍只认单页改版之前的选择器（`.wf-step-item > .wf-step-card` / `.wf-node`），
+  于是切到 `soft` 时运行中单元的外框仍是默认彩虹渐变、状态环仍停在品牌蓝、
+  卫星圆点与连线的流光也没换色。现在 `soft` 与 `brand` 一样同时命名现役选择器——
+  `.wf-unit[data-status='running']>.wf-unit-center>.wf-unit-card::after`、`.wf-unit-ring`、
+  `.wf-sat[data-live='true']::after` 与 `.wf-sat-row[data-live='true'] .wf-sat-line`——
+  三处一并跟随 `--wf-soft-1` / `--wf-soft-2`。
+- 对应的浏览器量测从「记录缺陷」改为「断言修复」：`settings.soft.keepsRainbowRing`
+  换成 `settings.soft.frameMigrated` 与 `settings.soft.ringColor`，期望色由 `--wf-soft-1`
+  派生（`rgb(127, 147, 184)`），不写第二份颜色字面量。
+
+### Changed
+
+- `docs/screenshot.png`（1400×900）与 `docs/screenshot-detail.png`（1500×950）
+  用当前代码重新渲染，替换为修复后的界面。
+
+### Tests
+
+- 离线自测 **10 套 / 1507 条断言**、浏览器量测 **10 套 / 308 条断言**，全部通过。
+
+### Notes
+
+- 仅改浏览器半（`src/client/*.js` 与重建的 `client.js`）与文档，**宿主半未改动**：
+  升级后 **F5 刷新页面**即可，不需要重启 DSH 进程。
+
 ## [0.3.0] - 2026-10-27
 
 首个公开发布版本。相比内部迭代期，这一版把面板从「开发中的实验界面」收敛成可日常使用的形态。
@@ -47,7 +76,7 @@
 ### Tests
 
 - 离线自测 **10 套**，合计 **1505 条断言**。
-- 浏览器量测 **10 套**，合计 **307 条断言**（真实 CSS + 真实事件，覆盖几何、动画、剪贴板、
+- 浏览器量测 **10 套**，合计 **308 条断言**（真实 CSS + 真实事件，覆盖几何、动画、剪贴板、
   键盘与降级路径）。
 - 真实日志只读回归：批量折叠历史会话日志、零失败；另有四条硬约束审计。
 

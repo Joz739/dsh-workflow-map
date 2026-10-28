@@ -17,7 +17,7 @@ DeepSeek Harness 插件：把当前会话渲染为一张可交互的分步工作
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.0-success)
+![version](https://img.shields.io/badge/version-0.3.1-success)
 
 ---
 
@@ -151,6 +151,11 @@ body 超 64 KiB，`503` 宿主未暴露相应能力。
 
 ## 3. 安装
 
+> **最快的方式**：装好 DSH 后，在 **DSH 市场**（Plugins → Discover）搜索 `workflow`，
+> 找到 **dsh-workflow-map** 直接点安装即可，不必开命令行。
+> 装完按提示重启 DSH；这条入口依赖该版本已发布到 npm 并被市场索引收录，
+> 若暂时搜不到，用下面的命令行方式（3.2）安装同样的包。
+
 ### 3.1 通过 agent 安装
 
 ```
@@ -164,6 +169,11 @@ body 超 64 KiB，`503` 宿主未暴露相应能力。
 ```bash
 cd "$HOME/.dsh/profiles/desktop"
 pnpm add dsh-workflow-map
+```
+
+```powershell
+# 一条命令装到 desktop profile（DSH 自带 CLI 会把余下参数转给该 profile 的 pnpm；未加进 PATH 时用全路径）
+dsh plugin --profile desktop add dsh-workflow-map
 ```
 
 随后把 `"dsh-workflow-map"` 追加到该目录 `package.json` 的 `dsh.profile.bundles` 数组末尾。
@@ -284,7 +294,7 @@ curl -i "http://127.0.0.1:<GUI端口>/dsh-workflow/state?sessionId=<会话ID>"
 # 修改 src/client/*.js 后必须重新生成浏览器半
 node tools/build-client.mjs
 
-# 离线自测（10 套，共 1505 条断言）
+# 离线自测（10 套，共 1507 条断言）
 node tools/selftest-fold.mjs          # 折叠语义
 node tools/selftest-host.mjs          # 注册、schema、投影接线
 node tools/selftest-orchestrator.mjs  # 计划文件读取与合并
@@ -301,7 +311,7 @@ node tools/check-real-injects.mjs     # 批量折叠历史日志
 node tools/audit-real.mjs             # 四项约束审计
 ```
 
-浏览器量测（需一份 Chromium，脚本自动探测 Chrome / Edge，共 307 条断言）：
+浏览器量测（需一份 Chromium，脚本自动探测 Chrome / Edge，共 308 条断言）：
 
 ```bash
 pwsh -File tools/measure-panel.ps1
@@ -341,12 +351,15 @@ pwsh -File tools/measure-main.ps1
 ---
 
 ## 11. 已知问题
-| 编号 | 现象 | 影响 | 范围 |
-|---|---|---|---|
-| 1 | 品牌配色下，运行中单元的外框仍使用默认渐变 | 仅外观 | 该配色的外框规则未覆盖新结构的选择器 |
-| 2 | 类型页副标题显示未替换的 `{count}` 占位符 | 仅文案 | 该视图的副标题入参缺少一项 |
 
-两项均不影响功能与可访问性。
+0.3.0 记录过的两个缺陷均已关闭：
+
+| 原编号 | 现象 | 状态 |
+|---|---|---|
+| 1 | 品牌配色下运行中单元的外框仍用默认渐变 | 已修（`8bf6f2c`）；`soft` 配色的同类残留同时修于 0.3.1 |
+| 2 | 类型页副标题显示未替换的 `{count}` 占位符 | 已修（`8bf6f2c`） |
+
+当前没有已知的功能性缺陷。宿主半的改动需要重启 DSH 进程，这属于生效机制，不算缺陷。
 
 ---
 
