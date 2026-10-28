@@ -15,8 +15,8 @@
   `.wf-sat[data-live='true']::after` 与 `.wf-sat-row[data-live='true'] .wf-sat-line`——
   三处一并跟随 `--wf-soft-1` / `--wf-soft-2`。
 - 对应的浏览器量测从「记录缺陷」改为「断言修复」：`settings.soft.keepsRainbowRing`
-  换成 `settings.soft.frameMigrated` 与 `settings.soft.ringColor`，期望色由 `--wf-soft-1`
-  派生（`rgb(127, 147, 184)`），不写第二份颜色字面量。
+  换成 `settings.soft.frameMigrated` 与 `settings.soft.ringColor`，两者都用期望色
+  `rgb(127, 147, 184)` 比对；同一份期望里也存了它的十六进制写法 `#7f93b8`。
 
 ### Changed
 

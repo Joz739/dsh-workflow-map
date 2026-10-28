@@ -162,10 +162,10 @@ can collapse the host's composer on that page; switching back unmounts the view 
 
 ## 3. Installation
 
-> **Prerequisites for installing from the market**: two conditions must both hold — (1) `dsh-workflow-map`
-> is published on npm (currently `0.3.1`); (2) the `awesome-dsh-plugin` PR is merged **and** the market index
+> **Prerequisites for installing from the market**: two conditions must both hold. (1) `dsh-workflow-map`
+> is published on npm (currently `0.3.1`). (2) The `awesome-dsh-plugin` PR is merged **and** the market index
 > (`dsh-plugin-catalog`, served via jsDelivr) has refreshed and picked up the entry.
-> Once both hold, install from the **DSH market** (Plugins → Discover) by searching `workflow` — no terminal needed.
+> Once both hold, install from the **DSH market** (Plugins > Discover) by searching `workflow`, no terminal needed.
 > If it is not indexed yet, use the command line below (3.2) to install the same package; both routes are equivalent.
 
 ### 3.1 Install through the agent
