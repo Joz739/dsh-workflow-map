@@ -63,9 +63,8 @@ encoding (animation and colour).
 
 ### 2.1 Hot injection (steer / unsteer)
 
-> **What you get**: add a requirement mid-run without waiting for the turn to finish. The message
-> queues for the next step while the current turn completes with its context intact; a mistake can be
-> revoked before it is claimed, and "sent" is clearly distinct from "the session picked it up".
+This section states the write semantics, state determination and failure semantics of the injection channel.
+All three are derived from session log events; the front end does not guess.
 **Write semantics**: `POST /dsh-workflow/steer` calls the host's `agent.steer(message)`; the message
 enters the session inbox queue `next-step` and is claimed by the next step **after the current turn
 ends**. The call does not trigger `cancel`, so the running turn is not interrupted.
@@ -95,24 +94,25 @@ the capability.
 
 ### 2.2 Progress estimation
 
-> **What you get**: a percentage is never an unexplained number. It is either a verifiable count or an
-> explicitly labelled estimate, and it tells you how stale the number is.
+This section states the percentage priority order, the algorithm and cap of each source, and the definition
+of the staleness field. The rule is implemented by `percentFor` in `src/fold.mjs`.
 
 Each step's percentage is resolved by the following **priority** (`percentFor` in `src/fold.mjs`):
 | Priority | Source | Rule | Cap |
 |---|---|---|---|
-| 1 | Todo table `todos` | `round(completed / total * 100)`, min of that and the self-report | 99 |
-| 2 | Model self-report `model` | The step's `stepProgress/report` percentage, max of that and the high-water mark | 100 |
+| 1 | Todo table `todos` | `round(completed / total * 100)`; when a self-report exists, this measured value is still what is returned | 99 |
+| 2 | Model self-report `model` | Only when the todo table has no countable rows: the **larger** of the `stepProgress/report` percentage and the self-report high-water mark | 100 |
 | 3 | Time baseline `baseline` | `elapsed / median(finished-step durations in this session) * 100` | 90 |
 | 4 | Plan ordinal `baseline:steps` | Cold start with `current step / total steps * 100` when no durations exist | 90 |
 | - | `none` | None of the four is available | No number shown |
 
 Constraint: an unfinished step never shows 100 %; a finished (done or failed) step is pinned to 100 %.
 
-`todos` outranks `model` because it is verifiable: the todo table is an objective count, while self-reports
-skew high. In real session samples the reported values cluster in the 85-100 range, which suppresses the
-completion actually reflected by the todo table; taking the smaller of the two removes that bias, and when
-the todo table is ahead of the report (a stale report) the table wins.
+The choice follows verifiability: the todo table is an objective count, a model self-report is not. So
+whenever the todo table has completed rows, the percentage is that measured ratio (both branches of that
+`percentFor` expression yield `measured`); the self-report is a fallback only when no row can be measured.
+The high-water record `step.maxPercent` is still kept and never rolled back, but it no longer takes part in
+computing the displayed value.
 
 A second line under the rail reads `estimated N minutes ago`, i.e. `view.asOf - step.lastEstimateAt`.
 It describes how **stale** the number is, distinguishing "being updated" from "unchanged for a long time".
@@ -162,10 +162,11 @@ can collapse the host's composer on that page; switching back unmounts the view 
 
 ## 3. Installation
 
-> **Fastest route**: with DSH running, open the **DSH market** (Plugins → Discover), search
-> `workflow`, and install **dsh-workflow-map** from there — no terminal needed.
-> Restart DSH when prompted. This route needs the version to be published on npm and picked up by
-> the market index; if it does not show up yet, use the command line below (3.2) — same package.
+> **Prerequisites for installing from the market**: two conditions must both hold — (1) `dsh-workflow-map`
+> is published on npm (currently `0.3.1`); (2) the `awesome-dsh-plugin` PR is merged **and** the market index
+> (`dsh-plugin-catalog`, served via jsDelivr) has refreshed and picked up the entry.
+> Once both hold, install from the **DSH market** (Plugins → Discover) by searching `workflow` — no terminal needed.
+> If it is not indexed yet, use the command line below (3.2) to install the same package; both routes are equivalent.
 
 ### 3.1 Install through the agent
 

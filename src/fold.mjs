@@ -515,25 +515,25 @@ function percentFor(state, step, now) {
     const pinned = step.percent === null ? 100 : step.percent;
     return { percent: clamp(pinned, 0, 100), source: step.percentSource === "none" ? "closed" : step.percentSource };
   }
-  // REAL progress source. The todo table is itself a measurement: how
-  // many of its rows are already completed. No clock, no extrapolation — so it outranks the time
-  // baseline. A model self-report still wins when present (it knows the work better than the
-  // checklist), and the baseline is demoted to the last resort.
+  // Priority 2 when a self-report exists: the todo table's completion ratio is a measurement (no
+  // clock, no extrapolation), so it determines the number whenever it has rows to report on.
+  // The self-report can only lower the result, never raise it above the measured ratio.
   const rowsTotal = state.todos.length;
   const rowsDone = state.todos.filter((item) => item.status === "completed").length;
   const reported = state.reports.find((entry) => entry.stepIndex === step.index);
   if (reported && isFiniteNumber(reported.percent)) {
-    // Self-report high-water decay. The self-report used to WIN outright, so one optimistic report
-    // (measured across real sessions: 5 of 6 land in 85–100) froze the bar above the todo table's
-    // own completion ratio for the rest of the step - an inflated self-report could freeze out the measurement. The todo table is itself a
-    // MEASUREMENT (no clock, no extrapolation), so it speaks whenever it has rows to speak for:
-    //   • below the report → min(report, measured) = measured (an inflated report no longer freezes out the measurement);
-    //   • above the report → measured (a stale low report must not hide work already done).
-    // The high-water RECORD (step.maxPercent) is still kept and never rolled back; it simply no
-    // longer pins the *display* up, which is what let an 85 % report sit on a 40 % reality.
+    // A self-report and the todo table disagree in both directions. The todo table's ratio is a
+    // MEASUREMENT (a count over rows; no clock, no extrapolation), so it decides the displayed number
+    // whenever it has rows to speak for:
+    //   • report below it → the measurement (a stale low report must not hide work already done);
+    //   • report above it → the measurement (a report must not claim more than the rows show).
+    // Keeping the report out of the displayed value removes both directions of error; it is not a
+    // claim about how often a report is wrong. The high-water record (step.maxPercent) is still kept
+    // and never rolled back; it simply no longer takes part in the displayed value.
     const measured = rowsTotal > 0 && rowsDone > 0 ? Math.round((rowsDone / rowsTotal) * 100) : null;
     if (measured !== null) {
-      const value = measured > reported.percent ? measured : Math.min(reported.percent, measured);
+      // The todo table is the measurement; the self-report cannot raise the number above it.
+      const value = measured;
       return { percent: clamp(value, 0, 99), source: "todos" };
     }
     return { percent: clamp(Math.max(reported.percent, step.maxPercent), 0, 100), source: "model" };
