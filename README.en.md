@@ -18,7 +18,7 @@ opened for a step (type list, step detail). Bottom: the persistent injection bar
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.1-success)
+![version](https://img.shields.io/badge/version-0.3.3-success)
 
 ---
 
@@ -163,7 +163,7 @@ can collapse the host's composer on that page; switching back unmounts the view 
 ## 3. Installation
 
 > **Prerequisites for installing from the market**: two conditions must both hold. (1) `dsh-workflow-map`
-> is published on npm (currently `0.3.1`). (2) The `awesome-dsh-plugin` PR is merged **and** the market index
+> is published on npm (currently `0.3.3`). (2) The `awesome-dsh-plugin` PR is merged **and** the market index
 > (`dsh-plugin-catalog`, served via jsDelivr) has refreshed and picked up the entry.
 > Once both hold, install from the **DSH market** (Plugins > Discover) by searching `workflow`, no terminal needed.
 > If it is not indexed yet, use the command line below (3.2) to install the same package; both routes are equivalent.

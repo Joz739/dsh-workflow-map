@@ -796,6 +796,12 @@ function foldTodos(state, event, time) {
     // its old key, so the nodes it already owns can follow the rename. Both the rename and the
     // lifecycle change are applied in one assignment, so neither can lose the other.
     let next = step;
+    // The row's ordinal follows the TABLE, not the row's history. A matched row that used to be
+    // unnumbered (or numbered differently) must take the ordinal this table now states, or the
+    // view keeps a stale planIndex and `applyPlanToView` patches the wrong plan step onto it.
+    // Measured 2026-10-29 on session 164e339f: leftover unnumbered rows kept planIndex 2 / 3 /
+    // 4... from an earlier PAE plan and the map rendered plan steps 3-7 twice.
+    if (planIndex !== null && next.planIndex !== planIndex) next = { ...next, planIndex };
     const shown = text(stripOrdinal(item.content) || item.content, TITLE_LIMIT);
     const shownKey = normalizeTitle(shown);
     if (shownKey !== "" && shownKey !== next.stepKey) {
@@ -2341,7 +2347,13 @@ function syncToTodos(state) {
     const key = normalizeTitle(item.content);
     if (key === "" || seen.has(key)) continue;
     seen.add(key);
-    wanted.push({ key, title, status: item.status });
+    // `planIndex` MUST be parsed from the RAW content, not from `title`: `stripOrdinal`
+    // already removed the "3." prefix, so `planIndexOf(title)` always returned null and every
+    // created row lost its ordinal. Measured 2026-10-29 on session 164e339f: a 14-row numbered
+    // table produced rows whose planIndex fell back to POSITION, so row 9 ("9. n8n 主工作流…")
+    // was stamped planIndex 2 and `applyPlanToView` then rewrote it with plan step 2's title and
+    // status — the map showed steps 3–7 twice and the wrong step as running.
+    wanted.push({ key, title, status: item.status, planIndex: planIndexOf(item.content) });
   }
   if (wanted.length === 0) return state;
 
@@ -2390,14 +2402,30 @@ function syncToTodos(state) {
     // (2) TEXT SHARE as the fallback for a re-numbered or re-ordered table.
     let candidate = null;
     const slot = wanted.indexOf(row);
-    const sameSlot = orphans.find((step) => !used.has(step.index) && step.index === slot);
+    // An explicit ordinal OUTRANKS position. A numbered table states which plan step each row
+    // IS; letting the slot win anyway pairs row 9 with whatever orphan happens to sit at
+    // position 8, and the row inherits that orphan's planIndex. Measured 2026-10-29 on session
+    // 164e339f: after a 7-row unnumbered table was replaced by a 14-row numbered one, row 9
+    // took the leftover row 2 and the map rendered plan steps 3-7 twice.
+    const ordinalConflict = (step) =>
+      row.planIndex !== null && Number.isInteger(step.planIndex) && step.planIndex !== row.planIndex;
+    const sameSlot = orphans.find(
+      (step) => !used.has(step.index) && step.index === slot && !ordinalConflict(step),
+    );
     if (sameSlot && (sameSlot.status === row.status || sameSlot.status === STEP_STATUS.running)) {
       candidate = sameSlot;
+    }
+    if (candidate === null && row.planIndex !== null) {
+      const byOrdinal = orphans.find(
+        (step) => !used.has(step.index) && Number.isInteger(step.planIndex) && step.planIndex === row.planIndex,
+      );
+      if (byOrdinal) candidate = byOrdinal;
     }
     if (candidate === null) {
       let bestShare = 0;
       for (const step of orphans) {
         if (used.has(step.index)) continue;
+        if (ordinalConflict(step)) continue;
         const other = normalizeTitle(step.title);
         const score = commonPrefix(other, row.key);
         if (score < REWORD_PREFIX_MIN) continue;
@@ -2430,7 +2458,7 @@ function syncToTodos(state) {
     // node-remap nor the node attribution can ever find it.
     created.stepKey = row.key;
     created.startedAt = 0;
-    created.planIndex = planIndexOf(row.title) ?? undefined;
+    created.planIndex = row.planIndex ?? undefined;
     created.status = row.status === "completed" ? STEP_STATUS.done : STEP_STATUS.pending;
     if (created.status === STEP_STATUS.done) {
       created.percent = 100;

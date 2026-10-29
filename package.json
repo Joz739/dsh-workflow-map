@@ -1,6 +1,6 @@
 {
   "name": "dsh-workflow-map",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "工作流地图插件（DeepSeek Harness bundle）：在会话标签栏、左栏菜单与主内容区以同一份面板展示当前会话的分步总览、每步的工具/文件类型明细、唯一彩色流光进度条，并支持热注入（steer）与「需确认」标注。宿主半折叠会话事件并读取 PAE 计划，经本地 HTTP 视图供数据；浏览器半渲染面板。",
   "private": false,
   "type": "module",

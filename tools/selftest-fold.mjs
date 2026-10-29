@@ -36,6 +36,7 @@ import {
   createInitialState,
   foldEvent,
 } from "../src/fold.mjs";
+import { applyPlanToView } from "../src/orchestrator.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const MODULE_PATH = path.join(HERE, "..", "src", "fold.mjs");
@@ -1258,6 +1259,118 @@ function foldAll(events) {
   equal("(n8) building the view twice is deterministic", JSON.stringify(laterView(onceMixed, 90000)), JSON.stringify(n8a));
   check("(n8) no NaN and no out-of-range percent ever leaves the fold", n8a.steps.every((step) => step.percent === null || (Number.isFinite(step.percent) && step.percent >= 0 && step.percent <= 100)), JSON.stringify(n8a.steps.map((step) => step.percent)));
   check("(n8) and no projected-remaining field rides along either", n8a.steps.every((step) => step.etaMs === undefined), "the field is gone from every step, not merely null");
+}
+
+// ---------------------------------------------------------------------------
+// (o) a NUMBERED todo table after an unnumbered one — the ordinal must survive
+// ---------------------------------------------------------------------------
+// Measured 2026-10-29 on session 164e339f ("n8n download and localisation tutorial"): the
+// model wrote a 7-row UNNUMBERED table, then replaced it with a 14-row table whose rows carry
+// an explicit "1. " .. "14. " prefix. Two defects showed up together and both are asserted here:
+//
+//   (o1) `syncToTodos` parsed the ordinal from the ALREADY-STRIPPED title, so `planIndexOf`
+//        always returned null and every created row lost its ordinal;
+//   (o2) `foldTodos` matched rows positionally and never re-stamped the ordinal, so a row that
+//        used to be unnumbered kept its stale planIndex and the plan merge then patched a
+//        WRONG plan step onto it. The visible result was plan steps 3-7 rendered twice and the
+//        running step in the wrong slot.
+{
+  resetSeq();
+  const todoWrite = (rows, time) =>
+    ev("todo/write", { todos: rows.map(([content, status]) => ({ content, status })) }, time === undefined ? {} : { time });
+  const laterView = (state, afterMs) => buildView(state, state.asOf + afterMs);
+  const unnumbered = foldAll([
+    userMessage("先写一张不带序号的表"),
+    todoWrite([
+      ["核验部署硬事实", "completed"],
+      ["诊断 npm 安装失败根因", "completed"],
+      ["用 --ignore-scripts 装入 D 盘", "in_progress"],
+      ["补装 sqlite3 预编译二进制", "pending"],
+      ["启动 n8n 验证英文界面", "pending"],
+      ["替换 dist 并设 zh-CN", "pending"],
+      ["撰写教程正文并转 docx", "pending"],
+    ]),
+    // The replacement table: 14 rows, every one carrying its own ordinal.
+    todoWrite(
+      Array.from({ length: 14 }, (_, i) => [`${i + 1}. 步骤标题${i + 1}`, i === 0 ? "completed" : "pending"]),
+    ),
+  ]);
+  const o1 = laterView(unnumbered, 1000);
+  equal("(o1) the numbered table yields exactly 14 rows", o1.steps.length, 14);
+  equal(
+    "(o1) every row carries the ordinal its own text states",
+    o1.steps.map((step) => step.planIndex).join(","),
+    Array.from({ length: 14 }, (_, i) => i + 1).join(","),
+  );
+  const titles = o1.steps.map((step) => step.title);
+  equal("(o2) no step title appears twice", new Set(titles).size, titles.length);
+  equal(
+    "(o2) the row keeps its own title instead of inheriting a neighbour's",
+    titles.map((title) => (title.match(/^步骤标题(\d+)$/) || [])[1]).join(","),
+    Array.from({ length: 14 }, (_, i) => i + 1).join(","),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// (p) the plan's requiresConfirmation reaches the view's pendingConfirm
+// ---------------------------------------------------------------------------
+// The log half of the flag (an open approval, an unanswered question) is derived by buildView.
+// The PLAN half lives in orchestrator.json and is merged by applyPlanToView. Measured
+// 2026-10-29: that merge did not exist, so a plan step carrying requiresConfirmation:true
+// rendered with no needs-confirmation flag at all.
+{
+  resetSeq();
+  const todoWrite = (rows, time) =>
+    ev("todo/write", { todos: rows.map(([content, status]) => ({ content, status })) }, time === undefined ? {} : { time });
+  const laterView = (state, afterMs) => buildView(state, state.asOf + afterMs);
+  const flat = foldAll([
+    userMessage("需要确认点的计划"),
+    todoWrite([
+      ["1. 环境基线", "completed"],
+      ["2. 视频服务扩展", "pending"],
+      ["3. 素材采集器", "pending"],
+    ]),
+  ]);
+  const view = laterView(flat, 1000);
+  const plan = {
+    ver: 1,
+    phase: "executing",
+    taskTitle: "需要确认点的计划",
+    task: "需要确认点的计划",
+    summary: "",
+    // `applyPlanToView` reads these two through `planStatusOf`; a plan object without them
+    // throws instead of merging, so the fixture carries the same shape the reader produces.
+    statuses: {},
+    stepReports: [],
+    skipped: [],
+    steps: [
+      { index: 1, title: "环境基线", requiresConfirmation: false },
+      { index: 2, title: "视频服务扩展", requiresConfirmation: true },
+      { index: 3, title: "素材采集器", requiresConfirmation: false },
+    ],
+  };
+  const merged = applyPlanToView(view, plan);
+  equal(
+    "(p) only the plan step that requires confirmation carries the flag",
+    merged.steps.map((step) => (step.pendingConfirm || []).length).join(","),
+    "0,1,0",
+  );
+  equal(
+    "(p) the flag is attributed to the right plan step",
+    merged.steps[1].pendingConfirm[0].kind,
+    "plan",
+  );
+  equal(
+    "(p) applying the same plan twice does not duplicate the row",
+    applyPlanToView(merged, plan).steps.map((step) => (step.pendingConfirm || []).length).join(","),
+    "0,1,0",
+  );
+  const doneView = { ...view, steps: view.steps.map((step, at) => (at === 1 ? { ...step, status: "done" } : step)) };
+  equal(
+    "(p) a finished step never carries the flag",
+    applyPlanToView(doneView, plan).steps.map((step) => (step.pendingConfirm || []).length).join(","),
+    "0,0,0",
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -300,6 +300,24 @@ export function applyPlanToView(view, plan) {
         }
       }
     }
+    // The plan's own `requiresConfirmation` is the OTHER half of the needs-confirmation flag:
+    // `buildView` derives the log half (an open approval, an unanswered question), and this
+    // adds the plan half. It belongs HERE because this is the only place that has both the
+    // normalised plan step and the view row it lands on. Measured 2026-10-29 on session
+    // 164e339f: plan steps 2 / 12 / 13 carry requiresConfirmation and the map showed none of
+    // them, while `pendingConfirmSteps` in fold.mjs only ever consulted the log.
+    //
+    // A finished step never carries the flag (the same rule `buildView` applies): a decision a
+    // done step was waiting on is history, not a request.
+    if (planStep.requiresConfirmation === true && step.status !== "done" && step.status !== "failed") {
+      const rows = Array.isArray(step.pendingConfirm) ? step.pendingConfirm : [];
+      if (!rows.some((row) => isRecord(row) && row.kind === "plan")) {
+        patch.pendingConfirm = [
+          ...rows,
+          { kind: "plan", label: planStep.title !== "" ? planStep.title : `第 ${planStep.index} 步`, at: 0 },
+        ];
+      }
+    }
     if (Object.keys(patch).length === 0) continue;
     steps[position] = { ...step, ...patch };
     changed = true;

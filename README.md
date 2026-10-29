@@ -17,7 +17,7 @@ DeepSeek Harness 插件：把当前会话渲染为一张可交互的分步工作
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.1-success)
+![version](https://img.shields.io/badge/version-0.3.3-success)
 
 ---
 
@@ -147,7 +147,7 @@ body 超 64 KiB，`503` 宿主未暴露相应能力。
 
 ## 3. 安装
 
-> **市场安装的前提**：该入口要求同时满足两个条件 ——（1）`dsh-workflow-map` 已发布到 npm（当前为 `0.3.1`）；
+> **市场安装的前提**：该入口要求同时满足两个条件 ——（1）`dsh-workflow-map` 已发布到 npm（当前为 `0.3.3`）；
 > （2）`awesome-dsh-plugin` 的 PR 已合并，且市场索引（`dsh-plugin-catalog`，经 jsDelivr 分发）已刷新收录该条目。
 > 满足后在 **DSH 市场**（Plugins → Discover）搜索 `workflow` 即可安装，无需命令行；
 > 若尚未收录，使用下面的命令行方式（3.2）安装同一个包，两者效果一致。
