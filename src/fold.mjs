@@ -68,7 +68,7 @@
 // demotes a step that still carried `done`/`running`, and a step any table no longer names is
 // dropped). Checkpoints written before the bump hold ledgers from the older mapping — wrong
 // statuses and leftover rows — so the same contract applies: drop and rebuild from the log.
-export const STATE_VERSION = 4;
+export const STATE_VERSION = 5;
 
 export const SCHEMA_VERSION = 1;
 
@@ -548,7 +548,13 @@ function percentFor(state, step, now) {
       const value = measured;
       return { percent: clamp(value, 0, 99), source: "todos" };
     }
-    return { percent: clamp(Math.max(reported.percent, step.maxPercent), 0, 100), source: "model" };
+    // The model's LATEST statement is the number, and an open step is 0..99: 100 % on a running
+    // row is a claim the log does not support. The high-water record is deliberately NOT applied
+    // here — this is what the comment above already promised ("it simply no longer takes part in
+    // the displayed value"). Applying it froze a row at the highest number it had ever reached:
+    // measured 2026-10-30 on session f9c27769, where step 0 stayed at 99 % while the model's own
+    // reports walked 55 → 70, i.e. a bar that cannot move = "the map stopped updating".
+    return { percent: clamp(reported.percent, 0, 99), source: "model" };
   }
   // The checklist's own completion ratio — a real measurement, so it sits above the time baseline.
   // It never claims 100 % for an OPEN step: the remaining row is still in progress.
@@ -620,6 +626,11 @@ function newNode(kind, tool, title, at, extra) {
     argsText: "",
     resultHead: "",
     error: "",
+    // Did the call come back? This is a SEPARATE fact from the body text: a pwsh that
+    // succeeds with no output has an empty resultHead and is still settled. The browser
+    // half colours by it (node.result), so deriving it from resultHead left every such
+    // node "running" forever — the shimmer the user reported on 2026-10-30.
+    settled: false,
     at,
     durationMs: null,
     // filled by appendNode when the caller did not pass one (see toolKey).
@@ -751,6 +762,27 @@ function argsDigest(args) {
 // fold
 // ---------------------------------------------------------------------------
 
+/**
+ * Reopen a closed row without letting its 100 % speak for the reopened one.
+ *
+ * MEASURED 2026-10-30 (session f9c27769, the 6-row table that started "盘点发布链路…"): the
+ * table took a row back to in_progress, this function flipped the status and KEPT percent=100
+ * and maxPercent=100 from the record's closed state. The panel then showed an in-progress step
+ * pinned at 100 % — a bar that can never move again, which reads as "the map stopped updating" —
+ * and the model's own report (55) could not lower it, because percentFor keeps the high-water.
+ * A closed record's number belongs to that closure, not to the row that reopens it.
+ */
+function reopenStep(step, time) {
+  const reopened = step.status === STEP_STATUS.done || step.status === STEP_STATUS.failed;
+  const base = {
+    ...step,
+    status: STEP_STATUS.running,
+    endedAt: null,
+    startedAt: reopened || !step.startedAt ? time : step.startedAt,
+  };
+  return reopened ? { ...base, percent: null, percentSource: "none", maxPercent: 0 } : base;
+}
+
 function foldTodos(state, event, time) {
   const data = dataOf(event);
   const raw = data && Array.isArray(data.todos) ? data.todos : [];
@@ -844,7 +876,7 @@ function foldTodos(state, event, time) {
       if (next.startedAt > 0) durations = [...durations, time - next.startedAt].filter((value) => value > 0);
     } else if (item.status === "in_progress" && next.status !== STEP_STATUS.running) {
       // A step re-opened by a re-plan or a retry: keep its ledger row, restart the clock.
-      steps[at] = { ...next, status: STEP_STATUS.running, endedAt: null, startedAt: next.startedAt || time };
+      steps[at] = reopenStep(next, time);
     } else if (next !== step) {
       steps[at] = next;
     }
@@ -863,9 +895,18 @@ function foldTodos(state, event, time) {
       if (step.startedAt > 0) durations = [...durations, time - step.startedAt].filter((value) => value > 0);
       steps[at] = closeStep(step, time);
     } else if (claim.status === "in_progress" && step.status !== STEP_STATUS.running) {
-      steps[at] = { ...step, status: STEP_STATUS.running, endedAt: null, startedAt: step.startedAt || time };
+      steps[at] = reopenStep(step, time);
     } else if (claim.status === "pending" && step.status !== STEP_STATUS.pending) {
-      steps[at] = { ...step, status: STEP_STATUS.pending, endedAt: null, startedAt: 0, percent: null, percentSource: "none" };
+      // Same rule for a demotion: the row is not done, so it cannot keep a done row's number.
+      steps[at] = {
+        ...step,
+        status: STEP_STATUS.pending,
+        endedAt: null,
+        startedAt: 0,
+        percent: null,
+        percentSource: "none",
+        maxPercent: 0,
+      };
     }
   }
 
@@ -965,6 +1006,8 @@ function foldToolResult(state, event, time, seq) {
     ...previous,
     resultHead: isError ? "" : line(body),
     error: isError ? line(body) : "",
+    // Settled means "the call came back", whatever its body: empty output is not a pending call.
+    settled: true,
     durationMs: previous.at > 0 && time > previous.at ? time - previous.at : null,
   };
   const answered = { ...state, asOf: time, nodes };
@@ -979,7 +1022,15 @@ function foldToolResult(state, event, time, seq) {
           ),
         }
       : answered;
-  const next = withActive(settled, previous.id, time);
+  // A RESULT IS NOT AN ACTIVITY. Re-asserting the node that just finished as the active one
+  // made the panel claim "calling right now" about a call that had already returned: with the
+  // result body empty (pwsh with no output) the dot pulsed forever. Keep whatever node a newer
+  // call opened, otherwise hand the highlight back to the step.
+  const keepActive =
+    state.active && typeof state.active.nodeId === "string" && state.active.nodeId !== "" && state.active.nodeId !== previous.id
+      ? state.active.nodeId
+      : null;
+  const next = withActive(settled, keepActive, time);
   // A tool result is the moment two branch decisions become possible: a job that is STILL
   // open (background) is promoted to a lane, and a launcher's acknowledgement attaches its
   // run id. Both are no-ops for ordinary calls.
@@ -2326,6 +2377,8 @@ function nodeView(node) {
     files: node.files.map((file) => ({ path: file.path, action: file.action })),
     resultHead: node.resultHead,
     error: node.error,
+    // the boolean the browser half colours by; see newNode.settled
+    result: node.settled === true,
     at: node.at,
     durationMs: node.durationMs,
     // the detail's meta line names the event that produced the node. Null for the
@@ -2458,10 +2511,26 @@ function syncToTodos(state) {
   // the record it landed on was still pending — both seen in one session on 2026-10-30.
   const rowStatus = (step, row) => {
     if (row.status === "completed") return step.status === STEP_STATUS.done ? step : closeStep(step, state.asOf || 0);
+    // A CLOSED RECORD CANNOT SPEAK FOR AN OPEN ROW. When the table takes a row back to
+    // in_progress/pending, the record it is bound to may be a step this table already closed
+    // (or an older row that a reworded title landed on). Keeping its percent + high-water made
+    // a brand-new first row render at 100 % the instant it appeared: the bar never moved again,
+    // which reads as "the map is not updating" (measured 2026-10-30, todo #35 in session
+    // f9c27769: 6 fresh rows, row 0 came out running@100/max100 with its own report at 55).
+    const reopened = step.status === STEP_STATUS.done || step.status === STEP_STATUS.failed;
+    const carried = reopened
+      ? { percent: null, percentSource: "none", maxPercent: 0 }
+      : { percent: step.percent, percentSource: step.percentSource, maxPercent: step.maxPercent };
     if (row.status === "in_progress") {
-      return { ...step, status: STEP_STATUS.running, endedAt: null, startedAt: step.startedAt || state.asOf || 0 };
+      return {
+        ...step,
+        ...carried,
+        status: STEP_STATUS.running,
+        endedAt: null,
+        startedAt: reopened || !step.startedAt ? state.asOf || 0 : step.startedAt,
+      };
     }
-    return { ...step, status: STEP_STATUS.pending, endedAt: null, startedAt: 0, percent: null, percentSource: "none" };
+    return { ...step, ...carried, status: STEP_STATUS.pending, endedAt: null, startedAt: 0, percent: null, percentSource: "none" };
   };
 
   const byKey = new Map();

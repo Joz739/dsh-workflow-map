@@ -813,7 +813,7 @@ function foldAll(events) {
 // the step list now follows the todo table's own statuses (a `pending` row demotes a step that
 // still carries `done`/`running`, and a pending row no table names is dropped), so a version-3
 // checkpoint would hold the older mapping and must rebuild too.
-  equal("stateVersion is 4", STATE_VERSION, 4);
+  equal("stateVersion is 5", STATE_VERSION, 5);
   equal("schemaVersion is 1", SCHEMA_VERSION, 1);
 
   const source = readFileSync(MODULE_PATH, "utf8");
@@ -1489,6 +1489,87 @@ function foldAll(events) {
     numbers.steps.map((step) => (step.percent === null ? null : "num")),
     ["num", "num", null],
   );
+}
+
+// ---------------------------------------------------------------------------
+// settled: a call that came back is DONE, even with an empty body; and a result
+// is not an activity. (The two reasons the panel shimmered on 2026-10-30.)
+// ---------------------------------------------------------------------------
+
+{
+  const events = [
+    ev("turn/start", {}),
+    todos([["甲", "in_progress"]]),
+    toolCall("pwsh", { command: "echo hi" }, "e-empty"),
+    toolResult("e-empty", ""),
+  ];
+  const state = foldAll(events);
+  const view = buildView(state, T0 + 60000);
+  equal("(s) empty-body result still settles the node", view.nodes.map((node) => node.result), [true]);
+  equal("(s) and its body is empty, not invented", view.nodes.map((node) => node.resultHead), [""]);
+  equal("(s) a result is not the current activity", view.activeNode, null);
+
+  const withBody = foldAll([ev("turn/start", {}), todos([["甲", "in_progress"]]), toolCall("read", { path: "a.js" }, "e-body"), toolResult("e-body", "code")]);
+  equal("(s) a body result is settled too", buildView(withBody, T0 + 60000).nodes.map((node) => node.result), [true]);
+
+  const handoff = foldAll([
+    ev("turn/start", {}),
+    todos([["甲", "in_progress"]]),
+    toolCall("read", { path: "a.js" }, "h1"),
+    toolResult("h1", "code"),
+    toolCall("pwsh", { command: "echo two" }, "h2"),
+  ]);
+  const handoffView = buildView(handoff, T0 + 60000);
+  equal("(s) the OPEN call keeps the highlight, not the finished one", handoffView.activeNode && handoffView.activeNode.tool, "pwsh");
+}
+
+// ---------------------------------------------------------------------------
+// reopening a closed row: a closed record's 100 % cannot speak for an open row
+// ---------------------------------------------------------------------------
+
+{
+  const closed = foldAll([ev("turn/start", {}), todos([["甲", "in_progress"]]), todos([["甲", "completed"]])]);
+  equal("(t) the closed row is at 100", buildView(closed, T0 + 60000).steps.map((step) => step.percent), [100]);
+
+  const reopened = foldAll([
+    ev("turn/start", {}),
+    todos([["甲", "in_progress"]]),
+    todos([["甲", "completed"]]),
+    todos([["甲", "in_progress"]]),
+  ]);
+  const reopenedView = buildView(reopened, T0 + 60000);
+  equal("(t) reopened row is running again", reopenedView.steps.map((step) => step.status), ["running"]);
+  check(
+    "(t) and it does NOT inherit the 100 % high-water",
+    reopenedView.steps.every((step) => step.maxPercent < 100),
+    JSON.stringify(reopenedView.steps.map((step) => step.maxPercent)),
+  );
+  check(
+    "(t) a reopened running row is never pinned at 100 %",
+    reopenedView.steps.every((step) => step.percent === null || step.percent < 100),
+    JSON.stringify(reopenedView.steps.map((step) => step.percent)),
+  );
+
+  // The model's latest statement is what the bar shows: a high-water record may be kept, but it
+  // must not pin the number (that is a bar which can never move again).
+  const walk = foldAll([
+    ev("turn/start", {}),
+    todos([["甲", "in_progress"]]),
+    report(90),
+    report(40),
+  ]);
+  equal("(u) the latest report is the number", buildView(walk, T0 + 60000).steps.map((step) => step.percent), [40]);
+  equal("(u) while the high-water record is still kept", walk.steps[0].maxPercent, 90);
+
+  const afterReport = foldAll([
+    ev("turn/start", {}),
+    todos([["甲", "in_progress"]]),
+    todos([["甲", "completed"]]),
+    todos([["甲", "in_progress"]]),
+    report(100),
+  ]);
+  const reportedView = buildView(afterReport, T0 + 60000);
+  equal("(t) a 100 % report on an OPEN step is capped at 99", reportedView.steps.map((step) => step.percent), [99]);
 }
 
 // ---------------------------------------------------------------------------

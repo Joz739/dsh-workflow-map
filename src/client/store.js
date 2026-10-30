@@ -878,7 +878,10 @@ function wfBuildModel(view, prefs, nowMs) {
       errorText: typeof found.error === "string" ? found.error.slice(0, 200) : "",
       seq: wfFinite(found.seq),
       error: typeof found.error === "string" && found.error !== "",
-      result: typeof found.resultHead === "string" && found.resultHead !== "",
+      // The host's result boolean is the settled fact: a call that returned with an EMPTY body is
+      // settled. Falling back to resultHead alone marked such a call unsettled, so the panel kept
+      // it in the "calling right now" state and its dot pulsed after the call had already returned.
+      result: found.result === true || (typeof found.resultHead === "string" && found.resultHead !== ""),
       durationMs: wfFinite(found.durationMs),
       at: wfFinite(found.at),
     });

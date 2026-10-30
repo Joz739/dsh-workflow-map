@@ -494,7 +494,9 @@ check('bind.ro.disconnect', observed.indexOf('disconnect') >= 0, observed.join('
 /* ------------------------------------------------------------------------- */
 
 check('running.hostWins', T.sessionRunning({ running: false }, 'n2', T0) === false, 'an explicit view.running=false wins over an active node');
-check('running.hostTrue', T.sessionRunning({ running: true }, null, T0 + 999999) === true, 'an explicit view.running=true wins over a stale asOf');
+check('running.hostTrue', T.sessionRunning({ running: true, asOf: T0 }, null, T0 + 1000) === true, 'view.running=true while the last event is recent → working');
+check('running.staleFlag', T.sessionRunning({ running: true, asOf: T0 }, null, T0 + C.idleAfterMs + 1) === false, 'a turn flag with no turn/end stops animating once the log goes quiet');
+check('running.staleFlagNoClock', T.sessionRunning({ running: true, asOf: T0 }, null, null) === true, 'no clock → keep trusting the flag (offline preview)');
 check('running.activeNode', T.sessionRunning({ asOf: T0 }, 'n2', T0 + 600000) === true, 'a node that never returned means still working');
 check('running.recent', T.sessionRunning({ asOf: T0 }, null, T0 + 1000) === true, 'an event 1 s ago means working');
 check('running.stale', T.sessionRunning({ asOf: T0 }, null, T0 + C.idleAfterMs + 1) === false, 'nothing for 15 s and no active node → idle');

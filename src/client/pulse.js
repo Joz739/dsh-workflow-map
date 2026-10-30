@@ -53,7 +53,18 @@ function wfMotionMode(matchMediaFn) {
  * working session as idle (which would make the curve and the frame look broken).
  */
 function wfSessionRunning(view, activeNodeId, nowMs) {
-  if (view && typeof view.running === "boolean") return view.running;
+  // THE CLOCK IS THE SECOND WITNESS. view.running is the turn flag, and a turn that never
+  // received its turn/end event (interrupt, crash, a compacted session) leaves it true forever:
+  // with that flag alone the whole map shimmered with nothing happening (measured 2026-10-30 on
+  // session 469bdeaa: last event a user message, view.running still true). Once the last folded
+  // event is older than the idle window the session is not working, whatever the flag says.
+  if (view && typeof view.running === "boolean") {
+    if (view.running !== true) return false;
+    var flagAsOf = wfFinite(view.asOf);
+    var flagNow = wfFinite(nowMs);
+    if (flagAsOf !== null && flagAsOf > 0 && flagNow !== null && flagNow - flagAsOf >= WF_IDLE_AFTER_MS) return false;
+    return true;
+  }
   if (typeof activeNodeId === "string" && activeNodeId !== "") return true;
   var asOf = wfFinite(view && view.asOf);
   if (asOf === null || asOf <= 0) return false;
