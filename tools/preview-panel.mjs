@@ -97,11 +97,11 @@ const DARK_TOKENS = `
     --mock-row:#181b22;--mock-me:#22304a}
 `;
 const LIGHT_TOKENS = `
-  :root{--mock-bg:#f4f5f7;--mock-fg:#1c1f26;--mock-dim:#5c6472;--mock-border:#e0e3ea;
-    --mock-row:#ffffff;--mock-me:#e8efff;
-    --dsw-alias-bg-base:#f4f5f7;--dsw-alias-bg-layer-1:#ffffff;--dsw-alias-bg-layer-2:#f0f2f5;
-    --dsw-alias-bg-overlay:#ffffff;--dsw-alias-border-l1:#e3e6ec;--dsw-alias-border-l2:#cfd4de;
-    --dsw-alias-brand-primary:#2f6fed;--dsw-alias-label-primary:#1c1f26;
+  :root{--mock-bg:#ffffff;--mock-fg:#0f1115;--mock-dim:#61666b;--mock-border:rgba(0,0,0,.10);
+    --mock-row:#ffffff;--mock-me:#ffffff;
+    --dsw-alias-bg-base:#ffffff;--dsw-alias-bg-layer-1:#ffffff;--dsw-alias-bg-layer-2:#ffffff;
+    --dsw-alias-bg-overlay:#ffffff;--dsw-alias-border-l1:rgba(0,0,0,.04);--dsw-alias-border-l2:rgba(0,0,0,.10);
+    --dsw-alias-brand-primary:#2f6fed;--dsw-alias-label-primary:#0f1115;
     --dsw-alias-label-secondary:#5c6472;--dsw-alias-label-tertiary:#8a92a1;
     --dsw-alias-state-success-primary:#14934f;--dsw-alias-state-warn-primary:#b7791f;
     --dsw-alias-state-error-primary:#c8382f;--dsw-alias-state-idle-primary:#6b7280}
