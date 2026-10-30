@@ -75,7 +75,16 @@ try {
       '--force-device-scale-factor=1', "--window-size=$winWidth,$winHeight",
       "--virtual-time-budget=$budget", '--dump-dom', "--user-data-dir=$profile", $url
     )
-    Start-Process -FilePath $Chrome -ArgumentList $chromeArgs -Wait -NoNewWindow -RedirectStandardOutput $dump
+    # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
+    # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
+    $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+    $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
+    $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
+    $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }
+    $dumpHeight = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[1] } else { '900' }
+    $dumpBudget = if ($budgetArg) { ($budgetArg -split '=')[1] } else { '6000' }
+    & $nodeExe (Join-Path $PSScriptRoot 'cdp-dump.mjs') $dump $url $dumpWidth $dumpHeight $dumpBudget $Chrome
+    if ($LASTEXITCODE -ne 0) { throw "cdp-dump failed ($LASTEXITCODE) for $url" }
     if (-not (Test-Path $dump)) { throw "chrome wrote no DOM: $dump" }
     $html = Get-Content $dump -Raw
     $match = [regex]::Match($html, '(?s)<pre id="wf-measure">(.*?)</pre>')
@@ -220,7 +229,13 @@ try {
   function Add-ThemeChecks([string]$tag, $contrast) {
     $lift = [string]$contrast.lift
     Add-Check "$tag.lift.defined" ($lift -ne '') "--wf-lift=$lift"
-    foreach ($surface in @('card', 'node', 'unit')) {
+    # Only surfaces the live single page actually paints are scored. The legacy
+    # step/node cards and the branch/capsule chrome are checked at the stylesheet
+    # level in selftest-panel; their absence here is not a contrast finding.
+    # `lift` (a gradient) is required for the large panel; the 14 px satellite badge
+    # carries its own status-coloured border, so its contrast is measured, not styled.
+    $required = [ordered]@{ unit = $true; satCount = $false }
+    foreach ($surface in $required.Keys) {
       $probe = $contrast.$surface
       if ($null -eq $probe) {
         Add-Check "$tag.$surface.present" $false 'element not found on the page'
@@ -229,18 +244,20 @@ try {
       $borderAlpha = AlphaOf ([string]$probe.borderColor)
       $hasGradient = ([string]$probe.backgroundImage) -match 'gradient'
       Add-Check "$tag.$surface.border" ($borderAlpha -ge 0.03) "borderColor=$($probe.borderColor) alpha=$borderAlpha"
-      Add-Check "$tag.$surface.lift" $hasGradient "backgroundImage=$($probe.backgroundImage)"
+      if ($required[$surface]) {
+        Add-Check "$tag.$surface.lift" $hasGradient "backgroundImage=$($probe.backgroundImage)"
+      }
       Add-Check "$tag.$surface.distinct" ($hasGradient -or $borderAlpha -ge 0.03) "fill=$($probe.background) gradient=$hasGradient borderAlpha=$borderAlpha"
     }
   }
-
   $lightHtml = (Resolve-Path (Join-Path $preview 'main-light.html')).Path
   $lightPage = Dump-Page $lightHtml 9000 $Width $Height
   $measured['light'] = $lightPage
   $lightPhase = Phase $lightPage 'initial'
   $darkPhase = Phase $main 'initial'
   Add-Check 'theme.light.frame' ([bool]$darkPhase.contrast.dark -eq $true -and [bool]$lightPhase.contrast.dark -eq $false) "dark frame has data-ds-dark-theme=$( $darkPhase.contrast.dark ), light frame has it=$( $lightPhase.contrast.dark )"
-  Add-Check 'theme.light.pageIsHostWhite' ([string]$lightPhase.contrast.page.background -eq 'rgb(255, 255, 255)') "light page background=$($lightPhase.contrast.page.background) (the host paints #fff in light mode)"
+  Add-Check 'theme.light.pageIsHostWhite' ([string]$lightPhase.contrast.pageBackground -eq 'rgb(255, 255, 255)') "light page body background=$($lightPhase.contrast.pageBackground) (the host paints #fff in light mode)"
+  Add-Check 'theme.contrast.surfaces' ([bool]$lightPhase.contrast.unit -and [bool]$lightPhase.contrast.satCount -and [bool]$darkPhase.contrast.unit -and [bool]$darkPhase.contrast.satCount) "live surfaces probed: light unit/satCount=$([bool]$lightPhase.contrast.unit)/$([bool]$lightPhase.contrast.satCount), dark=$([bool]$darkPhase.contrast.unit)/$([bool]$darkPhase.contrast.satCount)"
   Add-ThemeChecks 'theme.dark' $darkPhase.contrast
   Add-ThemeChecks 'theme.light' $lightPhase.contrast
 

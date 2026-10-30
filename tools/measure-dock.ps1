@@ -129,7 +129,16 @@ try {
     '--force-device-scale-factor=1', "--window-size=$Width,$Height",
     '--virtual-time-budget=4000', '--dump-dom', "--user-data-dir=$profile", $url
   )
-  Start-Process -FilePath $Chrome -ArgumentList $chromeArgs -Wait -NoNewWindow -RedirectStandardOutput $dump
+  # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
+  # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
+  $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+  $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
+  $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
+  $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }
+  $dumpHeight = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[1] } else { '900' }
+  $dumpBudget = if ($budgetArg) { ($budgetArg -split '=')[1] } else { '6000' }
+  & $nodeExe (Join-Path $PSScriptRoot 'cdp-dump.mjs') $dump $url $dumpWidth $dumpHeight $dumpBudget $Chrome
+  if ($LASTEXITCODE -ne 0) { throw "cdp-dump failed ($LASTEXITCODE) for $url" }
   if (-not (Test-Path $dump)) { throw "chrome wrote no DOM: $dump" }
 
   $html = Get-Content $dump -Raw

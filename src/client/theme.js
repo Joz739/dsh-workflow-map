@@ -421,7 +421,7 @@ var WF_CSS = [
   ".wf-branch-icon{flex:0 0 auto;width:" + WF_CHAIN_ICON + "px;height:" + WF_CHAIN_ICON + "px;padding:0;" +
     "border-radius:50%;display:inline-flex;align-items:center;justify-content:center;" +
     "font:inherit;font-size:11px;line-height:1;cursor:pointer;position:relative;" +
-    "background:var(--dsw-alias-bg-layer-2,#282d3a);color:var(--dsw-alias-label-secondary,#9aa3b2);" +
+    "background:var(--dsw-alias-bg-layer-2,#282d3a);background-image:linear-gradient(var(--wf-lift),var(--wf-lift));color:var(--dsw-alias-label-secondary,#9aa3b2);" +
     "border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.28))}",
   ".wf-branch-icon:hover{color:var(--dsw-alias-label-primary,#e9ecf3)}",
   ".wf-branch-icon:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:2px}",

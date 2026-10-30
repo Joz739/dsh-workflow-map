@@ -320,7 +320,7 @@ node tools/check-real-injects.mjs     # 批量折叠历史日志
 node tools/audit-real.mjs             # 四项约束审计
 ```
 
-浏览器量测（需一份 Chromium，脚本自动探测 Chrome / Edge，共 308 条断言（0.3.4 起 measure-main 另含浅色/深色主题对比检查））：
+浏览器量测（需一份 Chromium，脚本自动探测 Chrome / Edge，共 323 条断言，含浅色/深色主题对比检查）：
 
 ```bash
 pwsh -File tools/measure-panel.ps1

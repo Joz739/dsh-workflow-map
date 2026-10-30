@@ -196,7 +196,7 @@ pwsh -File tools/measure-settings.ps1  # 设置卡与导出
 pwsh -File tools/measure-main.ps1      # 单页几何与交互
 ```
 
-合计 **308 条浏览器量测**（0.3.4 起 `measure-main` 另含浅色/深色主题对比检查，数字以脚本实际输出为准）。
+合计 **323 条浏览器量测**（0.3.4 起 `measure-main` 另含 15 条浅色/深色主题对比检查）。
 
 > `tools/retired/` 里是量「已移除界面」的历史脚本，**不属于验证链**，不期望通过。
 

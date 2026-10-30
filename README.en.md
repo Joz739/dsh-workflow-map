@@ -337,7 +337,7 @@ node tools/check-real-injects.mjs     # fold historical logs in bulk
 node tools/audit-real.mjs             # four-constraint audit
 ```
 
-Browser measurements (needs a Chromium; the scripts auto-detect Chrome / Edge; 308+ assertions; measure-main also checks light/dark theme contrast since 0.3.4):
+Browser measurements (needs a Chromium; the scripts auto-detect Chrome / Edge; 323 assertions, light/dark theme contrast included):
 
 ```bash
 pwsh -File tools/measure-panel.ps1

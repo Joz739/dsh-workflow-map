@@ -368,12 +368,20 @@ function pageScript({ mode, prefsPatch }) {
     }
     var rootEl = document.querySelector('.wf-root');
     var rootStyle = rootEl ? getComputedStyle(rootEl) : null;
+    // The page colour is what the host paints behind everything; .wf-root itself is
+    // transparent, so asking it for a background returns rgba(0,0,0,0) and proves nothing.
+    var pageStyle = getComputedStyle(document.body);
     return {
       dark: document.body.hasAttribute('data-ds-dark-theme'),
+      pageBackground: pageStyle.backgroundColor,
+      pageImage: pageStyle.backgroundImage,
       page: probe('.wf-root') || probe('body'),
-      card: probe('.wf-step-card'),
-      node: probe('.wf-node'),
+      // surfaces that actually exist on the live single page; the legacy step/node
+      // cards are checked at the stylesheet level in selftest-panel instead
       unit: probe('.wf-unit-card'),
+      satCount: probe('.wf-sat-count'),
+      branchIcon: probe('.wf-branch-icon'),
+      capsule: probe('.wf-capsule-bar'),
       lift: rootStyle ? rootStyle.getPropertyValue('--wf-lift').trim() : '',
       lift2: rootStyle ? rootStyle.getPropertyValue('--wf-lift-2').trim() : ''
     };

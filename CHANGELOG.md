@@ -41,6 +41,11 @@
   现在按结束时刻补时长并结束该步，唯一的例外是待办表此刻仍标 `in_progress`（那一步确实跨回合继续做）。
 - **检查点版本 3 → 4**：旧检查点里的步骤台账按旧映射生成（错误状态、残留空行、带有不应存在的百分比），
   按既有契约丢弃后从日志重建。
+- **量测脚本不再依赖 `--dump-dom`**。Edge 156.0.4314.50 的启动器会在毫秒内以退出码 0 退出、把真正的浏览器进程
+  甩成独立进程，于是 `--dump-dom` 写进一个没人持有的 stdout，落盘文件恒为 0 字节（`--version` 也无输出）。
+  新增 `tools/cdp-dump.mjs`：自己拉起无头浏览器、从 `DevToolsActivePort` 拿调试端口、连页面 target、
+  `Page.enable` + `Runtime.evaluate(document.documentElement.outerHTML)` 取 DOM，失败必抛；
+  10 个 `tools\measure-*.ps1` 全部改为调它，并新增 `tools\patch-measure-cdp.mjs` 留证改法。
 
 ### Tests
 
@@ -52,11 +57,12 @@
 - **真实会话日志**：`check-real-injects` 折叠 147 个会话、识别出 19 条热注入记录、failures 0；
   `audit-real` 折叠 148 个会话、629 个步骤，约束 ①（分步必须存在于待办表）与 ②（同一时刻只有一个
   running 步）各 0 违规；`done` 步显示 <100% 的数量为 **0**，非运行步带数字的数量为 **0**（修前 74 条）。
-- **浏览器量测本轮未核验**：本机 Edge 以无头模式启动后立即退出，`--dump-dom` 产出 0 字节、
-  `--version` 也无输出（退出码 0），10 套 `tools\measure-*.ps1` 未能执行。代码侧的浅色主题约束改由
-  `selftest-panel` 的 5 条 CSS 针脚守住；`tools\measure-main.ps1` 已补浅色/深色两帧的对比检查
-  （卡面边线 alpha、抬升渐变、页面底色是否为宿主真值 `#fff`），修好浏览器后复跑：
-  `pwsh -File tools\measure-main.ps1`，其余九套同目录脚本一并执行。
+- **浏览器量测 10 套 / 323 条断言**全部通过，退出码全 0（0.3.3 为 308 条）：
+  `panel 21 · timing 20 · inject 43 · dock 14 · flow 20 · effects 28 · branches 15 · detail 50 · settings 56 · main 56`。
+  `main` 从 41 增至 56 的 15 条是本轮新增的主题对比检查：浅色帧的页面底色确实是宿主真值 `#fff`、
+  两种主题下 `--wf-lift` 各自生效、单元卡边线 alpha 与抬升渐变俱在、14 px 颗星徽标靠自身颜色边线可见
+  （实测 light/dark 均为 `rgba(…,1)`）。旧的 `card` / `node`（遗留组件）不在单页上，按「不存在不记失败」处理，
+  它们的边线与抬升由 `selftest-panel` 的样式表针脚守住。
 - **`0.2.1-rc.5` 隔离实机**：`--dump-config` 退出码 0、stdout 1234 行、零告警；
   `/dsh-workflow/state`、`/steer`、`/unsteer` 按本插件契约应答（`404 unknown session`、缺参 `400`）。
   记录与复跑命令见 `docs/host-compatibility.md` §3.1。
