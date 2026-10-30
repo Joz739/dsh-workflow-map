@@ -4,7 +4,23 @@
 
 DeepSeek Harness 插件：把当前会话渲染为一张可交互的分步工作流地图。
 
-三个入口共用同一份数据与同一套组件 —— 侧边栏面板项（`sidebar.panellist`）、主内容区（`main`）、
+> **宿主适配要求（Host requirement）**
+>
+> - **DSH 内核**：`engines.dsh` = `>=0.2.1-rc.1 <0.3.0-0`，覆盖 `0.2.1` 全系列（`0.2.1-rc.1` 至 `0.2.1-rc.5`）与 `0.2.1` 正式版。
+> - **Node.js**：`>=20`（`engines.node`）。
+> - 宿主包以 `peerDependencies` 声明（均为可选 peer，区间与 `engines.dsh` 一致），不打包宿主；低于 `0.2.1-rc.1` 或 `0.3.0` 及以上的宿主不在声明范围内。
+> - 区间写法：`>=0.2.1-rc.1 <0.3.0-0` 在 `0.2.1` 元组上带显式预发布标签，才能匹配 `0.2.1-rc.x`；起点若写 `>=0.1.0-rc.1`，`0.2.1` 的预发布版本会被静默排除。上界 `<0.3.0-0` 小于 `0.3.0` 的任何预发布版本，因此整条 `0.3` 线（含 `0.3.0-rc.1`）都在区间外。
+
+逐版本核验方式与结论：
+
+| 宿主版本 | 核验方式 | 结论 |
+|---|---|---|
+| `0.2.1-rc.3` | 实机运行：插件加载、面板注入、视图路由 | 基线版本 |
+| `0.2.1-rc.1` / `0.2.1-rc.2` / `0.2.1-rc.4` / `0.2.1-rc.5` | 跨版本契约核验：闭包元数据、逐文件 SHA-256、契约锚点窗口 | 九个契约点未变 |
+
+契约核验不等于实机运行：上表后四个版本只处理已发布的产物与契约锚点，未启动宿主。方法与证据见 [`docs/host-compatibility.md`](docs/host-compatibility.md)。
+
+三个入口共用同一份数据与同一套组件：侧边栏面板项（`sidebar.panellist`）、主内容区（`main`）、
 会话标签栏（`conversation.view`）。面板将会话事件折叠为分步序列，展示每步的状态、进度、
 工具调用与文件操作，并支持在会话运行中向其下一步注入提示词。
 
@@ -17,7 +33,7 @@ DeepSeek Harness 插件：把当前会话渲染为一张可交互的分步工作
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.3-success)
+![version](https://img.shields.io/badge/version-0.3.4-success)
 
 ---
 
@@ -60,7 +76,6 @@ DeepSeek Harness 插件：把当前会话渲染为一张可交互的分步工作
 
 ### 2.1 热注入（steer / unsteer）
 
-本节给出注入通道的写入语义、状态判定与失败语义；三者均以会话日志事件为依据，前端不作推测。
 **写入语义**：`POST /dsh-workflow/steer` 调用宿主的 `agent.steer(message)`，消息进入会话收件箱的
 `next-step` 队列，在**当前轮次结束后**由下一步取用。调用不触发 `cancel`，因此不中断正在执行的轮次。
 
@@ -81,13 +96,11 @@ HTTP 200 仅表示消息已进入收件箱，**不等价于**会话已读取；�
 事件区分。撤回的持久记录是 splice 的**位置**而非消息 id，因此折叠侧维护一份收件箱台账
 （按宿主 `inboxProjectionDefinition` 的 splice 语义逐条重放）才能定位被移除的具体行。
 
-失败语义：文档型错误一律返回 JSON，不向 HTTP 层抛出异常。常见状态码 —— `400` 缺字段 /
+失败语义：文档型错误一律返回 JSON，不向 HTTP 层抛出异常。常见状态码：`400` 缺字段 /
 body 非 JSON，`404` 会话不存在，`409` 会话未在运行或消息已被取用，`413` 文本超 2000 字或
 body 超 64 KiB，`503` 宿主未暴露相应能力。
 
 ### 2.2 进度估算
-
-本节给出百分比的取值优先级、各来源的算法与上限，以及陈旧程度字段的定义。
 
 每步的百分比按以下**优先级**取值（`src/fold.mjs` 的 `percentFor`）：
 | 优先级 | 来源 | 计算规则 | 上限 |
@@ -147,7 +160,7 @@ body 超 64 KiB，`503` 宿主未暴露相应能力。
 
 ## 3. 安装
 
-> **市场安装的前提**：该入口要求同时满足两个条件 ——（1）`dsh-workflow-map` 已发布到 npm（当前为 `0.3.3`）；
+> **市场安装的前提**：该入口要求同时满足两个条件。（1）`dsh-workflow-map` 已发布到 npm（当前为 `0.3.4`）；
 > （2）`awesome-dsh-plugin` 的 PR 已合并，且市场索引（`dsh-plugin-catalog`，经 jsDelivr 分发）已刷新收录该条目。
 > 满足后在 **DSH 市场**（Plugins → Discover）搜索 `workflow` 即可安装，无需命令行；
 > 若尚未收录，使用下面的命令行方式（3.2）安装同一个包，两者效果一致。
@@ -275,7 +288,7 @@ curl -i "http://127.0.0.1:<GUI端口>/dsh-workflow/state?sessionId=<会话ID>"
 
 ## 8. 兼容性与约束
 
-- **DeepSeek Harness** 0.2.x 及以上（依赖会话投影与 `webServer` 路由注册）。
+- **DeepSeek Harness**：`engines.dsh` 声明的区间 `>=0.2.1-rc.1 <0.3.0-0`（依赖会话投影与 `webServer` 路由注册）；`0.3.0` 及以后不支持。
 - **Node.js** ≥ 20。
 - 三个端点挂载在宿主既有端口上，**不新开监听**。
 - 输入框（composer）由宿主渲染，不属于本插件。插件不替代、不覆盖该组件；仅在会话标签栏入口
@@ -290,7 +303,7 @@ curl -i "http://127.0.0.1:<GUI端口>/dsh-workflow/state?sessionId=<会话ID>"
 # 修改 src/client/*.js 后必须重新生成浏览器半
 node tools/build-client.mjs
 
-# 离线自测（10 套，共 1507 条断言）
+# 离线自测（10 套，共 1533 条断言）
 node tools/selftest-fold.mjs          # 折叠语义
 node tools/selftest-host.mjs          # 注册、schema、投影接线
 node tools/selftest-orchestrator.mjs  # 计划文件读取与合并
@@ -307,7 +320,7 @@ node tools/check-real-injects.mjs     # 批量折叠历史日志
 node tools/audit-real.mjs             # 四项约束审计
 ```
 
-浏览器量测（需一份 Chromium，脚本自动探测 Chrome / Edge，共 308 条断言）：
+浏览器量测（需一份 Chromium，脚本自动探测 Chrome / Edge，共 308 条断言（0.3.4 起 measure-main 另含浅色/深色主题对比检查））：
 
 ```bash
 pwsh -File tools/measure-panel.ps1
@@ -396,7 +409,7 @@ dsh-workflow-map/
 待办表封顶 99、时间基线封顶 90；只有状态进入完成/失败才固定 100%。
 这是为了避免「看起来快好了」与「已经好了」混淆。
 
-**它会把我的代码上传吗？**
+**会把用户代码上传吗？**
 不会。插件不发起任何网络请求；只读本地会话日志与 `.pae` 计划文件。
 
 **可以只换界面、不装宿主半吗？**
@@ -418,7 +431,7 @@ MIT。允许商用、修改与再分发，需保留版权声明。
 以下信息有助于定位问题：
 
 1. DSH 版本与插件版本（`package.json` 的 `version`）；
-2. `GET /dsh-workflow/state?sessionId=<id>` 的响应体 —— **其中包含任务标题与文件路径，
-   提交前请自行删减**；
+2. `GET /dsh-workflow/state?sessionId=<id>` 的响应体（**其中包含任务标题与文件路径，
+   提交前请自行删减**）；
 3. 出现问题的面板截图；
 4. 若与折叠有关，附上该会话日志中相关事件序列的片段。

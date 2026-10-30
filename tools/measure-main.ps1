@@ -205,6 +205,46 @@ try {
   Add-Check 'open.right.typeRows' ((Num $openPhase.right.typeRows) -ge 1) "type rows=$(Num $openPhase.right.typeRows)"
 
   # ---------------------------------------------------------------------------
+  # theme contrast — the defect that started this round: in the LIGHT theme the host paints the page
+  # and both layer variables the same colour (#fff), so a step card whose only fill was bg-layer-2 and
+  # whose border was transparent was invisible. Both frames are measured: a fix that only looks right
+  # in dark mode must fail here.
+  # ---------------------------------------------------------------------------
+  function AlphaOf($color) {
+    if ($null -eq $color) { return 0.0 }
+    $m = [regex]::Match($color, 'rgba\(\s*[\d.]+,\s*[\d.]+,\s*[\d.]+,\s*([\d.]+)\s*\)')
+    if ($m.Success) { return [double]::Parse($m.Groups[1].Value, [Globalization.CultureInfo]::InvariantCulture) }
+    if ($color -match '^rgb\(') { return 1.0 }
+    return 0.0
+  }
+  function Add-ThemeChecks([string]$tag, $contrast) {
+    $lift = [string]$contrast.lift
+    Add-Check "$tag.lift.defined" ($lift -ne '') "--wf-lift=$lift"
+    foreach ($surface in @('card', 'node', 'unit')) {
+      $probe = $contrast.$surface
+      if ($null -eq $probe) {
+        Add-Check "$tag.$surface.present" $false 'element not found on the page'
+        continue
+      }
+      $borderAlpha = AlphaOf ([string]$probe.borderColor)
+      $hasGradient = ([string]$probe.backgroundImage) -match 'gradient'
+      Add-Check "$tag.$surface.border" ($borderAlpha -ge 0.03) "borderColor=$($probe.borderColor) alpha=$borderAlpha"
+      Add-Check "$tag.$surface.lift" $hasGradient "backgroundImage=$($probe.backgroundImage)"
+      Add-Check "$tag.$surface.distinct" ($hasGradient -or $borderAlpha -ge 0.03) "fill=$($probe.background) gradient=$hasGradient borderAlpha=$borderAlpha"
+    }
+  }
+
+  $lightHtml = (Resolve-Path (Join-Path $preview 'main-light.html')).Path
+  $lightPage = Dump-Page $lightHtml 9000 $Width $Height
+  $measured['light'] = $lightPage
+  $lightPhase = Phase $lightPage 'initial'
+  $darkPhase = Phase $main 'initial'
+  Add-Check 'theme.light.frame' ([bool]$darkPhase.contrast.dark -eq $true -and [bool]$lightPhase.contrast.dark -eq $false) "dark frame has data-ds-dark-theme=$( $darkPhase.contrast.dark ), light frame has it=$( $lightPhase.contrast.dark )"
+  Add-Check 'theme.light.pageIsHostWhite' ([string]$lightPhase.contrast.page.background -eq 'rgb(255, 255, 255)') "light page background=$($lightPhase.contrast.page.background) (the host paints #fff in light mode)"
+  Add-ThemeChecks 'theme.dark' $darkPhase.contrast
+  Add-ThemeChecks 'theme.light' $lightPhase.contrast
+
+  # ---------------------------------------------------------------------------
   # report
   # ---------------------------------------------------------------------------
   $failed = @($checks | Where-Object { -not $_.pass })

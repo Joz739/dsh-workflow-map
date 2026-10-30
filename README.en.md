@@ -4,6 +4,22 @@ English · [**简体中文**](README.md)
 
 A DeepSeek Harness plugin that renders the current session as an interactive step-by-step workflow map.
 
+> **Host requirement**
+>
+> - **DSH kernel**: `engines.dsh` = `>=0.2.1-rc.1 <0.3.0-0`, covering the whole `0.2.1` series (`0.2.1-rc.1` through `0.2.1-rc.5`) and the `0.2.1` release.
+> - **Node.js**: `>=20` (`engines.node`).
+> - Host packages are declared as `peerDependencies` (all optional peers, same range as `engines.dsh`); the host is not bundled. Hosts below `0.2.1-rc.1`, or at `0.3.0` and above, are outside the declared range.
+> - Range note: `>=0.2.1-rc.1 <0.3.0-0` carries an explicit prerelease tag on the `0.2.1` tuple, which is what makes it match `0.2.1-rc.x`; a start of `>=0.1.0-rc.1` silently excludes every `0.2.1` prerelease. The upper bound `<0.3.0-0` sorts below every prerelease of `0.3.0`, so the whole `0.3` line (including `0.3.0-rc.1`) stays outside the range.
+
+Per-version method and result:
+
+| Host version | How it was checked | Result |
+|---|---|---|
+| `0.2.1-rc.3` | Run on a real host: plugin load, panel injection, view routes | Baseline |
+| `0.2.1-rc.1` / `0.2.1-rc.2` / `0.2.1-rc.4` / `0.2.1-rc.5` | Cross-version contract check: closure metadata, per-file SHA-256, contract anchor windows | All nine contract points unchanged |
+
+A contract check is not a real-host run: the last four versions were compared against published artifacts and contract anchors only, and never booted. Method and evidence: [`docs/host-compatibility.md`](docs/host-compatibility.md).
+
 Three entry points share one data source and one set of components: the sidebar panel item
 (`sidebar.panellist`), the main content area (`main`), and the session tab bar (`conversation.view`).
 The panel folds session events into a step sequence, showing each step's status, progress, tool calls
@@ -18,7 +34,7 @@ opened for a step (type list, step detail). Bottom: the persistent injection bar
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.3-success)
+![version](https://img.shields.io/badge/version-0.3.4-success)
 
 ---
 
@@ -63,8 +79,6 @@ encoding (animation and colour).
 
 ### 2.1 Hot injection (steer / unsteer)
 
-This section states the write semantics, state determination and failure semantics of the injection channel.
-All three are derived from session log events; the front end does not guess.
 **Write semantics**: `POST /dsh-workflow/steer` calls the host's `agent.steer(message)`; the message
 enters the session inbox queue `next-step` and is claimed by the next step **after the current turn
 ends**. The call does not trigger `cancel`, so the running turn is not interrupted.
@@ -93,9 +107,6 @@ message already claimed, `413` text over 2000 chars or body over 64 KiB, `503` t
 the capability.
 
 ### 2.2 Progress estimation
-
-This section states the percentage priority order, the algorithm and cap of each source, and the definition
-of the staleness field. The rule is implemented by `percentFor` in `src/fold.mjs`.
 
 Each step's percentage is resolved by the following **priority** (`percentFor` in `src/fold.mjs`):
 | Priority | Source | Rule | Cap |
@@ -163,7 +174,7 @@ can collapse the host's composer on that page; switching back unmounts the view 
 ## 3. Installation
 
 > **Prerequisites for installing from the market**: two conditions must both hold. (1) `dsh-workflow-map`
-> is published on npm (currently `0.3.3`). (2) The `awesome-dsh-plugin` PR is merged **and** the market index
+> is published on npm (currently `0.3.4`). (2) The `awesome-dsh-plugin` PR is merged **and** the market index
 > (`dsh-plugin-catalog`, served via jsDelivr) has refreshed and picked up the entry.
 > Once both hold, install from the **DSH market** (Plugins > Discover) by searching `workflow`, no terminal needed.
 > If it is not indexed yet, use the command line below (3.2) to install the same package; both routes are equivalent.
@@ -293,8 +304,8 @@ steps, their status, the percentage source, the node list and the report artifac
 
 ## 8. Compatibility and constraints
 
-- **DeepSeek Harness** 0.2.x or newer (relies on session projections and `webServer` route registration).
-- **Node.js** ≥ 20。
+- **DeepSeek Harness**: the `engines.dsh` range `>=0.2.1-rc.1 <0.3.0-0` (relies on session projections and `webServer` route registration); `0.3.0` and newer are not supported.
+- **Node.js**: `>=20`.
 - The three endpoints mount on the host's existing port; **no new listener** is opened.
 - The composer is rendered by the host and is not part of this plugin. The plugin neither replaces nor
   overlays it; it only yields space on the session-tab page through a stylesheet rule.
@@ -309,7 +320,7 @@ steps, their status, the percentage source, the node list and the report artifac
 # after editing src/client/*.js, rebuild the browser half
 node tools/build-client.mjs
 
-# offline self-tests (10 suites, 1507 assertions)
+# offline self-tests (10 suites, 1533 assertions)
 node tools/selftest-fold.mjs          # fold semantics
 node tools/selftest-host.mjs          # registration, schema, projection wiring
 node tools/selftest-orchestrator.mjs  # plan file reading and merging
@@ -326,7 +337,7 @@ node tools/check-real-injects.mjs     # fold historical logs in bulk
 node tools/audit-real.mjs             # four-constraint audit
 ```
 
-Browser measurements (needs a Chromium; the scripts auto-detect Chrome / Edge; 308 assertions):
+Browser measurements (needs a Chromium; the scripts auto-detect Chrome / Edge; 308+ assertions; measure-main also checks light/dark theme contrast since 0.3.4):
 
 ```bash
 pwsh -File tools/measure-panel.ps1
@@ -417,7 +428,7 @@ baseline creeps up but is capped at 90 %. The second line ("estimated N minutes 
 The todo table caps at 99 and the time baseline at 90; only a done/failed status pins 100 %. This keeps
 "nearly there" from being confused with "already there".
 
-**Does it upload my code?**
+**Does it upload user code?**
 No. The plugin makes no network requests; it reads only the local session log and the `.pae` plan file.
 
 **Can I install only the UI and skip the host half?**

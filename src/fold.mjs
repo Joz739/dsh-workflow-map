@@ -63,7 +63,12 @@
 // own `inboxProjectionDefinition` replays. A checkpoint written before this bump has no ledger,
 // so the registry is told to drop it and rebuild from the log (the same contract as v1→v2: a
 // missing field must never be silently answered with a wrong index).
-export const STATE_VERSION = 3;
+//
+// STATE_VERSION 4 : the step ledger now follows the todo table's own statuses (a `pending` row
+// demotes a step that still carried `done`/`running`, and a step any table no longer names is
+// dropped). Checkpoints written before the bump hold ledgers from the older mapping — wrong
+// statuses and leftover rows — so the same contract applies: drop and rebuild from the log.
+export const STATE_VERSION = 4;
 
 export const SCHEMA_VERSION = 1;
 
@@ -515,6 +520,13 @@ function percentFor(state, step, now) {
     const pinned = step.percent === null ? 100 : step.percent;
     return { percent: clamp(pinned, 0, 100), source: step.percentSource === "none" ? "closed" : step.percentSource };
   }
+  // Only the step that is actually running can be partly done. A pending row is future work and a
+  // skipped one never will be done, so NEITHER carries a number. The old code let the todo table's
+  // completion ratio paint a bar on every waiting row as well, which is where the wall of bars
+  // below 100 % in an already finished session came from.
+  if (step.status !== STEP_STATUS.running) {
+    return { percent: null, source: "none" };
+  }
   // Priority 2 when a self-report exists: the todo table's completion ratio is a measurement (no
   // clock, no extrapolation), so it determines the number whenever it has rows to report on.
   // The self-report can only lower the result, never raise it above the measured ratio.
@@ -752,12 +764,22 @@ function foldTodos(state, event, time) {
   // session (no PAE plan at all) still produces a step list.
   let steps = [...state.steps];
   let durations = state.durations;
+  // Every row that matched an existing step, and the status that row states. The table is the one
+  // authority on a step's lifecycle, so these are applied in a final pass instead of inline: a row
+  // can match a step that a LATER row also matches (slot reuse after the model rewrites the table),
+  // and an inline write could then be overwritten by a stale copy of the old status.
+  const authority = new Map();
+  // The ledger as it stood BEFORE this table. Slot binding has to read this snapshot: by the time a
+  // later row is examined, `steps` already holds the rows this very table created, so "the row in
+  // this position" would point at a row from the NEW table instead of the one being replaced.
+  const prior = state.steps;
 
   for (const item of todos) {
     if (item.content === "") continue;
     const planIndex = planIndexOf(item.content);
     let at = planIndex === null ? -1 : steps.findIndex((step) => step.planIndex === planIndex);
     if (at === -1) at = steps.findIndex((step) => normalizeTitle(step.title) === normalizeTitle(item.content));
+    const matchedByTitle = at !== -1;
     // REWORDED ROW at the source. The model often rewrites its own todo text between two
     // `todo/write` events (measured: "read-only inventory: read plugin sources..." -> "read-only inventory: sources/config..."). Matching on the
     // title alone then misses the row that already exists, a SECOND row is created for the new
@@ -765,8 +787,13 @@ function foldTodos(state, event, time) {
     // sync then drops. That was "only the running step shows tool types". The fix belongs HERE:
     // reword in place when the slot and lifecycle agree, so the row keeps its ledger.
     if (at === -1) {
-      const slotRow = steps[steps.length > todos.indexOf(item) ? todos.indexOf(item) : -1];
-      const sameSlot = slotRow && (slotRow.status === item.status || slotRow.status === STEP_STATUS.running);
+      const slotRow = prior[todos.indexOf(item)];
+      // A running step is never taken over by a row that is not running: that is how a pending row
+      // used to hijack the live step and leave the real one with no running row at all.
+      const sameSlot =
+        slotRow &&
+        (slotRow.status === item.status ||
+          (slotRow.status === STEP_STATUS.running && item.status === "in_progress"));
       if (sameSlot) at = steps.indexOf(slotRow);
     }
 
@@ -821,7 +848,39 @@ function foldTodos(state, event, time) {
     } else if (next !== step) {
       steps[at] = next;
     }
+    authority.set(at, { status: item.status, byTitle: matchedByTitle });
   }
+
+  // The final pass: one status per step, exactly as the table now states it. `pending` is a real
+  // state — a row the model has not started — and a step that still carried `done` or `running`
+  // from the previous wording of the table has to be demoted, or the panel shows finished work the
+  // table does not claim (and a bar at 100 % next to an empty todo). Demotion is only safe when the
+  // row matched on its own title; a slot match after a reword could hit a different row's step.
+  for (const [at, claim] of authority) {
+    const step = steps[at];
+    if (!step) continue;
+    if (claim.status === "completed" && step.status !== STEP_STATUS.done) {
+      if (step.startedAt > 0) durations = [...durations, time - step.startedAt].filter((value) => value > 0);
+      steps[at] = closeStep(step, time);
+    } else if (claim.status === "in_progress" && step.status !== STEP_STATUS.running) {
+      steps[at] = { ...step, status: STEP_STATUS.running, endedAt: null, startedAt: step.startedAt || time };
+    } else if (claim.status === "pending" && step.status !== STEP_STATUS.pending) {
+      steps[at] = { ...step, status: STEP_STATUS.pending, endedAt: null, startedAt: 0, percent: null, percentSource: "none" };
+    }
+  }
+
+  // A row the table no longer names, that never started and owns no node, is the leftover of an
+  // earlier wording of the same list. Keeping it leaves a permanently empty card in the step
+  // column, which is how every rewritten table used to grow the panel by one or two rows.
+  const named = new Set(todos.map((item) => normalizeTitle(item.content)).filter((key) => key !== ""));
+  const nodeKeys = new Set(state.nodes.map((node) => node.stepKey));
+  const kept = steps.filter((step) => {
+    if (step.status !== STEP_STATUS.pending || step.startedAt > 0) return true;
+    const keys = [step.stepKey, ...(Array.isArray(step.aliasKeys) ? step.aliasKeys : [])].filter(Boolean);
+    if (keys.some((key) => nodeKeys.has(key))) return true;
+    return keys.some((key) => named.has(key));
+  });
+  if (kept.length !== steps.length) steps = kept;
 
 
   return { ...state, asOf: time, todos, steps: reindex(steps), durations };
@@ -1140,7 +1199,14 @@ function parsePlanRows(blockText) {
   for (const raw of blockText.split("\n")) {
     const match = /^\s*(\d+)\.\s*(.+)$/.exec(raw);
     if (!match) continue;
-    rows.push({ planIndex: Number(match[1]), title: text(match[2], TITLE_LIMIT) });
+    // PAE appends each row's own step FILE to the title ("1. title（…）（step-01-x.md）"). That
+    // annotation is not title text: keeping it leaves `normalizeTitle` one parenthetical group short
+    // of the todo row the model writes ("1. title（…）"), so a plan step can carry a title that no
+    // row of the todo table has. Measured 2026-10-30 on session 1bb4baa0: the fold opened step 1 with
+    // the annotated title while its `stepKey` still held the table's wording, `foldTodos` therefore
+    // saw "no change" and the view kept a step the conversation does not list (audit-real ①).
+    const title = match[2].replace(/\s*[（(][^（()）]*\.(?:md|markdown|mjs|cjs|js|json|ya?ml|txt)[）)]\s*$/, "");
+    rows.push({ planIndex: Number(match[1]), title: text(title, TITLE_LIMIT) });
     if (rows.length >= 80) break;
   }
   return rows;
@@ -1201,10 +1267,26 @@ function openPlanStep(state, time, seq, planIndex, title, blockText) {
     steps.push(created);
   } else {
     const step = steps[targetAt];
+    // A plan title must not replace the row's identity key on its own: `stepKey` is what `foldTodos`
+    // compares the live table against and what node attribution follows. Adopting a title without its
+    // key left the pair inconsistent, so the next todo/write judged the row unchanged and a stale
+    // title survived into the view (measured 2026-10-30, session 1bb4baa0). The old key is parked in
+    // `aliasKeys` exactly as a rename does, so nodes already carrying it still migrate.
+    const adopted = title || step.title;
+    const adoptedKey = normalizeTitle(adopted);
+    const renamed = adoptedKey !== "" && adoptedKey !== step.stepKey;
+    const seenKeys = Array.isArray(step.aliasKeys) ? step.aliasKeys : [];
     steps[targetAt] = {
       ...step,
       planIndex,
-      title: title || step.title,
+      title: adopted,
+      ...(renamed
+        ? {
+            prevKey: step.stepKey,
+            stepKey: adoptedKey,
+            aliasKeys: [...new Set([...seenKeys, step.stepKey, adoptedKey])].filter((key) => key !== ""),
+          }
+        : {}),
       anchorSeq: step.anchorSeq === undefined ? anchorOf(state, planIndex, seq) : step.anchorSeq,
       status: STEP_STATUS.running,
       endedAt: null,
@@ -1267,7 +1349,20 @@ function foldTurnStart(state, _event, time) {
 }
 
 function foldTurnEnd(state, _event, time) {
-  return { ...state, asOf: time, turnActive: false };
+  const next = { ...state, asOf: time, turnActive: false };
+  // The turn is over, so the step it was running is over too. Leaving it `running` kept a live,
+  // forever-partial bar on the last step of every finished session.
+  // The one exception is a step the todo table still names as its `in_progress` row: that step
+  // really does continue into the next turn, and closing it here would make the next turn reopen
+  // a step that never stopped.
+  const running = runningStep(next);
+  if (!running) return next;
+  const inProgress = inProgressStepIndex(next);
+  if (isFiniteNumber(inProgress) && inProgress === running.index) return next;
+  const durations =
+    running.startedAt > 0 ? [...next.durations, time - running.startedAt].filter((value) => value > 0) : next.durations;
+  const steps = next.steps.map((step) => (step.index === running.index ? closeStep(step, time) : step));
+  return withPercents({ ...next, steps, durations }, time);
 }
 
 function foldReport(state, event, time) {
@@ -2356,6 +2451,18 @@ function syncToTodos(state) {
     wanted.push({ key, title, status: item.status, planIndex: planIndexOf(item.content) });
   }
   if (wanted.length === 0) return state;
+  // The row's status is the ONE statement of a step's lifecycle: `todo/write` replaces the whole
+  // table every time, so a matched row must not inherit the status of whatever record the matcher
+  // bound it to. Without this pass a row the model has not started kept the `done` of an old record
+  // (a card at 100 % next to an empty todo), while an `in_progress` row showed as `pending` because
+  // the record it landed on was still pending — both seen in one session on 2026-10-30.
+  const rowStatus = (step, row) => {
+    if (row.status === "completed") return step.status === STEP_STATUS.done ? step : closeStep(step, state.asOf || 0);
+    if (row.status === "in_progress") {
+      return { ...step, status: STEP_STATUS.running, endedAt: null, startedAt: step.startedAt || state.asOf || 0 };
+    }
+    return { ...step, status: STEP_STATUS.pending, endedAt: null, startedAt: 0, percent: null, percentSource: "none" };
+  };
 
   const byKey = new Map();
   for (const step of state.steps) {
@@ -2445,7 +2552,7 @@ function syncToTodos(state) {
       // reworded title - the two did not match, so the nodes were dropped as orphans in the view.
       const oldKey = candidate.stepKey || normalizeTitle(candidate.title);
       const newKey = normalizeTitle(row.title);
-      const nextStep = { ...candidate, title: text(row.title, TITLE_LIMIT), stepKey: newKey };
+      const nextStep = rowStatus({ ...candidate, title: text(row.title, TITLE_LIMIT), stepKey: newKey }, row);
       reworded.set(oldKey, newKey);
       ordered.push(nextStep);
       origins.push(candidate.index);
@@ -2459,12 +2566,7 @@ function syncToTodos(state) {
     created.stepKey = row.key;
     created.startedAt = 0;
     created.planIndex = row.planIndex ?? undefined;
-    created.status = row.status === "completed" ? STEP_STATUS.done : STEP_STATUS.pending;
-    if (created.status === STEP_STATUS.done) {
-      created.percent = 100;
-      created.percentSource = "closed";
-      created.maxPercent = 100;
-    }
+    Object.assign(created, rowStatus(created, row));
     ordered.push(created);
     origins.push(-1);
   }

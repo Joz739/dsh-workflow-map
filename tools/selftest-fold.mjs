@@ -808,9 +808,12 @@ function foldAll(events) {
  // can name `.pae/<sessionId>/orchestrator.json` from a wire view; a checkpoint written at
  // version 1 cannot carry it, hence the bump.
  // bumps it again for the inbox LEDGER (`inboxIds`): a version-2 checkpoint
- // carries no ledger, and answering a later cancellation from a missing ledger would be a
- // wrong answer, so the registry must rebuild rather than hydrate.
-  equal("stateVersion is 3", STATE_VERSION, 3);
+// carries no ledger, and answering a later cancellation from a missing ledger would be a wrong
+// answer, so the registry must rebuild rather than hydrate. It bumps to 4 for the LEDGER MAPPING:
+// the step list now follows the todo table's own statuses (a `pending` row demotes a step that
+// still carries `done`/`running`, and a pending row no table names is dropped), so a version-3
+// checkpoint would hold the older mapping and must rebuild too.
+  equal("stateVersion is 4", STATE_VERSION, 4);
   equal("schemaVersion is 1", SCHEMA_VERSION, 1);
 
   const source = readFileSync(MODULE_PATH, "utf8");
@@ -1370,6 +1373,121 @@ function foldAll(events) {
     "(p) a finished step never carries the flag",
     applyPlanToView(doneView, plan).steps.map((step) => (step.pendingConfirm || []).length).join(","),
     "0,0,0",
+  );
+}
+
+// ---------------------------------------------------------------------------
+// (q) a plan row's own step FILE annotation must not become part of the title
+// ---------------------------------------------------------------------------
+// PAE renders each plan row as "1. title（qualifier）（step-01-x.md）": the file is an annotation,
+// not title text. Measured 2026-10-30 on session 1bb4baa0: the plan summary rewrote step 1's title
+// to the annotated form while the ledger's `stepKey` already held the table's wording, the very next
+// todo/write therefore judged the row unchanged, and the annotated title survived into the view —
+// one step the todo table does not list (audit-real constraint ①). No step instruction follows here
+// on purpose: in that session it arrived through `agent/inbox/spliced`, which does not re-title a step.
+{
+  resetSeq();
+  const planSummaryText =
+    "[plan-and-execute 计划摘要]\n概述：（无）\n步骤（共 2 步）：\n1. 修复前基线取证（五测/对抗脚本）（step-01-baseline-repro.md）\n2. 修复与验证（step-02-fix.md）";
+  const events = [
+    userMessage("带括号标题的计划"),
+    // The todo table lands FIRST (measured order: submit_plan result -> todo/write -> plan summary).
+    todos([
+      ["1. 修复前基线取证（五测/对抗脚本）", "in_progress"],
+      ["2. 修复与验证", "pending"],
+    ]),
+    toolCall("read", { path: "C:\\repo\\a.js" }, "q-call-1"),
+    toolResult("q-call-1", "a.js contents"),
+    ev("user/message", {
+      content: [{ type: "text", text: planSummaryText }],
+      source: { kind: "plugin:dsh-plan-and-execute", form: "instructions", summary: "plan-and-execute：计划摘要" },
+      role: "user",
+      id: "p1",
+    }),
+    // PAE rewrites the whole table right after the plan summary lands (measured: seq 380 plan
+    // summary, seq 381 todo/write). The annotated title must be gone by then.
+    todos([
+      ["1. 修复前基线取证（五测/对抗脚本）", "in_progress"],
+      ["2. 修复与验证", "pending"],
+    ]),
+  ];
+  const state = foldAll(events);
+  const view = buildView(state, state.asOf);
+  equal(
+    "(q) the plan row's step-file annotation never reaches the step title",
+    view.steps.map((step) => step.title),
+    ["修复前基线取证（五测/对抗脚本）", "修复与验证"],
+  );
+  equal(
+    "(q) a plan-summary retitle does not orphan the tools already in the row",
+    view.nodes.map((node) => node.stepIndex),
+    [0],
+  );
+  const bare = (value) => value.replace(/^\s*\d+\s*[.、．)]\s*/, "").trim();
+  const rows = new Set(view.todos.map((todo) => bare(todo.content)));
+  equal(
+    "(q) every step is a row of the live todo table (audit-real constraint ①)",
+    view.steps.filter((step) => !rows.has(step.title)).map((step) => step.title),
+    [],
+  );
+  equal("(q) the qualifier the table keeps is still part of the title", view.steps[0].title, "修复前基线取证（五测/对抗脚本）");
+  equal("(q) ordinals still come from the plan", view.steps.map((step) => step.planIndex), [1, 2]);
+}
+// ---------------------------------------------------------------------------
+// (r) the todo table owns the step ledger
+// ---------------------------------------------------------------------------
+{
+  // A row the table marks pending again demotes the step it used to complete: the table is the one
+  // place that reports a step's outcome, and a `done` step for a row nobody claims is finished work
+  // that never happened.
+  const back = foldAll([todos([["整理证据", "completed"]]), todos([["整理证据", "pending"]])]);
+  equal("(r) a pending row demotes a completed step", back.steps[0].status, "pending");
+  equal("(r) the demoted step carries no number", back.steps[0].percent, null);
+
+  // A pending row must not take over the running step. Slot reuse after a rewording is what made a
+  // pending row hijack the live step in a real session (2026-10-30).
+  const hijack = foldAll([
+    todos([["甲", "completed"], ["乙", "in_progress"]]),
+    todos([["甲", "completed"], ["丙", "pending"]]),
+  ]);
+  equal(
+    "(r) a reworded table's pending row shows as pending, never as the running row it replaced",
+    hijack.steps.map((step) => [step.title, step.status]),
+    [
+      ["甲", "done"],
+      ["丙", "pending"],
+    ],
+  );
+  // The same row turning in_progress in the next table must RUN — before this pass the record it
+  // matched kept its old `pending` and the card never lit up.
+  const reopened = foldAll([
+    todos([["甲", "completed"], ["乙", "pending"]]),
+    todos([["甲", "completed"], ["乙", "in_progress"]]),
+  ]);
+  equal("(r) an in_progress row runs even when its record was pending", reopened.steps[1].status, "running");
+
+  // A pending row that no table names any more and that owns no node is a leftover of an older
+  // wording; it must not sit in the step column as a permanently empty card.
+  const pruned = foldAll([todos([["甲", "pending"], ["乙", "pending"]]), todos([["丙", "pending"]])]);
+  equal("(r) an unnamed, empty pending row is dropped", pruned.steps.map((step) => step.title), ["丙"]);
+
+  // Turn end closes the step that turn was running; a step the table still names as in_progress is
+  // left running because it really does continue into the next turn.
+  const closed = foldAll([todos([["上一步", "completed"], ["当前", "in_progress"]]), ev("turn/end", {})]);
+  equal("(r) turn end keeps a step the table still calls in_progress", closed.steps[1].status, "running");
+  const closed2 = foldAll([
+    todos([["上一步", "completed"], ["当前", "in_progress"]]),
+    todos([["上一步", "completed"], ["当前", "pending"]]),
+    ev("turn/end", {}),
+  ]);
+  equal("(r) turn end closes a step no row claims any more", closed2.steps[1].status, "pending");
+
+  // Pending rows never carry a number, even while the table has a completion ratio to offer.
+  const numbers = foldAll([todos([["甲", "completed"], ["乙", "in_progress"], ["丙", "pending"]])]);
+  equal(
+    "(r) only the running row shows a figure",
+    numbers.steps.map((step) => (step.percent === null ? null : "num")),
+    ["num", "num", null],
   );
 }
 

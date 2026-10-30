@@ -1,13 +1,15 @@
 {
   "name": "dsh-workflow-map",
-  "version": "0.3.3",
-  "description": "工作流地图插件（DeepSeek Harness bundle）：在会话标签栏、左栏菜单与主内容区以同一份面板展示当前会话的分步总览、每步的工具/文件类型明细、唯一彩色流光进度条，并支持热注入（steer）与「需确认」标注。宿主半折叠会话事件并读取 PAE 计划，经本地 HTTP 视图供数据；浏览器半渲染面板。",
+  "version": "0.3.4",
+  "description": "把当前会话渲染成一张可交互的分步工作流地图：会话标签栏、左栏菜单与主内容区共用同一份面板，逐步显示状态、工具与文件类型明细、进度条，并支持热注入（steer）与「需确认」标注。宿主半折叠会话事件、读取按步执行（PAE）计划，经本地 HTTP 视图供数据；浏览器半渲染面板。",
   "private": false,
   "type": "module",
   "license": "MIT",
   "keywords": [
     "deepseek-harness",
+    "deepseek-harness-plugin",
     "dsh",
+    "dsh-0.2.1",
     "cordis",
     "plugin",
     "bundle",
@@ -24,7 +26,20 @@
     "url": "https://github.com/Joz739/dsh-workflow-map/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "dsh": ">=0.2.1-rc.1 <0.3.0-0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-agent-loop": ">=0.2.1-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-llm": ">=0.2.1-rc.1 <0.3.0-0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-agent-loop": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    }
   },
   "exports": {
     ".": "./index.js",
@@ -45,6 +60,7 @@
     "CHANGELOG.md",
     "LICENSE",
     "docs/OPEN-SOURCE-GUIDE.md",
+    "docs/host-compatibility.md",
     "docs/screenshot.png",
     "docs/screenshot-detail.png",
     "package.json"

@@ -23,8 +23,8 @@
 | `locale/` / `icon.svg` | 词典与图标 |
 | `tools/` | 自测、探针、浏览器量测（**不随 npm 包发布**，进 Git） |
 
-**发布前必改**：`package.json` 里三处 `YOUR_GITHUB_USERNAME`（`repository.url`、`homepage`、`bugs.url`）
-替换成真实用户名。
+**发布前核对**：`package.json` 里 `repository.url`、`homepage`、`bugs.url` 三处必须指向真实的 GitHub 用户名与仓库名；
+仓库改名或 fork 后要同步改这三处。
 
 ---
 
@@ -36,7 +36,7 @@
 
 在 <https://github.com/new> 建一个**空**仓库，仓库名与 `package.json` 的 `name` 一致。
 
-⚠️ **不要**勾选 "Add a README / .gitignore / license"——本地已有，勾选会导致首次推送冲突。
+⚠️ **不要**勾选 "Add a README / .gitignore / license"：本地已有，勾选会导致首次推送冲突。
 
 ### 2.2 初始化并推送
 
@@ -87,8 +87,8 @@ pnpm pack --dry-run
 
 - 第一行为 `package: dsh-workflow-map@<版本>`；
 - 含 `client.js`、`lib/`、`src/`、`index.js`、`cordis.patch.yml`、`locale/*.json`、`icon.svg`、
-  `README.md`、`CHANGELOG.md`、`LICENSE`、`docs/OPEN-SOURCE-GUIDE.md`；
-- **不含** `tools/`、`evidence/`、`*.bak*`、任何个人文档。
+  `README.md`、`CHANGELOG.md`、`LICENSE`、`docs/OPEN-SOURCE-GUIDE.md`、`docs/host-compatibility.md`；
+- **不含** `tools/`、`evidence/`、`*.bak*` 与本地草稿。
 
 `files[]` 是白名单：以**文件**（而非目录）列出，能避免整目录被连带发布。
 
@@ -168,7 +168,7 @@ node tools/probe-route.mjs            # 真实 HTTP 路由
 node tools/probe-steer.mjs            # 注入 / 撤回通道
 ```
 
-合计 **1507 条离线断言**。也可一条命令：
+合计 **1533 条离线断言**。也可一条命令：
 
 ```bash
 npm test
@@ -196,7 +196,7 @@ pwsh -File tools/measure-settings.ps1  # 设置卡与导出
 pwsh -File tools/measure-main.ps1      # 单页几何与交互
 ```
 
-合计 **308 条浏览器量测**。
+合计 **308 条浏览器量测**（0.3.4 起 `measure-main` 另含浅色/深色主题对比检查，数字以脚本实际输出为准）。
 
 > `tools/retired/` 里是量「已移除界面」的历史脚本，**不属于验证链**，不期望通过。
 
@@ -248,7 +248,7 @@ dsh-workflow-map/
 ├─ client.js             生成物，禁止手改
 ├─ cordis.patch.yml      挂载声明
 ├─ locale/{zh,en}.json   词典
-├─ docs/                 本文件
+├─ docs/                 发布指南与宿主兼容性核验
 ├─ tools/                自测 · 探针 · 浏览器量测
 ├─ CHANGELOG.md
 ├─ LICENSE (MIT)

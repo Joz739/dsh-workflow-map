@@ -169,7 +169,15 @@ var WF_CSS = [
  // the three branch hues live on the ROOT, so the dashed branches and their round
  // icons share one palette with the rest of the panel (and one place to change it).
     "--wf-chain-read:#5b8cff;--wf-chain-edit:#e0a13a;--wf-chain-tool:#8f7bea;" +
+  // `--dsw-alias-bg-layer-1` and `-2` carry the SAME value in the host's light theme (both
+  // neutral-bluish-00, i.e. #fff), so a card filled with layer-2 is invisible on the page. Every
+  // raised surface in the panel therefore paints one translucent lift over that fill. The lift goes
+  // towards ink on a light page and towards white on a dark one; the host marks dark by putting
+  // `data-ds-dark-theme` on <body>, so the light values are the defaults and the dark block below
+  // only wins when that attribute is present.
+    "--wf-lift:rgba(15,23,42,.045);--wf-lift-2:rgba(15,23,42,.085);" +
     "font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:12px;line-height:1.5}",
+  "body[data-ds-dark-theme] .wf-root{--wf-lift:rgba(255,255,255,.035);--wf-lift-2:rgba(255,255,255,.07)}",
 
  /* card: fills the main area; the header and the settings card keep their own height,
      the two-column body takes the rest. No drag grips: the column has no free edges.
@@ -252,13 +260,14 @@ var WF_CSS = [
  // `grid-area:1/1` is what makes the triangle and the card share the cell: without it the
  // auto-placement cursor would drop the card into row 2, below the triangle.
   ".wf-step-card{grid-area:1/1;display:flex;gap:8px;align-items:flex-start;width:100%;padding:7px 8px;border-radius:8px;text-align:left;" +
-    "font:inherit;color:inherit;cursor:pointer;border:1px solid transparent;" +
-    "background:var(--dsw-alias-bg-layer-2,#282d3a);border-left:3px solid transparent}",
+    "font:inherit;color:inherit;cursor:pointer;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.22));" +
+    "background:var(--dsw-alias-bg-layer-2,#282d3a);background-image:linear-gradient(var(--wf-lift),var(--wf-lift));" +
+    "border-left:3px solid transparent}",
   ".wf-step-card:hover{border-color:var(--dsw-alias-border-l2,rgba(255,255,255,.22));" +
-    "background:var(--dsw-alias-bg-layer-1,#232733)}",
+    "background:var(--dsw-alias-bg-layer-1,#232733);background-image:linear-gradient(var(--wf-lift-2),var(--wf-lift-2))}",
   ".wf-step-card:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:1px}",
   ".wf-step-card[data-selected='true']{border-color:var(--dsw-alias-brand-primary,#5b8cff);" +
-    "background:var(--dsw-alias-bg-layer-1,#232733)}",
+    "background:var(--dsw-alias-bg-layer-1,#232733);background-image:linear-gradient(var(--wf-lift-2),var(--wf-lift-2))}",
   ".wf-step-card[data-active='true']{border-left-color:var(--dsw-alias-brand-primary,#5b8cff)}",
   ".wf-step-ring{flex:0 0 auto;width:18px;height:18px;margin-top:1px;border-radius:50%;" +
     "display:inline-flex;align-items:center;justify-content:center;font-size:11px;line-height:1;" +
@@ -442,12 +451,14 @@ var WF_CSS = [
  /* node card: icon · title · meta · status dot */
   ".wf-node{display:flex;gap:7px;align-items:flex-start;width:100%;padding:6px 8px;border-radius:8px;" +
     "text-align:left;font:inherit;color:inherit;cursor:pointer;" +
-    "background:var(--dsw-alias-bg-layer-2,#282d3a);border:1px solid transparent;" +
+    "background:var(--dsw-alias-bg-layer-2,#282d3a);background-image:linear-gradient(var(--wf-lift),var(--wf-lift));" +
+    "border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.22));" +
     "border-left:3px solid var(--dsw-alias-border-l2,rgba(255,255,255,.2))}",
-  ".wf-node:hover{border-color:var(--dsw-alias-border-l2,rgba(255,255,255,.24));background:var(--dsw-alias-bg-layer-1,#232733)}",
+  ".wf-node:hover{border-color:var(--dsw-alias-border-l2,rgba(255,255,255,.24));" +
+    "background:var(--dsw-alias-bg-layer-1,#232733);background-image:linear-gradient(var(--wf-lift-2),var(--wf-lift-2))}",
   ".wf-node:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:1px}",
   ".wf-node[data-selected='true']{border-color:var(--dsw-alias-brand-primary,#5b8cff);" +
-    "background:var(--dsw-alias-bg-layer-1,#232733)}",
+    "background:var(--dsw-alias-bg-layer-1,#232733);background-image:linear-gradient(var(--wf-lift-2),var(--wf-lift-2))}",
   ".wf-node[data-selected='true'] .wf-node-title{font-weight:600}",
   ".wf-node[data-kind='tool']{border-left-color:var(--dsw-alias-brand-primary,#5b8cff)}",
   ".wf-node[data-kind='report']{border-left-color:var(--dsw-alias-state-success-primary,#45c07a)}",
@@ -1024,11 +1035,12 @@ var WF_CSS_PAGE = [
 
  /* ---- the unit card ---- */
   ".wf-unit-card{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:flex-start;gap:8px;" +
-    "width:100%;padding:10px 12px;border-radius:10px;text-align:left;border:1px solid transparent;" +
-    "background:var(--dsw-alias-bg-layer-2,#282d3a);color:inherit;font:inherit;cursor:pointer;" +
+    "width:100%;padding:10px 12px;border-radius:10px;text-align:left;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.22));" +
+    "background:var(--dsw-alias-bg-layer-2,#282d3a);background-image:linear-gradient(var(--wf-lift),var(--wf-lift));" +
+    "color:inherit;font:inherit;cursor:pointer;" +
     "border-left:3px solid transparent;box-sizing:border-box}",
   ".wf-unit-card:hover{border-color:var(--dsw-alias-border-l2,rgba(255,255,255,.22));" +
-    "background:var(--dsw-alias-bg-layer-1,#232733)}",
+    "background:var(--dsw-alias-bg-layer-1,#232733);background-image:linear-gradient(var(--wf-lift-2),var(--wf-lift-2))}",
   ".wf-unit-card:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:1px}",
   ".wf-unit-card[data-selected='true']{border-color:var(--dsw-alias-brand-primary,#5b8cff)}",
   ".wf-unit-card[data-active='true']{border-left-color:var(--dsw-alias-brand-primary,#5b8cff)}",

@@ -582,7 +582,7 @@ check('prog.timing.durationText',
   T.progressDurationText(0) === '' && T.progressDurationText(null) === '' && T.progressDurationText(-5) === '',
   JSON.stringify([T.progressDurationText(180000), T.progressDurationText(54000), T.progressDurationText(3000000), T.progressDurationText(7200000)]));
 
-// (2026-10-26) · the projected remainder is GONE by user request. `progressTiming` answers
+// The projected remainder is no longer computed. `progressTiming` answers
 // ONE question now — how stale the quoted number is. The rows below used to assert WHEN a projection
 // was withheld (percent 0, a closed step, a failed step, a missing start stamp, a pending row); the
 // honest equivalent after the removal is that NONE of them can conjure an `eta` key back, and that
@@ -890,8 +890,8 @@ const genericParts = T.nodeTitleParts(
   say
 );
 check('node.title.unknownTool', genericParts.verb === 'plugin_manager' && genericParts.target === 'action=list', genericParts.verb + ' · ' + genericParts.target);
-const msgParts = T.nodeTitleParts({ kind: 'message', tool: '', title: '我已把宿主投影落地', detail: '', path: '', files: 0, result: true }, 'message', say);
-check('node.title.message', msgParts.verb === '' && msgParts.target === '我已把宿主投影落地', JSON.stringify(msgParts));
+const msgParts = T.nodeTitleParts({ kind: 'message', tool: '', title: '宿主投影已接入面板', detail: '', path: '', files: 0, result: true }, 'message', say);
+check('node.title.message', msgParts.verb === '' && msgParts.target === '宿主投影已接入面板', JSON.stringify(msgParts));
 check(
   'node.status',
   T.nodeStatus({ id: 'a', error: false, result: false }, 'a') === 'running' &&
@@ -1628,6 +1628,14 @@ const cssNeedles = [
  // surfaces (cards, capsules, detail blocks) rather than to the frame itself.
   ['inner card radius', '.wf-step-card{grid-area:1/1;display:flex;gap:8px;align-items:flex-start;width:100%;padding:7px 8px;border-radius:8px'],
   ['step card', '.wf-step-card{'],
+ // LIGHT THEME CONTRACT. The host paints `--dsw-alias-bg-layer-1` and `-2` the SAME colour as the page
+ // (#fff in light mode), so a card filled only with bg-layer-2 vanishes against the background. The
+ // lift variable is the surface's own ink, and the border must be a real token — never `transparent`.
+  ['lift variable defined', '--wf-lift:'],
+  ['lift variable dark override', 'body[data-ds-dark-theme] .wf-root{--wf-lift:'],
+  ['step card is lifted', 'background-image:linear-gradient(var(--wf-lift),var(--wf-lift))'],
+  ['step card border is a token', 'border:1px solid var(--dsw-alias-border-l2'],
+  ['hover lift', 'background-image:linear-gradient(var(--wf-lift-2),var(--wf-lift-2))'],
   ['step ring', '.wf-step-ring{'],
  // the dock became a two-LINE block (row + sub line), so the 8 px air and the
  // The dock is now a two-LINE block (row + sub line), so the 8 px air sits on the dock and

@@ -157,7 +157,7 @@ const mockApp = `
   <div class="mock-app">
     <aside class="mock-side"><b>DeepSeek Harness</b><div class="mock-row">当前会话</div><div class="mock-row">历史会话</div></aside>
     <main class="mock-chat">
-      <div class="mock-msg">用户：面板里的配色、动效、详情深度和节点上限在哪里调？我想导出一份当前会话的工作流快照。</div>
+      <div class="mock-msg">用户：面板里的配色、动效、详情深度和节点上限在哪里调？另外还需要一份当前会话的工作流快照。</div>
       <div class="mock-msg me">点右上角齿轮，设置就在面板里；改完立即生效，F5 也还在。快照可以复制或下载。</div>
     </main>
   </div>

@@ -57,6 +57,21 @@ const DARK_TOKENS = `
   :root{--mock-bg:#0f1116;--mock-fg:#e9ecf3;--mock-dim:#9aa3b2;--mock-border:#2a2f3a;
     --mock-row:#181b22}
 `;
+// LIGHT theme with the HOST's real values, not an invented palette. In the shipped app both layer
+// variables resolve to `--dsw-static-neutral-bluish-00` (#fff), so layer-1 and layer-2 are the same
+// colour as the page — that is exactly why a card painted with bg-layer-2 and a transparent border
+// disappeared against the background. The harness has to reproduce those values or it would keep
+// passing while the product fails.
+const LIGHT_TOKENS = `
+  :root{--mock-bg:#ffffff;--mock-fg:#0f1115;--mock-dim:#61666b;--mock-border:rgba(0,0,0,.10);
+    --mock-row:#ffffff;
+    --dsw-alias-bg-base:#ffffff;--dsw-alias-bg-layer-1:#ffffff;--dsw-alias-bg-layer-2:#ffffff;
+    --dsw-alias-bg-overlay:#ffffff;--dsw-alias-border-l1:rgba(0,0,0,.04);--dsw-alias-border-l2:rgba(0,0,0,.10);
+    --dsw-alias-brand-primary:#4d6bfe;--dsw-alias-label-primary:#0f1115;
+    --dsw-alias-label-secondary:#61666b;--dsw-alias-label-tertiary:#81858c;
+    --dsw-alias-state-success-primary:#0f9d58;--dsw-alias-state-warn-primary:#b26a00;
+    --dsw-alias-state-error-primary:#c62828;--dsw-alias-state-idle-primary:#81858c}
+`;
 const mockCss = `
   html,body{margin:0;height:100%;background:var(--mock-bg);color:var(--mock-fg);
     font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif}
@@ -332,10 +347,41 @@ function pageScript({ mode, prefsPatch }) {
  // 'none' on that rule and always was.
     return { text: (button.textContent || '').trim(), width: b.width, height: b.height, background: cs.backgroundImage, backgroundColor: cs.backgroundColor };
   }
+  // CONTRAST PROBE. The light theme paints the page and both layer variables the same colour (#fff
+  // in the shipped app), so a card is only visible if its own fill is lifted and its border is not
+  // transparent. These read COMPUTED styles of real elements, so a rule that a self-test can see but
+  // the browser drops (unsupported syntax, lost cascade) still fails here.
+  function contrastReport() {
+    function probe(selector) {
+      var el = document.querySelector(selector);
+      if (!el) return null;
+      var cs = getComputedStyle(el);
+      var rect = el.getBoundingClientRect();
+      return {
+        selector: selector,
+        background: cs.backgroundColor,
+        backgroundImage: cs.backgroundImage,
+        borderColor: cs.borderTopColor,
+        borderWidth: cs.borderTopWidth,
+        w: Math.round(rect.width), h: Math.round(rect.height)
+      };
+    }
+    var rootEl = document.querySelector('.wf-root');
+    var rootStyle = rootEl ? getComputedStyle(rootEl) : null;
+    return {
+      dark: document.body.hasAttribute('data-ds-dark-theme'),
+      page: probe('.wf-root') || probe('body'),
+      card: probe('.wf-step-card'),
+      node: probe('.wf-node'),
+      unit: probe('.wf-unit-card'),
+      lift: rootStyle ? rootStyle.getPropertyValue('--wf-lift').trim() : '',
+      lift2: rootStyle ? rootStyle.getPropertyValue('--wf-lift-2').trim() : ''
+    };
+  }
   function report(phase, extra) {
     return {
       phase: phase, units: unitReport(), sats: satReport(), ring: unitRingReport(),
-      center: centerReport(), right: rightReport(), header: headerReport(), extra: extra || null
+      center: centerReport(), right: rightReport(), header: headerReport(), contrast: contrastReport(), extra: extra || null
     };
   }
   function emit(phases) {
@@ -406,9 +452,11 @@ function pageScript({ mode, prefsPatch }) {
 }
 
 /* --- build the pages ------------------------------------------------------ */
-function buildPage({ file, title, mode, prefsPatch }) {
+function buildPage({ file, title, mode, prefsPatch, theme }) {
+  const tokens = theme === 'light' ? LIGHT_TOKENS : DARK_TOKENS;
+  const bodyAttr = theme === 'light' ? '' : ' data-ds-dark-theme="dark"';
   const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"><title>${esc(title)}</title>
-<style>${DARK_TOKENS}${mockCss}${T.css()}</style></head><body>${mockApp}
+<style>${tokens}${mockCss}${T.css()}</style></head><body${bodyAttr}>${mockApp}
 <script>window.__ModuleLoader__ = { load: function (definition) { window.__wfDef = definition; } };</script>
 <script src="../../client.js"></script>
 <script>${pageScript({ mode, prefsPatch })}</script>
@@ -430,7 +478,7 @@ written.push(
     prefsPatch: { rightOpen: true, rightKind: 'step', rightKey: 'step:' + RUNNING_AT, selectedStep: RUNNING_AT },
   })
 );
+written.push(buildPage({ file: 'main-light.html', title: 'workflow-map single page (light theme)', mode: 'dynamic', theme: 'light' }));
 written.push(buildPage({ file: 'main-narrow.html', title: 'workflow-map single page (narrow)', mode: 'single' }));
-
 for (const one of written) process.stdout.write(`wrote evidence/preview/${one.file} (${one.bytes} bytes)\n`);
 process.stdout.write(`units=${steps.length} running=${RUNNING_AT} satellites=${expect.runningSats.left}+${expect.runningSats.right}\n`);

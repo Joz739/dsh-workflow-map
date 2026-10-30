@@ -24,7 +24,7 @@
  * "0 seconds ago" would be a fabricated number, which is exactly what this plugin
  * refuses to print.
  *
- * (2026-10-26) · the projected REMAINING half is GONE by user request. It used to be shipped
+ * The projected REMAINING half is no longer part of this rail. It used to be shipped
  * by the host as a derived millisecond field (median of the finished steps, hard-bounded) and
  * rendered as "remaining ~N minutes"; the host no longer computes it and this rail no longer renders it.
  * One line, one fact, no consumer-less field — and a payload that still carries that field (an
