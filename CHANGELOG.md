@@ -3,6 +3,16 @@
 `dsh-workflow-map` 的所有重要变更记录在此。
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [SemVer](https://semver.org/)。
 
+## [0.3.7] - 2026-10-31
+
+### Added
+
+- **`screenshots.json`（仓库根目录）**：按插件目录（awesome-dsh-plugin）的投稿规范声明六张界面截图的
+  相对路径。该文件随 npm 包发布，目录的每日构建读取后写入条目的 `screenshots` 字段，插件市场的
+  发现页卡片即按该字段渲染预览图；不声明时市场只能回退到 README 抓取，且卡片位不显示任何图。
+- 自测新增 5 条断言（`selftest-shape`）：`screenshots.json` 在 `files` 白名单内、1–8 张、
+  路径为不含 `..` 的相对路径、每张图片真实存在。
+
 ## [0.3.6] - 2026-10-31
 
 ### Changed

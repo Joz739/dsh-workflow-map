@@ -104,6 +104,26 @@ check(
 );
 check('host.no.clock', !/Date\.now\(/.test(hostImpl), 'no wall-clock read on this path');
 check('files.whitelist.src', pkg.files.includes('src'), 'src/ is shipped (fold.mjs lives there)');
+
+// The screenshot declaration the catalog build reads. It must ship with the package
+// (a path relative to package.json), list 1-8 existing images, and use repository
+// relative paths — the rules awesome-dsh-plugin enforces on every submission.
+check('files.whitelist.screenshotsJson', pkg.files.includes('screenshots.json'), 'screenshots.json is shipped');
+{
+  const shots = JSON.parse(read('screenshots.json'));
+  const list = Array.isArray(shots) ? shots : Array.isArray(shots.screenshots) ? shots.screenshots : null;
+  check('screenshots.len', Array.isArray(list) && list.length >= 1 && list.length <= 8, Array.isArray(list) ? list.length + ' images' : 'not a list');
+  check(
+    'screenshots.paths',
+    Array.isArray(list) && list.every((p) => typeof p === 'string' && p !== '' && !p.startsWith('/') && !p.includes('..')),
+    'every path is relative and stays inside the repository'
+  );
+  check(
+    'screenshots.exist',
+    Array.isArray(list) && list.every((p) => fs.existsSync(path.join(ROOT, p))),
+    'every declared image exists'
+  );
+}
 check('files.whitelist.lib', pkg.files.includes('lib'), 'lib/ is shipped (the host half lives there)');
 
 // --- the HTTP view route -----------------------------------------

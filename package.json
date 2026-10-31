@@ -1,6 +1,6 @@
 {
   "name": "dsh-workflow-map",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "把当前会话渲染成一张可交互的分步工作流地图：会话标签栏、左栏菜单与主内容区共用同一份面板，逐步显示状态、工具与文件类型明细、进度条，并支持热注入（steer）与「需确认」标注。宿主半折叠会话事件、读取按步执行（PAE）计划，经本地 HTTP 视图供数据；浏览器半渲染面板。",
   "private": false,
   "type": "module",
@@ -64,6 +64,7 @@
     "docs/screenshot.png",
     "docs/screenshot-detail.png",
     "docs/screenshots",
+    "screenshots.json",
     "package.json"
   ],
   "scripts": {
