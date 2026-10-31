@@ -1,10 +1,11 @@
 {
   "name": "dsh-workflow-map",
-  "version": "0.3.7",
-  "description": "把当前会话渲染成一张可交互的分步工作流地图：会话标签栏、左栏菜单与主内容区共用同一份面板，逐步显示状态、工具与文件类型明细、进度条，并支持热注入（steer）与「需确认」标注。宿主半折叠会话事件、读取按步执行（PAE）计划，经本地 HTTP 视图供数据；浏览器半渲染面板。",
+  "version": "0.3.8",
+  "description": "DeepSeek Harness（DSH）插件：把会话折叠成分步工作流地图，逐步显示状态、工具与文件类型；进度百分比标注来源（待办表/自报/时间基线/计划步序），而不是只报一个数；支持把提示词排入下一步队列，被取用前可撤回。",
   "private": false,
   "type": "module",
   "license": "MIT",
+  "author": "Joz739",
   "keywords": [
     "deepseek-harness",
     "deepseek-harness-plugin",
@@ -64,6 +65,7 @@
     "docs/screenshot.png",
     "docs/screenshot-detail.png",
     "docs/screenshots",
+    "docs/assets",
     "screenshots.json",
     "package.json"
   ],

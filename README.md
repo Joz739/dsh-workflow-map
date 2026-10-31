@@ -45,7 +45,7 @@ https://github.com/deepseek-ai/deepseek-harness/discussions/11660
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.7-success)
+![version](https://img.shields.io/badge/version-0.3.8-success)
 
 ---
 

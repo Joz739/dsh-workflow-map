@@ -3,6 +3,20 @@
 `dsh-workflow-map` 的所有重要变更记录在此。
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [SemVer](https://semver.org/)。
 
+## [0.3.8] - 2026-10-31
+
+### Added
+
+- **`docs/assets/icon-180.png`**：180×180 位图图标，供插件目录（awesome-dsh-plugin）的市场卡片使用。
+  目录规范只接受位图（png/jpg/jpeg/webp），仓库原有的 `icon.svg` 不能用作卡片图标；不声明则回退到作者头像。
+
+### Changed
+
+- **npm `description` 改写**。原文一句话里写了「宿主半/浏览器半」这类实现细节，而这段文字会出现在
+  npm 搜索结果的卡片和包页顶部，应当说明这个包是什么、能做什么。改为 112 字符的说明，
+  并补上此前为空的 `author` 字段。
+- `docs/assets` 加入 `files` 白名单，随包发布。
+
 ## [0.3.7] - 2026-10-31
 
 ### Added
