@@ -4,8 +4,8 @@
 
 DeepSeek Harness 插件：把当前会话渲染为一张可交互的分步工作流地图。
 
-> 社区讨论帖：https://github.com/deepseek-ai/deepseek-harness/discussions/1234>
-> 
+https://github.com/deepseek-ai/deepseek-harness/discussions/11660
+
 >  **宿主适配要求（Host requirement）**
 > - **DSH 内核**：`engines.dsh` = `>=0.2.1-rc.1 <0.3.0-0`，覆盖 `0.2.1` 全系列（`0.2.1-rc.1` 至 `0.2.1-rc.5`）与 `0.2.1` 正式版。
 > - **Node.js**：`>=20`（`engines.node`）。
