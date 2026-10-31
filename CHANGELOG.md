@@ -3,7 +3,14 @@
 `dsh-workflow-map` 的所有重要变更记录在此。
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [SemVer](https://semver.org/)。
 
-## [Unreleased]
+## [0.3.5] - 2026-10-31
+
+### Added
+
+- **README 截图区改为按市场评分规则书写的六图画廊**：主界面（深色/浅色）、运行中的单元、分步详情、
+  热注入、设置面板。图片落在 `docs/screenshots/`，相对路径引用，图注含「预览/截图/主界面」等关键词，
+  使插件市场的卡片与安装对话框能自动取到（该市场只认 README 里位于 GitHub 四域名的图片，
+  并按语义与尺寸打分取前 6 张；带 badge/logo 的一律排除）。
 
 ### Fixed
 

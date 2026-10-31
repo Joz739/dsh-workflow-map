@@ -24,16 +24,27 @@ DeepSeek Harness 插件：把当前会话渲染为一张可交互的分步工作
 会话标签栏（`conversation.view`）。面板将会话事件折叠为分步序列，展示每步的状态、进度、
 工具调用与文件操作，并支持在会话运行中向其下一步注入提示词。
 
-![工作流地图：单一主流程 + 两侧类型接口 + 右页详情](docs/screenshot-detail.png)
+![工作流地图主界面预览（深色主题）：串行主流程 + 两侧类型接口 + 右页详情](docs/screenshots/01-main-dark.png)
 
-*左：侧边栏入口选中态；中：串行主流程（每步一张单元卡，两侧圆形接口为工具/文件类型，
-运行中的单元高亮并带流动外框）；右：点开分步后的右页（类型清单、分步详情），
-底部为常驻注入条。*
+*主界面（深色）：左为侧边栏入口选中态，中为串行主流程（每步一张单元卡，两侧圆形接口为工具/文件
+类型，运行中的单元高亮并带流动外框），右为分步详情页，底部为常驻注入条。*
+
+### 界面截图（完整预览）
+
+| | |
+|---|---|
+| ![主界面完整预览（浅色主题）](docs/screenshots/02-main-light.png) | ![运行中的步骤预览：流动渐变外框](docs/screenshots/03-running-step.png) |
+| **主界面 · 浅色主题** —— 与深色同一布局，配色随宿主主题切换 | **运行中的单元** —— 流动渐变外框标出「此刻在调用」 |
+| ![分步详情预览：右页的类型清单与调用记录](docs/screenshots/04-step-detail.png) | ![热注入界面预览：把提示词排入下一步队列](docs/screenshots/05-hot-inject.png) |
+| **分步详情** —— 右页列出该步的类型清单、调用参数与结果摘要 | **热注入** —— 提示词排入下一步执行队列，被取用前可撤回 |
+| ![设置面板预览：配色、动效、详情深度与导出](docs/screenshots/06-settings.png) | |
+
+以上六张为离屏渲染的界面预览，不含任何真实会话内容。
 
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.4-success)
+![version](https://img.shields.io/badge/version-0.3.5-success)
 
 ---
 

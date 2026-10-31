@@ -25,16 +25,28 @@ Three entry points share one data source and one set of components: the sidebar 
 The panel folds session events into a step sequence, showing each step's status, progress, tool calls
 and file operations, and can inject prompts into the next step of a running session.
 
-![Workflow map: one main flow, type interfaces on both sides, details on the right page](docs/screenshot-detail.png)
+![Workflow map main screen preview (dark theme): serial main flow, type interfaces on both sides, details on the right page](docs/screenshots/01-main-dark.png)
 
-*Left: the selected sidebar entry. Centre: the serial main flow (one unit card per step, round interfaces
-on both sides for tool/file types; the running unit is highlighted with a flowing frame). Right: the page
-opened for a step (type list, step detail). Bottom: the persistent injection bar.*
+*Main screen (dark): the selected sidebar entry on the left, the serial main flow in the centre (one unit
+card per step, round interfaces on both sides for tool/file types, the running unit highlighted with a
+flowing frame), the step detail page on the right, and the persistent injection bar at the bottom.*
+
+### Screenshots (full preview)
+
+| | |
+|---|---|
+| ![Main screen full preview (light theme)](docs/screenshots/02-main-light.png) | ![Running step preview: flowing gradient frame](docs/screenshots/03-running-step.png) |
+| **Main screen · light theme** — same layout, colours follow the host theme | **Running unit** — the flowing frame marks "calling right now" |
+| ![Step detail preview: type list and call records on the right page](docs/screenshots/04-step-detail.png) | ![Hot inject preview: queue a prompt for the next step](docs/screenshots/05-hot-inject.png) |
+| **Step detail** — type list, call arguments and result summary for that step | **Hot inject** — queue a prompt for the next step, revocable before it is claimed |
+| ![Settings panel preview: palette, motion, detail depth and export](docs/screenshots/06-settings.png) | |
+
+All six are offscreen renders of the interface and contain no real session content.
 
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.4-success)
+![version](https://img.shields.io/badge/version-0.3.5-success)
 
 ---
 
