@@ -375,7 +375,26 @@ const headButtons = findAll(panel, (el) => el.type === 'button').filter((el) => 
 // The header's own × is gone; the step-detail × (StepDetail.js) is a different control and
 // stays. Assert on the header's buttons instead of the whole tree's text.
 check('render.headerNoClose', headButtons.every((el) => textOf(el) !== '×'), 'no × among the header buttons');
-check('render.headerButtons', headButtons.length === 3, headButtons.length);
+check('render.headerButtons', headButtons.length === 4, headButtons.length);
+// The manual refresh is the fallback for "the map does not update by itself", so it
+// must exist, be FIRST in the row, be named, and reach the action.
+const refreshButton = byData(tree, 'refresh')[0];
+check('refresh.present', refreshButton !== undefined, 'the refresh button exists');
+check('refresh.first', headButtons[0] === refreshButton, 'refresh is the first header button');
+check('refresh.glyph', textOf(refreshButton) === '↻', textOf(refreshButton));
+check('refresh.named', typeof refreshButton.props['aria-label'] === 'string' && refreshButton.props['aria-label'].length > 0, refreshButton.props['aria-label']);
+check('refresh.hint', /0\.8/.test(refreshButton.props.title || ''), refreshButton.props.title);
+check('refresh.notPressed', refreshButton.props['aria-pressed'] === undefined, 'a pull is not a toggle');
+check('refresh.calls', (() => { let hits = 0; const a = { ...actions, onRefresh: () => { hits += 1; } }; const t = T.renderPanel(model, defaults, say, a, ui); const b = byData(t, 'refresh')[0]; b.props.onClick(); return hits === 1; })(), 'click reaches onRefresh once');
+check('refresh.ackGlyph', (() => { const t = T.renderPanel(model, defaults, say, actions, { ...ui, refreshed: 123 }); const b = byData(t, 'refresh')[0]; return b.props['data-refreshed'] === 'true' && textOf(b) === '已刷新'; })(), 'the acknowledgement replaces the glyph');
+
+// THE POLL LOOP MUST SURVIVE A REPLACED REQUEST. -1 is what an aborted poll resolves
+// as, and a tick aborts the request it replaces — the ordinary path on a slow link.
+check('poll.continuesOnAbort', T.pollContinues({ status: -1 }, 0) === true, 'an aborted request with nothing else in flight re-arms');
+check('poll.defersToReplacement', T.pollContinues({ status: -1 }, 1) === false, 'a replacement still in flight owns the loop');
+check('poll.continuesOn304', T.pollContinues({ status: 304 }, 0) === true, 'a 304 keeps polling');
+check('poll.continuesOnError', T.pollContinues({ status: 0, error: 'offline' }, 0) === true, 'an error keeps polling');
+check('poll.continuesOnNull', T.pollContinues(null, 0) === true, 'no result is not a stop');
 // the ⇄ sits in the header's tool row, the same .wf-btn box as the other
 // two — the acceptance asks for it to be on the same row and aligned with them.
 const injectButton = byData(tree, 'inject-toggle')[0];

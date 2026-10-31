@@ -40,6 +40,7 @@ import {
   createPlanReader,
   normalizePlanDocument,
   planFilePath,
+  planIsTerminal,
 } from "../src/orchestrator.mjs";
 import { STATE_VERSION, buildView, createInitialState, foldEvent } from "../src/fold.mjs";
 import { apply as applyHost } from "../lib/index.js";
@@ -406,6 +407,49 @@ if (real === null) {
     equal("(J) exactly one projection is registered", registrations.length, 1);
     const projection = registrations[0] ?? {};
     equal("(J) the stateVersion is the fold's", projection.stateVersion, STATE_VERSION);
+
+// ---------------------------------------------------------------------------
+// (K) A FINISHED PLAN IS HISTORY, NOT A VIEW OVERRIDE.
+//
+// PAE never deletes orchestrator.json, so a plan from an earlier turn sits in
+// .pae/<session>/ forever. It used to keep rewriting the titles and statuses of
+// rows the CURRENT todo table had just created, and the panel then disagreed with
+// the conversation. Measured on a real session on 2026-10-31.
+// ---------------------------------------------------------------------------
+{
+  const view = {
+    task: 'first user message',
+    steps: [{ index: 0, title: 'this turn row', status: 'running', planIndex: 1, source: 'todo' }],
+    counts: { steps: 1, nodes: 0, running: 1, completed: 0 },
+  };
+  const planDoc = (phase, stepIndex) => normalizePlanDocument({
+    phase,
+    task: 'an earlier turn objective',
+    plan: { steps: [{ title: 'an earlier turn step' }] },
+    statuses: { 1: 'completed' },
+    stepIndex,
+  }, {});
+
+  const live = planDoc('executing', 1);
+  equal('(K) a live plan is not terminal', live.terminal, false);
+  const liveStep = applyPlanToView(view, live).steps[0];
+  equal('(K) a live plan still publishes its title', liveStep.title, 'an earlier turn step');
+  equal('(K) and its status', liveStep.status, 'done');
+
+  for (const phase of ['completed', 'aborted']) {
+    const done = planDoc(phase, 9);
+    equal('(K) phase ' + phase + ' is terminal', done.terminal, true);
+    const step = applyPlanToView(view, done).steps[0];
+    equal('(K) a ' + phase + ' plan leaves the title alone', step.title, 'this turn row');
+    equal('(K) a ' + phase + ' plan leaves the status alone', step.status, 'running');
+    check('(K) a ' + phase + ' plan is still published for the detail page', applyPlanToView(view, done).plan !== null);
+  }
+
+  equal('(K) a paused plan is not terminal', planDoc('paused', 1).terminal, false);
+  equal('(K) a planning plan is not terminal', planDoc('planning', null).terminal, false);
+  equal('(K) no plan is not terminal', planIsTerminal(null), false);
+  equal('(K) odd casing is still terminal', planDoc('COMPLETED', 1).terminal, true);
+}
 
     const state = typeof projection.init === "function" ? projection.init({ id: current.id, cwd: real.workspaceRoot }) : {};
     equal("(J) init captures the session identity", [state.sessionId, state.cwd], [current.id, real.workspaceRoot]);

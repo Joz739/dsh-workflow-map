@@ -203,6 +203,10 @@ var WF_CSS = [
   ".wf-btn:hover{background:var(--dsw-alias-bg-layer-2,#2c3140);color:var(--dsw-alias-label-primary,#e9ecf3)}",
   ".wf-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:1px}",
   ".wf-btn[data-active='true']{color:var(--dsw-alias-brand-primary,#5b8cff);border-color:var(--dsw-alias-brand-primary,#5b8cff)}",
+ // The refresh button's one-second acknowledgement. Width is pinned to the glyph's own
+ // box so swapping "↻" for "已刷新" cannot shift the header row underneath the pointer.
+  ".wf-btn-ok{color:var(--dsw-alias-state-success-primary,#3fb950);border-color:var(--dsw-alias-state-success-primary,#3fb950);" +
+    "width:auto;min-width:23px;padding:0 6px;font-size:11px}",
  // Hot injection is the one header action that injects text into the RUNNING turn, so it is the
  // one that must never be hunted for: a named, filled chip that keeps its name in Chinese.
  // User feedback: "too small, still have to open it first" - so it grows to 96x30 (the other two in the row stay

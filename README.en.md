@@ -124,18 +124,21 @@ Each step's percentage is resolved by the following **priority** (`percentFor` i
 | Priority | Source | Rule | Cap |
 |---|---|---|---|
 | 1 | Todo table `todos` | `round(completed / total * 100)`; when a self-report exists, this measured value is still what is returned | 99 |
-| 2 | Model self-report `model` | Only when the todo table has no countable rows: the **larger** of the `stepProgress/report` percentage and the self-report high-water mark | 100 |
+| 2 | Model self-report `model` | Only when the todo table has no countable rows: the most recent `stepProgress/report` percentage | 99 |
 | 3 | Time baseline `baseline` | `elapsed / median(finished-step durations in this session) * 100` | 90 |
 | 4 | Plan ordinal `baseline:steps` | Cold start with `current step / total steps * 100` when no durations exist | 90 |
 | - | `none` | None of the four is available | No number shown |
 
 Constraint: an unfinished step never shows 100 %; a finished (done or failed) step is pinned to 100 %.
 
-The choice follows verifiability: the todo table is an objective count, a model self-report is not. So
-whenever the todo table has completed rows, the percentage is that measured ratio (both branches of that
-`percentFor` expression yield `measured`); the self-report is a fallback only when no row can be measured.
-The high-water record `step.maxPercent` is still kept and never rolled back, but it no longer takes part in
-computing the displayed value.
+The choice follows verifiability: the todo table is a count of rows, a model self-report has no per-row
+basis. So whenever the todo table has completed rows, the percentage is that ratio (both branches of
+`percentFor` return `measured`); the self-report is a fallback only when no row can be counted, and the
+**most recent** report is used so that a later report can move the value. The high-water record
+`step.maxPercent` is kept and never rolled back, and does not take part in the displayed value.
+When `foldTodos` takes a finished row back to `in_progress`, or demotes it to `pending`, it clears
+`percent` and `maxPercent` and resets `startedAt`: a finished record's number belongs to that closure,
+not to the row that reopens it.
 
 A second line under the rail reads `estimated N minutes ago`, i.e. `view.asOf - step.lastEstimateAt`.
 It describes how **stale** the number is, distinguishing "being updated" from "unchanged for a long time".
@@ -291,7 +294,13 @@ so time-based eviction would empty historical steps.
 | Click a call row | Expand the full arguments, result and error in place |
 | `Esc` | Close the right page, not the panel |
 | Gear | Open settings: palette, motion, detail depth, node limit |
+| `↻` | Read the current session's view again now; the button briefly shows "Refreshed" |
 | Copy control | Copy path / command / snapshot, with a receipt that restores after 1.5 s |
+
+The view is polled: every 0.8 s while the page is visible, every 3 s while it is hidden, as a conditional
+request (`If-None-Match`) that the host answers with `304` and no body when nothing changed. `↻` runs one
+cycle of that same request, for the case where automatic polling is blocked; it neither changes the cadence
+nor adds a second data path.
 
 Settings:
 
@@ -332,7 +341,7 @@ steps, their status, the percentage source, the node list and the report artifac
 # after editing src/client/*.js, rebuild the browser half
 node tools/build-client.mjs
 
-# offline self-tests (10 suites, 1533 assertions)
+# offline self-tests (10 suites)
 node tools/selftest-fold.mjs          # fold semantics
 node tools/selftest-host.mjs          # registration, schema, projection wiring
 node tools/selftest-orchestrator.mjs  # plan file reading and merging
@@ -349,7 +358,7 @@ node tools/check-real-injects.mjs     # fold historical logs in bulk
 node tools/audit-real.mjs             # four-constraint audit
 ```
 
-Browser measurements (needs a Chromium; the scripts auto-detect Chrome / Edge; 323 assertions, light/dark theme contrast included):
+Browser measurements (needs a Chromium; the scripts auto-detect Chrome / Edge; light/dark theme contrast included):
 
 ```bash
 pwsh -File tools/measure-panel.ps1
@@ -371,7 +380,7 @@ pwsh -File tools/measure-main.ps1
 
 ## 10. Key constants
 
-Every threshold is defined once and asserted by the tests, so this table cannot drift from the code:
+Every threshold is defined once and read by the self-tests, so this table and the code share one source:
 
 | Constant | Value | Location | Meaning |
 |---|---|---|---|
@@ -388,7 +397,23 @@ Every threshold is defined once and asserted by the tests, so this table cannot 
 
 ---
 
-## 11. Known issues
+## 11. Plan file and todo table precedence
+
+The map's steps come from two sources, in a fixed order:
+
+| Priority | Source | Effect |
+|---|---|---|
+| 1 | Todo table `todo/write` | This turn's step titles and statuses, the session's newest statement |
+| 2 | Plan file `.pae/<sessionId>/orchestrator.json` | While `phase` is `planning` / `scheduled` / `executing` / `paused`, its step titles, `statuses` and `anchorSeqs` apply |
+| - | The same file at `completed` / `aborted` | The plan is over: its steps and reports are still published for the detail page, but it no longer changes any row's title or status |
+
+The plan file is written once and never deleted. Read without that distinction, a previous turn's plan
+overrides the rows the current todo table has just created, and the panel disagrees with the conversation.
+The view's plan section therefore carries a boolean `terminal`, and both halves (host and browser) obey it.
+
+---
+
+## 12. Known issues
 
 Both defects recorded in 0.3.0 are closed:
 
@@ -402,7 +427,7 @@ that is how activation works, not a defect.
 
 ---
 
-## 12. Layout
+## 13. Layout
 
 ```
 dsh-workflow-map/
@@ -422,7 +447,7 @@ dsh-workflow-map/
 
 ---
 
-## 13. FAQ
+## 14. FAQ
 
 **Can it show several sessions at once?**
 The panel shows the current session only. Switching sessions switches the content; nothing is merged or tiled.
@@ -453,13 +478,13 @@ the panel to `none`.
 
 ---
 
-## 14. License
+## 15. License
 
 MIT. Commercial use, modification and redistribution are permitted; keep the copyright notice.
 
 ---
 
-## 15. Reporting an issue
+## 16. Reporting an issue
 
 The following helps locate a problem:
 

@@ -548,12 +548,10 @@ function percentFor(state, step, now) {
       const value = measured;
       return { percent: clamp(value, 0, 99), source: "todos" };
     }
-    // The model's LATEST statement is the number, and an open step is 0..99: 100 % on a running
-    // row is a claim the log does not support. The high-water record is deliberately NOT applied
-    // here — this is what the comment above already promised ("it simply no longer takes part in
-    // the displayed value"). Applying it froze a row at the highest number it had ever reached:
-    // measured 2026-10-30 on session f9c27769, where step 0 stayed at 99 % while the model's own
-    // reports walked 55 → 70, i.e. a bar that cannot move = "the map stopped updating".
+    // The model's latest statement is the number, and an open step is 0..99: 100 % on a running
+    // row is a claim the log does not support. The high-water record is deliberately not applied
+    // here, as the comment above states; applying it freezes a row at the highest number it ever
+    // reached, so later reports cannot move the bar.
     return { percent: clamp(reported.percent, 0, 99), source: "model" };
   }
   // The checklist's own completion ratio — a real measurement, so it sits above the time baseline.
@@ -626,10 +624,9 @@ function newNode(kind, tool, title, at, extra) {
     argsText: "",
     resultHead: "",
     error: "",
-    // Did the call come back? This is a SEPARATE fact from the body text: a pwsh that
-    // succeeds with no output has an empty resultHead and is still settled. The browser
-    // half colours by it (node.result), so deriving it from resultHead left every such
-    // node "running" forever — the shimmer the user reported on 2026-10-30.
+    // Whether the call returned. Separate from the body text: a call that succeeds with
+    // no output has an empty resultHead and is still settled. The browser half colours by
+    // this flag, so deriving it from resultHead leaves every silent call "running".
     settled: false,
     at,
     durationMs: null,
@@ -765,12 +762,10 @@ function argsDigest(args) {
 /**
  * Reopen a closed row without letting its 100 % speak for the reopened one.
  *
- * MEASURED 2026-10-30 (session f9c27769, the 6-row table that started "盘点发布链路…"): the
- * table took a row back to in_progress, this function flipped the status and KEPT percent=100
- * and maxPercent=100 from the record's closed state. The panel then showed an in-progress step
- * pinned at 100 % — a bar that can never move again, which reads as "the map stopped updating" —
- * and the model's own report (55) could not lower it, because percentFor keeps the high-water.
- * A closed record's number belongs to that closure, not to the row that reopens it.
+ * A row taken back to in_progress used to keep the percent and the high-water record of its
+ * closed state, so the panel showed an in-progress step pinned at 100 %: a bar that can never
+ * move again, and a later self-report cannot lower it. A closed record's number belongs to
+ * that closure, not to the row that reopens it.
  */
 function reopenStep(step, time) {
   const reopened = step.status === STEP_STATUS.done || step.status === STEP_STATUS.failed;
@@ -1022,10 +1017,9 @@ function foldToolResult(state, event, time, seq) {
           ),
         }
       : answered;
-  // A RESULT IS NOT AN ACTIVITY. Re-asserting the node that just finished as the active one
-  // made the panel claim "calling right now" about a call that had already returned: with the
-  // result body empty (pwsh with no output) the dot pulsed forever. Keep whatever node a newer
-  // call opened, otherwise hand the highlight back to the step.
+  // A result is not an activity. Re-asserting the node that just finished as the active one
+  // makes the panel claim "calling right now" about a call that already returned. Keep the
+  // node a newer call opened, and otherwise hand the highlight back to the step.
   const keepActive =
     state.active && typeof state.active.nodeId === "string" && state.active.nodeId !== "" && state.active.nodeId !== previous.id
       ? state.active.nodeId
@@ -2511,12 +2505,10 @@ function syncToTodos(state) {
   // the record it landed on was still pending — both seen in one session on 2026-10-30.
   const rowStatus = (step, row) => {
     if (row.status === "completed") return step.status === STEP_STATUS.done ? step : closeStep(step, state.asOf || 0);
-    // A CLOSED RECORD CANNOT SPEAK FOR AN OPEN ROW. When the table takes a row back to
-    // in_progress/pending, the record it is bound to may be a step this table already closed
-    // (or an older row that a reworded title landed on). Keeping its percent + high-water made
-    // a brand-new first row render at 100 % the instant it appeared: the bar never moved again,
-    // which reads as "the map is not updating" (measured 2026-10-30, todo #35 in session
-    // f9c27769: 6 fresh rows, row 0 came out running@100/max100 with its own report at 55).
+    // A closed record cannot speak for an open row. When the table takes a row back to
+    // in_progress/pending, the record it is bound to may be a step this table already closed,
+    // or an older row a reworded title landed on. Keeping that percent and high-water renders
+    // a brand-new first row at 100 % the instant it appears.
     const reopened = step.status === STEP_STATUS.done || step.status === STEP_STATUS.failed;
     const carried = reopened
       ? { percent: null, percentSource: "none", maxPercent: 0 }

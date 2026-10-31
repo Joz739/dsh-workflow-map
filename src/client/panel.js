@@ -34,6 +34,9 @@ var DICT_ZH = {
   "panel.planning.note": "计划尚未提交，提交后会显示分步。",
   "panel.collapse": "收起",
   "panel.expand": "展开",
+  "panel.refresh": "刷新",
+  "panel.refresh.hint": "立即重新读取这一步的状态（自动刷新每 0.8 秒一次，这里是不等它的手动兜底）",
+  "panel.refresh.done": "已刷新",
   "panel.settings": "设置",
   "panel.steps": "总任务分步",
   "panel.flow": "分步流程",
@@ -244,6 +247,9 @@ var DICT_EN = {
   "panel.planning.note": "The plan has not been submitted yet; steps appear after it is.",
   "panel.collapse": "Collapse",
   "panel.expand": "Expand",
+  "panel.refresh": "Refresh",
+  "panel.refresh.hint": "Read this step's state again now (auto-refresh runs every 0.8 s; this is the manual fallback)",
+  "panel.refresh.done": "Refreshed",
   "panel.settings": "Settings",
   "panel.steps": "Task steps",
   "panel.flow": "Step flow",
@@ -523,6 +529,10 @@ function wfUseSnap(sessionId) {
   });
   var snap = pair[0];
   var setSnap = pair[1];
+ // The running loop's own tick, so the header's refresh button can pull once on
+ // demand without waiting for the interval. A ref, not state: swapping the function
+ // must not re-render, and a click must never restart the effect.
+  var tickRef = React.useRef(null);
 
   React.useEffect(
     function () {
@@ -535,6 +545,9 @@ function wfUseSnap(sessionId) {
       var timer = 0;
       var controller = null;
       var etag = "";
+ // How many requests are in the air. A replaced request resolves as -1 and must
+ // not re-arm while the newer one is still going, or two loops would run.
+      var inflight = 0;
 
       setSnap({ status: "loading", view: null, rev: null, error: "" });
 
@@ -559,11 +572,20 @@ function wfUseSnap(sessionId) {
         }
         controller = typeof AbortController === "function" ? new AbortController() : null;
         var signal = controller ? controller.signal : undefined;
+        inflight += 1;
         wfPollOnce(window.fetch, wfPollUrl(sessionId), etag, signal).then(function (result) {
+          inflight -= 1;
           if (stopped) return;
- // -1 = this request was aborted by a newer one (visibility change): the
- // newer tick already owns the loop, so stay silent and do not re-arm.
-          if (result.status === -1) return;
+ // -1 = this request was aborted. A tick aborts the request it replaces, so this
+ // is the ORDINARY path on a slow link, not an exception: returning here without
+ // re-arming stopped the loop for good the first time a poll outlived its tick —
+ // the map then froze while the session kept working, which is the reported
+ // "the map does not update by itself". Only the deliberate stop (stopped) ends it.
+          if (result.status === -1) {
+ // A replaced request: re-arm only when no replacement is still in the air.
+            if (wfPollContinues(result, inflight)) schedule(delay);
+            return;
+          }
           if (result.status === 304) {
             setSnap(function (prev) {
               return prev.view ? { status: "live", view: prev.view, rev: prev.rev, error: "" } : prev;
@@ -596,10 +618,12 @@ function wfUseSnap(sessionId) {
         tick();
       }
 
+      tickRef.current = tick;
       tick();
       document.addEventListener("visibilitychange", onVisibilityChange);
       return function () {
         stopped = true;
+        tickRef.current = null;
         window.clearTimeout(timer);
         if (controller && typeof controller.abort === "function") {
           try {
@@ -614,7 +638,18 @@ function wfUseSnap(sessionId) {
     [sessionId]
   );
 
-  return snap;
+ // One object, not two returns: every caller already reads the snapshot field by field,
+ // so the refresh hook rides along without changing the shape they destructure.
+  return {
+    status: snap.status,
+    view: snap.view,
+    rev: snap.rev,
+    error: snap.error,
+    refresh: function () {
+      var pull = tickRef.current;
+      if (typeof pull === "function") pull();
+    },
+  };
 }
 
 /** The stylesheet lives exactly as long as the mount. */
@@ -632,6 +667,25 @@ function wfUseStyle() {
       if (current && current.parentNode) current.parentNode.removeChild(current);
     };
   }, []);
+}
+
+/**
+ * Clear a "just happened" stamp after a moment, so the button returns to its own
+ * glyph. One timer, cleared on unmount and on a second click (the stamp changes).
+ */
+function wfUseFlashClear(stamp, clear) {
+  React.useEffect(
+    function () {
+      if (!(stamp > 0)) return undefined;
+      var timer = window.setTimeout(function () {
+        clear();
+      }, 1200);
+      return function () {
+        window.clearTimeout(timer);
+      };
+    },
+    [stamp]
+  );
 }
 
 /** Alt+W toggles the collapsed state; the listener is removed on unmount. */
@@ -1026,6 +1080,15 @@ function WorkflowMapPanel(props) {
   var prefs = prefsHandle.prefs;
   var updatePrefs = prefsHandle.update;
   var snap = wfUseSnap(sessionId);
+ // When the header's refresh was last clicked; drives the one-word acknowledgement
+ // that clears itself. Deliberately NOT the poll's own state: a click must not look
+ // like a data change.
+  var refreshedPair = React.useState(0);
+  var refreshed = refreshedPair[0];
+  var setRefreshed = refreshedPair[1];
+  wfUseFlashClear(refreshed, function () {
+    setRefreshed(0);
+  });
   var settingsPair = React.useState(false);
   var settingsOpen = settingsPair[0];
   var setSettingsOpen = settingsPair[1];
@@ -1124,6 +1187,13 @@ function WorkflowMapPanel(props) {
     onToggleSettings: function () {
       setSettingsOpen(!settingsOpen);
     },
+ // The manual fallback: one pull, now, without waiting for the interval and without
+ // touching the loop. It reads the same endpoint with the same validator, so a click
+ // is a normal poll and never a second data path.
+    onRefresh: function () {
+      setRefreshed(Date.now());
+      if (typeof snap.refresh === "function") snap.refresh();
+    },
  // Clicking a main-flow unit: it becomes the SELECTED step (store.js builds its detail) and the
  // right page opens on it. It deliberately does not expand anything in place.
  // right page opens on it. It deliberately does not expand anything in place.
@@ -1202,6 +1272,7 @@ function WorkflowMapPanel(props) {
 
   return wfRenderPanel(model, prefs, say, actions, {
     settingsOpen: settingsOpen,
+    refreshed: refreshed,
     status: snap.status,
     error: snap.error,
     rev: snap.rev,
@@ -1242,6 +1313,9 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
   var pendingCount = wfPendingInjectCount(model.injects);
   var extras = ui || {};
   var fire = actions || {};
+ // The refresh button's one-second acknowledgement, handed in by the component: the
+ // renderer stays pure, so a self-test can drive it with a fixed stamp.
+  var refreshed = wfFinite(extras.refreshed) === null ? 0 : extras.refreshed;
  // the two attributes the living layer needs. `motion` comes from the system's
  // prefers-reduced-motion preference (pulse.js), `idle` from the model's running flag.
  // Both live on .wf-root so the capsule is covered as well as the panel.
@@ -1341,6 +1415,24 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
     h(
       "div",
       { className: "wf-btns", key: "btns" },
+ // First in the row: it is the escape hatch when the automatic poll is not
+ // delivering, so it must not be the hard one to find.
+      h(
+        "button",
+        {
+          type: "button",
+          key: "refresh",
+          className: refreshed > 0 ? "wf-btn wf-btn-ok" : "wf-btn",
+          "data-dsh-workflow-map": "refresh",
+          "data-refreshed": refreshed > 0 ? "true" : undefined,
+          title: say("panel.refresh.hint"),
+          "aria-label": say("panel.refresh"),
+          onClick: function () {
+            wfFire(fire.onRefresh);
+          },
+        },
+        refreshed > 0 ? say("panel.refresh.done") : "↻"
+      ),
       h(
         "button",
         {
@@ -1811,6 +1903,7 @@ var __test = {
   sessionIdFromSnapshot: wfSessionIdFromSnapshot,
   pollUrl: wfPollUrl,
   pollOnce: wfPollOnce,
+  pollContinues: wfPollContinues,
   parsePrefs: wfParsePrefs,
   sanitizePrefs: wfSanitizePrefs,
   applyPrefsPatch: wfApplyPrefsPatch,

@@ -37,6 +37,21 @@ export const PLAN_VERSION = 1;
 export const PLAN_ROOT = ".pae";
 export const PLAN_FILE = "orchestrator.json";
 
+/**
+ * Plan phases that are history rather than a live view.
+ *
+ * PAE's own vocabulary (dsh-plan-and-execute): none / planning / scheduled /
+ * executing / paused / completed / aborted. The last two never resume, and the
+ * file that carries them is never removed, so they must not speak for a row the
+ * session created after the plan ended.
+ */
+const TERMINAL_PHASES = new Set(["completed", "aborted"]);
+
+/** Is this normalized plan finished? True for completed and aborted. */
+export function planIsTerminal(plan) {
+  return isRecord(plan) && TERMINAL_PHASES.has(String(plan.phase ?? "").trim().toLowerCase());
+}
+
 /** Bounds. The plan is display data; a runaway file must not grow the session cache. */
 export const MAX_PLAN_STEPS = 200;
 export const MAX_STEP_REPORTS = 200;
@@ -197,9 +212,14 @@ export function normalizePlanDocument(raw, meta) {
   }
 
   const rawTask = typeof doc.task === "string" ? doc.task : "";
+  const phase = text(doc.phase, MAX_PHASE);
   const result = {
     ver: PLAN_VERSION,
-    phase: text(doc.phase, MAX_PHASE),
+    phase,
+ // Published as a boolean as well: the browser half decides card statuses from this
+ // section alone, and "is this plan finished" must not be re-derived from a string
+ // vocabulary in two places.
+    terminal: TERMINAL_PHASES.has(phase.trim().toLowerCase()),
     task: text(rawTask, MAX_TASK),
  // The first non-empty line, before flattening: it is the panel's header.
     taskTitle: line(rawTask, MAX_TASK_TITLE),
@@ -263,6 +283,10 @@ export function applyPlanToView(view, plan) {
   const normalized = isRecord(plan) ? plan : null;
   const result = { ...view, plan: normalized };
   if (normalized === null) return result;
+ // A finished plan is published for the detail page but patches nothing: its
+ // rows belong to a turn that is over, and the current todo table is the newer
+ // statement. See planIsTerminal.
+  if (planIsTerminal(normalized)) return result;
 
   if (normalized.taskTitle !== "") result.task = normalized.taskTitle;
 

@@ -176,6 +176,22 @@ function wfPollUrl(sessionId) {
 }
 
 /**
+ * May the poll loop re-arm after this result?
+ *
+ * A tick aborts the request it replaces, and an aborted request resolves as status -1.
+ * That is the ORDINARY path whenever a poll outlives its interval, so -1 must not end
+ * the loop: it only defers to the replacement that is already in the air. Returning
+ * false there is what keeps two loops from running; returning false for anything else
+ * (a real error, a 4xx) would stop the panel from ever updating again.
+ *
+ * Extracted from the hook so the rule is testable without a renderer.
+ */
+function wfPollContinues(result, inflight) {
+  if (!result || result.status !== -1) return true;
+  return wfFinite(inflight) === null ? true : inflight <= 0;
+}
+
+/**
  * One conditional GET. Never throws: every outcome is a value, so the loop can
  * always decide what to render and how long to wait.
  *
@@ -365,6 +381,9 @@ function wfPlanSummary(plan) {
     }
   }
   return {
+ // A finished plan must not decide a card's status any more; the summary carries
+ // the flag so the status policy can stand down without re-reading the phase.
+    terminal: plan.terminal === true,
     statuses: plan.statuses && typeof plan.statuses === "object" ? plan.statuses : {},
     anchorSeqs: plan.anchorSeqs && typeof plan.anchorSeqs === "object" ? plan.anchorSeqs : {},
     skipped: Array.isArray(plan.skipped) ? plan.skipped.slice() : [],

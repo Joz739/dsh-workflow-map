@@ -155,8 +155,11 @@ function wfHasKey(object, key) {
  */
 function wfDeriveStepStatus(row, plan, todoIndex, currentPlanIndex) {
   var planIndex = row && wfFinite(row.planIndex) !== null ? Math.round(row.planIndex) : null;
+ // A finished plan (completed / aborted) is history: its statuses and anchor
+ // cursor describe a turn that is over, so the todo table and the host decide.
+  var live = plan && plan.terminal !== true;
 
-  if (plan && planIndex !== null) {
+  if (live && planIndex !== null) {
  // 1. PAE's own statuses are the published truth.
     var label = wfHasKey(plan.statuses, String(planIndex)) ? plan.statuses[String(planIndex)] : null;
     var fromPae = wfCanonicalStatus(label);
