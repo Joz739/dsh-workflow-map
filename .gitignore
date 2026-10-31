@@ -28,3 +28,14 @@ evidence/
 
 # scratch scripts
 tools/_*.tmp.mjs
+
+# local capture helpers: they point at a machine-local output directory and are
+# not part of the package (the files whitelist does not ship tools/ at all)
+tools/blur-gh-stats.ps1
+tools/cdp-batch-shot.mjs
+tools/cdp-probe.mjs
+tools/cdp-shot-page.mjs
+tools/cdp-shot.mjs
+tools/collect-real-gui.ps1
+tools/shoot-github.ps1
+tools/shoot-offscreen.ps1
