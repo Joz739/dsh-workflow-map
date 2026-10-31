@@ -86,7 +86,7 @@ try {
     @{ id = 'many steps scroll inside the column'; pass = ($data.scrollable -eq $true); detail = "scrollable=$($data.scrollable)" },
     @{ id = 'column header stays while scrolling'; pass = ($data.stickyKept -eq $true); detail = "top $($data.headerTopBefore) -> $($data.headerTopAfter)" },
     @{ id = 'card titles carry the full text'; pass = ($data.titlesPresent -eq $true); detail = "titles=$($data.titlesPresent)" },
-    @{ id = 'ordinals padded first/last'; pass = ($data.seqFirst -match '^01/\d{2}$' -and $data.seqLast -match "^$($data.cards)/$($data.cards)$"); detail = "$($data.seqFirst) .. $($data.seqLast)" },
+    @{ id = 'ordinals padded first/last'; pass = ($data.seqFirst -match '^\d{2}/\d{2}$' -and $data.seqLast -eq ('{0:D2}/{0:D2}' -f [int]$data.cards)); detail = "$($data.seqFirst) .. $($data.seqLast)" },
     # step-03: the second line (ago · eta). The acceptance criteria are geometric and textual:
     # it must render where a number exists, never wrap onto a third line, never overlap the
     # track or spill past the card, and carry a tooltip that says what the number means.

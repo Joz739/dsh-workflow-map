@@ -166,7 +166,12 @@ function mountPage(tokens, hostId, title, script) {
 }
 
 /* --- the three states ----------------------------------------------------- */
-const view = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/fixtures/state-live.json'), 'utf8')).view;
+// A FICTIONAL view. The screenshots this generator produces are published in the
+// README, so the session they show must describe work that never happened: the
+// recording this used to read carried a real task and its session id into the
+// images. tools/fixtures/state-demo.json is written by hand for exactly this, with
+// the same field-for-field shape the host's buildView sends.
+const view = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/fixtures/state-demo.json'), 'utf8')).view;
 const prefs = T.defaultPrefs();
 const say = T.makeSay(undefined);
 const noop = () => {};
@@ -186,9 +191,9 @@ const ui = {
   maxWidth: 1400,
   status: 'live',
   error: '',
-  rev: 4138,
-  endpoint: '/dsh-workflow/state?sessionId=session-f069ece7-83d6-4f90-8bac-c4539a500015',
-  nodeTotal: 985,
+  rev: 4242,
+  endpoint: '/dsh-workflow/state?sessionId=demo0000-demo-4demo-8demo-demo00000000',
+  nodeTotal: 30,
 };
 
 const expanded = T.renderPanel(model, prefs, say, actions, ui);

@@ -120,13 +120,13 @@ const nodes = [
 ];
 
 const steps = [
-  { index: 0, planIndex: 1, title: '节点详情与分步详情', status: 'done', percent: 100, percentSource: 'model', startedAt: T0, endedAt: T0 + 90000, nodeIds: ['e1', 'p1'], nodeCount: 2, groups: [] },
-  { index: 1, planIndex: 2, title: '复制与键盘可达', status: 'running', percent: 40, percentSource: 'model', startedAt: T0 + 95000, endedAt: null, nodeIds: ['err1', 'r1'], nodeCount: 3, groups: [] },
-  { index: 2, planIndex: 3, title: '隐私边界与收尾', status: 'pending', percent: null, nodeIds: [], nodeCount: 0, groups: [] },
+  { index: 0, planIndex: 1, title: '实现写入与原子替换', status: 'done', percent: 100, percentSource: 'model', startedAt: T0, endedAt: T0 + 90000, nodeIds: ['e1', 'p1'], nodeCount: 2, groups: [] },
+  { index: 1, planIndex: 2, title: '接入主流程并处理默认值', status: 'running', percent: 40, percentSource: 'model', startedAt: T0 + 95000, endedAt: null, nodeIds: ['err1', 'r1'], nodeCount: 3, groups: [] },
+  { index: 2, planIndex: 3, title: '补充单元测试与错误分支', status: 'pending', percent: null, nodeIds: [], nodeCount: 0, groups: [] },
 ];
 
 const plan = {
- ver: 1, phase: 'executing', task: '节点详情与分步详情', taskTitle: '节点详情与分步详情',
+ ver: 1, phase: 'executing', task: '为示例 CLI 增加配置文件支持', taskTitle: '为示例 CLI 增加配置文件支持',
   summary: '', planDir: 'C:\\pae', pausedReason: '', stepIndex: 2, steps: [],
   stepReports: [
     { stepIndex: 1, status: 'success', summary: '点节点能看到工具、参数、文件、耗时与结果；路径一键复制。', artifacts: [ARTIFACT_A, ARTIFACT_B], exitCode: 0 },
@@ -284,9 +284,9 @@ function pageScript(config) {
  // (that is the notloaded page: the panel says so instead of showing another step's report).
       var tree = T.renderPanel(model, p, say, actions, {
         settingsOpen: false, status: 'live', error: '', rev: 11,
-        endpoint: '/dsh-workflow/state?sessionId=session-detail', nodeTotal: VIEW.nodes.length,
+        endpoint: '/dsh-workflow/state?sessionId=demo0000-demo-4demo-8demo-demo00000000', nodeTotal: VIEW.nodes.length,
         right: right, pageStep: right ? right.stepIndex : null, pageType: right ? right.openType : null,
-        openCall: state.openCall, asOf: model.asOf, motion: 'css', idle: false, sessionId: 'session-detail',
+        openCall: state.openCall, asOf: model.asOf, motion: 'css', idle: false, sessionId: 'demo0000-demo-4demo-8demo-demo00000000',
       });
       host.innerHTML = '';
       host.appendChild(mount(tree));
@@ -466,6 +466,9 @@ const written = [
   buildPage({ file: 'panel-detail-error.html', selectedStep: 1, rightKind: 'type', rightKey: '1|' + errorTypeKey, openCall: 'err1' }),
   buildPage({ file: 'panel-detail-noreport.html', selectedStep: 2, rightKind: 'step', rightKey: 'step:2' }),
   buildPage({ file: 'panel-detail-notloaded.html', selectedStep: 1, rightKind: 'step', rightKey: 'step:0' }),
+ // The hot-inject page: rightKind 'inject' is the composer seat, so this page shows the
+ // panel with the injection page open instead of a step record.
+  buildPage({ file: 'panel-inject-open.html', selectedStep: 3, rightKind: 'inject', rightKey: '' }),
 ];
 
 for (const one of written) process.stdout.write(`wrote evidence/preview/${one.file} (${one.bytes} bytes)\n`);

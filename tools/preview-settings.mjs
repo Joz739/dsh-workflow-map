@@ -63,7 +63,7 @@ function toHtml(node) {
 
 /* --- fixtures -------------------------------------------------------------- */
 const T0 = 1792243000000;
-const SESSION = 'session-f069ece7-83d6-4f90-8bac-c4539a500015';
+const SESSION = 'demo0000-demo-4demo-8demo-demo00000000';
 const nodes = [];
 for (let i = 0; i < 72; i += 1) {
   const tool = i % 2 === 0 ? 'read' : 'write';
@@ -92,17 +92,17 @@ const view = {
  // running - the honest case the three motion options differ on: "while running" freezes it,
  // "always" keeps it moving.
   running: false,
- task: '面板设置与工作流快照导出',
+ task: '为示例 CLI 增加配置文件支持',
   steps: [
-    { index: 0, planIndex: 1, title: '面板设置与工作流快照导出', status: 'running', percent: 40, percentSource: 'model', startedAt: T0, lastEstimateAt: T0 - 180000, endedAt: null, nodeIds: nodes.slice(0, 70).map((n) => n.id), nodeCount: 70, groups: [] },
-    { index: 1, planIndex: 2, title: '导出验收与收尾', status: 'done', percent: 100, percentSource: 'model', startedAt: T0 + 5000, endedAt: T0 + 9000, nodeIds: nodes.slice(70).map((n) => n.id), nodeCount: 2, groups: [] },
+    { index: 0, planIndex: 1, title: '实现配置文件的读取与校验', status: 'running', percent: 40, percentSource: 'model', startedAt: T0, lastEstimateAt: T0 - 180000, endedAt: null, nodeIds: nodes.slice(0, 70).map((n) => n.id), nodeCount: 70, groups: [] },
+    { index: 1, planIndex: 2, title: '实现写入与原子替换', status: 'done', percent: 100, percentSource: 'model', startedAt: T0 + 5000, endedAt: T0 + 9000, nodeIds: nodes.slice(70).map((n) => n.id), nodeCount: 2, groups: [] },
   ],
   nodes,
   plan: {
     ver: 1,
     phase: 'executing',
- task: '面板设置与工作流快照导出',
- taskTitle: '面板设置与工作流快照导出',
+ task: '为示例 CLI 增加配置文件支持',
+ taskTitle: '为示例 CLI 增加配置文件支持',
     stepIndex: 1,
     steps: [],
     statuses: { '1': 'in_progress', '2': 'completed' },
@@ -462,8 +462,11 @@ const expect = {
   markdownNodeLines: view.nodes.length,
   markdownTask: view.task,
   secret: 'WF_SECRET_SHOULD_NOT_BE_EXPORTED',
-  downloadMd: 'workflow-f069ece7.md',
-  downloadJson: 'workflow-f069ece7.json',
+ // The exported file name is derived from the session id (first 8 hex chars), so the
+ // expectation is derived too — naming one recording's id here would tie the check to
+ // that recording and make any other session look like a regression.
+  downloadMd: 'workflow-' + SESSION.slice(0, 8) + '.md',
+  downloadJson: 'workflow-' + SESSION.slice(0, 8) + '.json',
 };
 fs.writeFileSync(path.join(OUT, 'settings-expect.json'), JSON.stringify(expect, null, 2), 'utf8');
 console.log(JSON.stringify({ pages, expect }, null, 2));

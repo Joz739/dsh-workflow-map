@@ -26,7 +26,7 @@ function wfSnapshotExtension(kind) {
 }
 
 /**
- * Session ids on this harness look like `session-f069ece7-…`. Drop that prefix,
+ * Session ids on this harness look like `session-<8 hex>-<4>-<4>-<4>-<12 hex>`. Drop that prefix,
  * then take the first 8 alphanumerics, so the filename is `workflow-f069ece7.md`
  * instead of the useless `workflow-session-.md` a naive slice would produce.
  */

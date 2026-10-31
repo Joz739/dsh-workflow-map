@@ -293,7 +293,7 @@ const settings = T.renderSettings(
   { ...defaults, palette: 'brand', motion: 'always', detail: 'title', nodeLimit: 0 },
   say,
   actions,
-  { endpoint: '/dsh-workflow/state?sessionId=session-f069ece7', steps: 2, nodes: 72, rev: 12 }
+  { endpoint: '/dsh-workflow/state?sessionId=session-abcdef12', steps: 2, nodes: 72, rev: 12 }
 );
 check('settings.card.present', byData(settings, 'settings').length === 1, byData(settings, 'settings').length);
 check(
@@ -323,7 +323,7 @@ check(
     textOf(settings).includes('节点上限') &&
     textOf(settings).includes('全部') &&
     textOf(settings).includes('恢复默认') &&
-    textOf(settings).includes('/dsh-workflow/state?sessionId=session-f069ece7'),
+    textOf(settings).includes('/dsh-workflow/state?sessionId=session-abcdef12'),
   textOf(settings)
 );
 const exportButtons = findAll(settings, (node) => node.props && typeof node.props['data-export'] === 'string');
@@ -373,7 +373,7 @@ const brandPanel = T.renderPanel(brandModel, brandPrefs, say, actions, {
   maxWidth: 1400,
   status: 'live',
   rev: 12,
-  endpoint: '/dsh-workflow/state?sessionId=session-f069ece7',
+  endpoint: '/dsh-workflow/state?sessionId=session-abcdef12',
   nodeTotal: 72,
   flow: T.flowUiFor({ stepIndex: 0 }, 0),
   motion: 'css',
@@ -445,7 +445,7 @@ check('model.settings.carried', at30.flow && limitModel.settings.nodeLimit === 6
 
 /* --- 4. snapshots ---------------------------------------------------------- */
 const snapModel = T.buildModel(view, { ...defaults, selectedStep: 0 }, T0);
-const sessionId = 'session-f069ece7-83d6-4f90-8bac-c4539a500015';
+const sessionId = 'demo0000-demo-4demo-8demo-demo00000000';
 const markdown = T.snapshotMarkdown(snapModel, view, sessionId, T0, say);
 check('snapshot.markdown.headings', markdown.startsWith('# 总任务\n') && markdown.includes('\n## 分步\n'), 'headings');
 check('snapshot.markdown.sessionTime', markdown.includes(sessionId) && markdown.includes('2026-10-17'), markdown.split('\n')[2]);
@@ -512,12 +512,13 @@ check(
 );
 
 /* --- 5. download + revoke -------------------------------------------------- */
+const PREFIX = sessionId.replace(/^session-/, '').slice(0, 8);
 check(
   'snapshot.filename.sessionPrefix',
-  T.snapshotFileName(sessionId, 'md') === 'workflow-f069ece7.md' &&
-    T.snapshotFileName(sessionId, 'json') === 'workflow-f069ece7.json' &&
+  T.snapshotFileName(sessionId, 'md') === 'workflow-' + PREFIX + '.md' &&
+    T.snapshotFileName(sessionId, 'json') === 'workflow-' + PREFIX + '.json' &&
     T.snapshotFileName('session-abc', 'md') === 'workflow-abc.md',
-  T.snapshotFileName(sessionId, 'md')
+  T.snapshotFileName(sessionId, 'md') + ' for ' + sessionId
 );
 const clicked = [];
 const revoked = [];
@@ -557,9 +558,9 @@ const download = T.snapshotDownload('json', '{"a":1}', sessionId, {
 check(
   'snapshot.download.invoked',
   download.ok === true &&
-    download.filename === 'workflow-f069ece7.json' &&
+    download.filename === 'workflow-' + PREFIX + '.json' &&
     download.url === 'blob:wf-1' &&
-    clicked[0] === 'workflow-f069ece7.json' &&
+    clicked[0] === 'workflow-' + PREFIX + '.json' &&
     blobs[0].type === 'application/json;charset=utf-8' &&
     T.snapshotUrlCount() === 1,
   JSON.stringify(download)

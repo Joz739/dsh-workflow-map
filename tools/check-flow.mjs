@@ -17,7 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
@@ -25,6 +25,7 @@ const MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd]);
 
 const results = [];
 const check = (id, pass, detail) => results.push({ id, pass: pass === true, detail: detail === undefined ? '' : String(detail) });
+const skip = (id, why) => results.push({ id, pass: null, detail: why });
 
 /* --- locate the log (arg, else the newest session log on this machine) ---- */
 function newestSessionLog() {
@@ -98,13 +99,27 @@ const T = loaded.definition
   })
   .__test;
 
-const live = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/fixtures/state-live.json'), 'utf8'));
-const view = live.view;
-const rev = live.rev;
+// One source for both sides: fold the log THIS RUN is checking.
+const { createInitialState, foldEvent, buildView } = await import(pathToFileURL(path.join(ROOT, 'src', 'fold.mjs')).href);
+// Fold with the SAME envelope the host replays: foldEvent reads `time` and `seq`
+// off the event itself, so the raw log line is handed over unchanged.
+let folded = createInitialState();
+for (const event of events) {
+  if (!event || typeof event.type !== 'string' || event.type === '') continue;
+  folded = foldEvent(folded, event);
+}
+const view = buildView(folded, folded.asOf > 0 ? folded.asOf : 0);
+const rev = events.reduce((max, event) => (typeof event.seq === 'number' && event.seq > max ? event.seq : max), 0);
+process.stdout.write('folded ' + events.length + ' events → ' + view.steps.length + ' steps / ' + view.nodes.length + ' nodes\n');
 const prefs = T.defaultPrefs();
 const inLog = calls.filter((event) => typeof event.seq !== 'number' || event.seq <= rev);
 
 /* --- per-step node counts vs tool/call counts ---------------------------- */
+const anchored = view.steps.filter((step) => typeof step.anchorSeq === 'number').length;
+const hasPlan = anchored >= 2;
+if (!hasPlan) {
+  process.stdout.write('SKIP  anchor-based checks — this log ran without a PAE plan (' + anchored + ' anchored steps of ' + view.steps.length + ')\n');
+}
 const steps = [];
 let totalCalls = 0;
 let totalToolNodes = 0;
@@ -135,24 +150,32 @@ for (let index = 0; index < view.steps.length; index += 1) {
     ok: missing === 0 ? dropped === 0 : dropped >= 0 && dropped <= missing,
   });
 }
-check(
-  'steps.counts',
-  steps.every((row) => row.ok),
-  steps.map((row) => `${row.index}:${row.toolNodes}/${row.calls}${row.droppedCalls ? ` (-${row.droppedCalls})` : ''}`).join(' ')
-);
+if (hasPlan) {
+  check(
+    'steps.counts',
+    steps.every((row) => row.ok),
+    steps.map((row) => `${row.index}:${row.toolNodes}/${row.calls}${row.droppedCalls ? ` (-${row.droppedCalls})` : ''}`).join(' ')
+  );
+} else {
+  skip('steps.counts', 'no PAE plan in this log, so per-step call counts have no boundary');
+}
 check(
   'steps.untruncatedExact',
   steps.filter((row) => row.omittedNodes === 0).every((row) => row.calls === row.toolNodes),
   `${steps.filter((row) => row.omittedNodes === 0).length} complete steps match exactly`
 );
-check(
-  'steps.truncatedExplainsGap',
-  steps.filter((row) => row.omittedNodes > 0).every((row) => row.droppedCalls > 0 && row.droppedCalls <= row.omittedNodes),
-  steps
-    .filter((row) => row.omittedNodes > 0)
-    .map((row) => `#${row.index}: ${row.calls} calls − ${row.toolNodes} nodes = ${row.droppedCalls} dropped (cap hid ${row.omittedNodes} nodes)`)
-    .join('; ')
-);
+if (hasPlan) {
+  check(
+    'steps.truncatedExplainsGap',
+    steps.filter((row) => row.omittedNodes > 0).every((row) => row.droppedCalls > 0 && row.droppedCalls <= row.omittedNodes),
+    steps
+      .filter((row) => row.omittedNodes > 0)
+      .map((row) => `#${row.index}: ${row.calls} calls − ${row.toolNodes} nodes = ${row.droppedCalls} dropped (cap hid ${row.omittedNodes} nodes)`)
+      .join('; ')
+  );
+} else {
+  skip('steps.truncatedExplainsGap', 'no PAE plan in this log, so steps cannot be split at anchorSeq');
+}
 check('steps.totals', totalToolNodes === view.nodes.filter((node) => node.kind === 'tool').length, `${totalToolNodes} tool nodes drawn of ${totalCalls} calls (${droppedCalls} dropped by the per-step cap)`);
 
 /* --- every drawn node traces back to one raw event ----------------------- */
@@ -199,7 +222,11 @@ for (const step of view.steps) {
   );
   if (spotStep === null || fileCalls.length > spotStep.calls.length) spotStep = { index, step, calls: fileCalls };
 }
-check('spot.found', spotStep !== null && spotStep.calls.length >= 5, spotStep ? `step #${spotStep.index} has ${spotStep.calls.length} file calls` : 'no candidate step');
+if (hasPlan) {
+  check('spot.found', spotStep !== null && spotStep.calls.length >= 5, spotStep ? `step #${spotStep.index} has ${spotStep.calls.length} file calls` : 'no candidate step');
+} else {
+  skip('spot.found', 'no PAE plan in this log, so a step cannot be located for the spot check');
+}
 
 const basename = (value) => (typeof value === 'string' && value !== '' ? value.replace(/\\/g, '/').split('/').pop() : '');
 const spotChecks = [];
@@ -238,11 +265,17 @@ if (spotStep !== null) {
 }
 
 /* --- report -------------------------------------------------------------- */
-const failed = results.filter((row) => !row.pass);
+const failed = results.filter((row) => row.pass === false);
+const skipped = results.filter((row) => row.pass === null);
 process.stdout.write(
-  results.map((row) => `${row.pass ? 'PASS' : 'FAIL'}  ${row.id}${row.pass ? '' : '  — ' + row.detail}`).join('\n') + '\n'
+  results
+    .map((row) => {
+      const label = row.pass === null ? 'SKIP' : row.pass ? 'PASS' : 'FAIL';
+      return `${label}  ${row.id}${row.pass === true ? '' : '  — ' + row.detail}`;
+    })
+    .join('\n') + '\n'
 );
-process.stdout.write(`\n${results.length - failed.length}/${results.length} checks passed\n`);
+process.stdout.write(`\n${results.length - failed.length - skipped.length}/${results.length} checks passed` + (skipped.length > 0 ? ` (${skipped.length} skipped)` : '') + '\n');
 process.stdout.write(`log: ${logPath}\nlog rev: ${rev} · events: ${events.length} · tool/call: ${calls.length}\n`);
 if (spotStep !== null) {
   process.stdout.write(`spot step #${spotStep.index}「${spotStep.step.title}」: 5 of ${spotStep.calls.length} file calls\n`);

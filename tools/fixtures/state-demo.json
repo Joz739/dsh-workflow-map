@@ -1,0 +1,842 @@
+{
+ "rev": 4242,
+ "view": {
+  "ver": 3800,
+  "task": "为示例 CLI 增加配置文件支持",
+  "todos": [
+   {
+    "content": "解析命令行参数并定义配置结构",
+    "status": "completed"
+   },
+   {
+    "content": "实现配置文件的读取与校验",
+    "status": "completed"
+   },
+   {
+    "content": "实现写入与原子替换",
+    "status": "completed"
+   },
+   {
+    "content": "接入主流程并处理默认值",
+    "status": "completed"
+   },
+   {
+    "content": "补充单元测试与错误分支",
+    "status": "in_progress"
+   },
+   {
+    "content": "更新使用说明与示例",
+    "status": "pending"
+   }
+  ],
+  "steps": [
+   {
+    "index": 0,
+    "planIndex": 1,
+    "title": "解析命令行参数并定义配置结构",
+    "status": "done",
+    "source": "todo",
+    "outcome": "",
+    "startedAt": 1793400000000,
+    "endedAt": 1793400180000,
+    "lastActivityAt": 1793400170000,
+    "modelStep": null,
+    "anchorSeq": null,
+    "percent": 100,
+    "lastEstimateAt": 1793400170000,
+    "percentSource": "closed",
+    "maxPercent": 100,
+    "reportSummary": "",
+    "nodeCount": 4,
+    "nodeIds": [
+     "n1",
+     "n2",
+     "n3",
+     "n4"
+    ],
+    "truncatedNodes": 0,
+    "groups": [],
+    "pendingConfirm": []
+   },
+   {
+    "index": 1,
+    "planIndex": 2,
+    "title": "实现配置文件的读取与校验",
+    "status": "done",
+    "source": "todo",
+    "outcome": "",
+    "startedAt": 1793400240000,
+    "endedAt": 1793400420000,
+    "lastActivityAt": 1793400410000,
+    "modelStep": null,
+    "anchorSeq": null,
+    "percent": 100,
+    "lastEstimateAt": 1793400410000,
+    "percentSource": "closed",
+    "maxPercent": 100,
+    "reportSummary": "",
+    "nodeCount": 7,
+    "nodeIds": [
+     "n5",
+     "n6",
+     "n7",
+     "n8",
+     "n9",
+     "n10",
+     "n11"
+    ],
+    "truncatedNodes": 0,
+    "groups": [],
+    "pendingConfirm": []
+   },
+   {
+    "index": 2,
+    "planIndex": 3,
+    "title": "实现写入与原子替换",
+    "status": "done",
+    "source": "todo",
+    "outcome": "",
+    "startedAt": 1793400480000,
+    "endedAt": 1793400660000,
+    "lastActivityAt": 1793400650000,
+    "modelStep": null,
+    "anchorSeq": null,
+    "percent": 100,
+    "lastEstimateAt": 1793400650000,
+    "percentSource": "closed",
+    "maxPercent": 100,
+    "reportSummary": "",
+    "nodeCount": 6,
+    "nodeIds": [
+     "n12",
+     "n13",
+     "n14",
+     "n15",
+     "n16",
+     "n17"
+    ],
+    "truncatedNodes": 0,
+    "groups": [],
+    "pendingConfirm": []
+   },
+   {
+    "index": 3,
+    "planIndex": 4,
+    "title": "接入主流程并处理默认值",
+    "status": "done",
+    "source": "todo",
+    "outcome": "",
+    "startedAt": 1793400720000,
+    "endedAt": 1793400900000,
+    "lastActivityAt": 1793400890000,
+    "modelStep": null,
+    "anchorSeq": null,
+    "percent": 100,
+    "lastEstimateAt": 1793400890000,
+    "percentSource": "closed",
+    "maxPercent": 100,
+    "reportSummary": "",
+    "nodeCount": 4,
+    "nodeIds": [
+     "n18",
+     "n19",
+     "n20",
+     "n21"
+    ],
+    "truncatedNodes": 0,
+    "groups": [],
+    "pendingConfirm": []
+   },
+   {
+    "index": 4,
+    "planIndex": 5,
+    "title": "补充单元测试与错误分支",
+    "status": "running",
+    "source": "todo",
+    "outcome": "",
+    "startedAt": 1793400960000,
+    "endedAt": 0,
+    "lastActivityAt": 1793401130000,
+    "modelStep": null,
+    "anchorSeq": null,
+    "percent": 62,
+    "lastEstimateAt": 1793401130000,
+    "percentSource": "model",
+    "maxPercent": 62,
+    "reportSummary": "",
+    "nodeCount": 5,
+    "nodeIds": [
+     "n22",
+     "n23",
+     "n24",
+     "n25",
+     "n26"
+    ],
+    "truncatedNodes": 0,
+    "groups": [],
+    "pendingConfirm": []
+   },
+   {
+    "index": 5,
+    "planIndex": 6,
+    "title": "更新使用说明与示例",
+    "status": "pending",
+    "source": "todo",
+    "outcome": "",
+    "startedAt": 0,
+    "endedAt": 0,
+    "lastActivityAt": 0,
+    "modelStep": null,
+    "anchorSeq": null,
+    "percent": null,
+    "lastEstimateAt": 0,
+    "percentSource": "none",
+    "maxPercent": 0,
+    "reportSummary": "",
+    "nodeCount": 6,
+    "nodeIds": [
+     "n27",
+     "n28",
+     "n29",
+     "n30",
+     "n31",
+     "n32"
+    ],
+    "truncatedNodes": 0,
+    "groups": [],
+    "pendingConfirm": []
+   }
+  ],
+  "nodes": [
+   {
+    "id": "n1",
+    "stepIndex": 0,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/args.js",
+    "detail": "path=cli/args.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/args.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400000000,
+    "durationMs": 400,
+    "seq": 107
+   },
+   {
+    "id": "n2",
+    "stepIndex": 0,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/flags.js",
+    "detail": "path=cli/flags.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/flags.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400009000,
+    "durationMs": 520,
+    "seq": 114
+   },
+   {
+    "id": "n3",
+    "stepIndex": 0,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/usage.js",
+    "detail": "path=cli/usage.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/usage.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400018000,
+    "durationMs": 640,
+    "seq": 121
+   },
+   {
+    "id": "n4",
+    "stepIndex": 0,
+    "kind": "tool",
+    "tool": "grep",
+    "title": "搜索 · parseArgs",
+    "detail": "pattern=parseArgs",
+    "argsText": "",
+    "files": [],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400027000,
+    "durationMs": 760,
+    "seq": 128
+   },
+   {
+    "id": "n5",
+    "stepIndex": 1,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/args.js",
+    "detail": "path=cli/args.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/args.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400240000,
+    "durationMs": 400,
+    "seq": 135
+   },
+   {
+    "id": "n6",
+    "stepIndex": 1,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/flags.js",
+    "detail": "path=cli/flags.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/flags.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400249000,
+    "durationMs": 520,
+    "seq": 142
+   },
+   {
+    "id": "n7",
+    "stepIndex": 1,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/usage.js",
+    "detail": "path=cli/usage.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/usage.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400258000,
+    "durationMs": 640,
+    "seq": 149
+   },
+   {
+    "id": "n8",
+    "stepIndex": 1,
+    "kind": "tool",
+    "tool": "grep",
+    "title": "搜索 · parseArgs",
+    "detail": "pattern=parseArgs",
+    "argsText": "",
+    "files": [],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400267000,
+    "durationMs": 760,
+    "seq": 156
+   },
+   {
+    "id": "n9",
+    "stepIndex": 1,
+    "kind": "tool",
+    "tool": "edit",
+    "title": "修改 · cli/args.js",
+    "detail": "path=cli/args.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/args.js",
+      "action": "改"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400276000,
+    "durationMs": 880,
+    "seq": 163
+   },
+   {
+    "id": "n10",
+    "stepIndex": 1,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/merge.js",
+    "detail": "path=cli/merge.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/merge.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400285000,
+    "durationMs": 1000,
+    "seq": 170
+   },
+   {
+    "id": "n11",
+    "stepIndex": 1,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/validate.js",
+    "detail": "path=cli/validate.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/validate.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400294000,
+    "durationMs": 1120,
+    "seq": 177
+   },
+   {
+    "id": "n12",
+    "stepIndex": 2,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/args.js",
+    "detail": "path=cli/args.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/args.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400480000,
+    "durationMs": 400,
+    "seq": 184
+   },
+   {
+    "id": "n13",
+    "stepIndex": 2,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/flags.js",
+    "detail": "path=cli/flags.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/flags.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400489000,
+    "durationMs": 520,
+    "seq": 191
+   },
+   {
+    "id": "n14",
+    "stepIndex": 2,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/usage.js",
+    "detail": "path=cli/usage.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/usage.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400498000,
+    "durationMs": 640,
+    "seq": 198
+   },
+   {
+    "id": "n15",
+    "stepIndex": 2,
+    "kind": "tool",
+    "tool": "grep",
+    "title": "搜索 · parseArgs",
+    "detail": "pattern=parseArgs",
+    "argsText": "",
+    "files": [],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400507000,
+    "durationMs": 760,
+    "seq": 205
+   },
+   {
+    "id": "n16",
+    "stepIndex": 2,
+    "kind": "tool",
+    "tool": "edit",
+    "title": "修改 · cli/args.js",
+    "detail": "path=cli/args.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/args.js",
+      "action": "改"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400516000,
+    "durationMs": 880,
+    "seq": 212
+   },
+   {
+    "id": "n17",
+    "stepIndex": 2,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/merge.js",
+    "detail": "path=cli/merge.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/merge.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400525000,
+    "durationMs": 1000,
+    "seq": 219
+   },
+   {
+    "id": "n18",
+    "stepIndex": 3,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/args.js",
+    "detail": "path=cli/args.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/args.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400720000,
+    "durationMs": 400,
+    "seq": 226
+   },
+   {
+    "id": "n19",
+    "stepIndex": 3,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/flags.js",
+    "detail": "path=cli/flags.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/flags.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400729000,
+    "durationMs": 520,
+    "seq": 233
+   },
+   {
+    "id": "n20",
+    "stepIndex": 3,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/usage.js",
+    "detail": "path=cli/usage.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/usage.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400738000,
+    "durationMs": 640,
+    "seq": 240
+   },
+   {
+    "id": "n21",
+    "stepIndex": 3,
+    "kind": "tool",
+    "tool": "grep",
+    "title": "搜索 · parseArgs",
+    "detail": "pattern=parseArgs",
+    "argsText": "",
+    "files": [],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400747000,
+    "durationMs": 760,
+    "seq": 247
+   },
+   {
+    "id": "n22",
+    "stepIndex": 4,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/args.js",
+    "detail": "path=cli/args.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/args.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400960000,
+    "durationMs": 400,
+    "seq": 254
+   },
+   {
+    "id": "n23",
+    "stepIndex": 4,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/flags.js",
+    "detail": "path=cli/flags.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/flags.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400969000,
+    "durationMs": 520,
+    "seq": 261
+   },
+   {
+    "id": "n24",
+    "stepIndex": 4,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/usage.js",
+    "detail": "path=cli/usage.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/usage.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "ok",
+    "error": "",
+    "at": 1793400978000,
+    "durationMs": 640,
+    "seq": 268
+   },
+   {
+    "id": "n25",
+    "stepIndex": 4,
+    "kind": "tool",
+    "tool": "grep",
+    "title": "搜索 · parseArgs",
+    "detail": "pattern=parseArgs",
+    "argsText": "",
+    "files": [],
+    "resultHead": "",
+    "error": "",
+    "at": 1793400987000,
+    "durationMs": 760,
+    "seq": 275
+   },
+   {
+    "id": "n26",
+    "stepIndex": 4,
+    "kind": "tool",
+    "tool": "edit",
+    "title": "修改 · cli/args.js",
+    "detail": "path=cli/args.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/args.js",
+      "action": "改"
+     }
+    ],
+    "resultHead": "",
+    "error": "",
+    "at": 1793400996000,
+    "durationMs": 880,
+    "seq": 282
+   },
+   {
+    "id": "n27",
+    "stepIndex": 5,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/args.js",
+    "detail": "path=cli/args.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/args.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "",
+    "error": "",
+    "at": 1793401200000,
+    "durationMs": 400,
+    "seq": 289
+   },
+   {
+    "id": "n28",
+    "stepIndex": 5,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/flags.js",
+    "detail": "path=cli/flags.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/flags.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "",
+    "error": "",
+    "at": 1793401209000,
+    "durationMs": 520,
+    "seq": 296
+   },
+   {
+    "id": "n29",
+    "stepIndex": 5,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/usage.js",
+    "detail": "path=cli/usage.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/usage.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "",
+    "error": "",
+    "at": 1793401218000,
+    "durationMs": 640,
+    "seq": 303
+   },
+   {
+    "id": "n30",
+    "stepIndex": 5,
+    "kind": "tool",
+    "tool": "grep",
+    "title": "搜索 · parseArgs",
+    "detail": "pattern=parseArgs",
+    "argsText": "",
+    "files": [],
+    "resultHead": "",
+    "error": "",
+    "at": 1793401227000,
+    "durationMs": 760,
+    "seq": 310
+   },
+   {
+    "id": "n31",
+    "stepIndex": 5,
+    "kind": "tool",
+    "tool": "edit",
+    "title": "修改 · cli/args.js",
+    "detail": "path=cli/args.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/args.js",
+      "action": "改"
+     }
+    ],
+    "resultHead": "",
+    "error": "",
+    "at": 1793401236000,
+    "durationMs": 880,
+    "seq": 317
+   },
+   {
+    "id": "n32",
+    "stepIndex": 5,
+    "kind": "tool",
+    "tool": "read",
+    "title": "读取 · cli/merge.js",
+    "detail": "path=cli/merge.js",
+    "argsText": "",
+    "files": [
+     {
+      "path": "cli/merge.js",
+      "action": "读"
+     }
+    ],
+    "resultHead": "",
+    "error": "",
+    "at": 1793401245000,
+    "durationMs": 1000,
+    "seq": 324
+   }
+  ],
+  "branches": [],
+  "active": {
+   "stepIndex": 4,
+   "nodeId": null
+  },
+  "activeNode": null,
+  "asOf": 1793401260000,
+  "running": true,
+  "truncated": {
+   "totalNodes": 32,
+   "stepNodes": 0
+  },
+  "injects": [],
+  "counts": {
+   "steps": 6,
+   "nodes": 32,
+   "running": 1,
+   "completed": 4
+  }
+ }
+}

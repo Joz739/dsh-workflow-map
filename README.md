@@ -44,7 +44,7 @@ DeepSeek Harness 插件：把当前会话渲染为一张可交互的分步工作
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.5-success)
+![version](https://img.shields.io/badge/version-0.3.6-success)
 
 ---
 

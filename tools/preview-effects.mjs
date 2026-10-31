@@ -73,12 +73,12 @@ const nodes = [
   { id: 'r2', stepIndex: 1, kind: 'tool', tool: 'pwsh', title: 'pwsh build', detail: 'build', files: [], resultHead: '', error: '', at: T0 - 3000, durationMs: 0, seq: 3 },
 ];
 const steps = [
-  { index: 0, title: '已完成的骨架', status: 'done', percent: 100, percentSource: 'model', startedAt: T0 - 90000, endedAt: T0 - 40000, nodeIds: ['d1'], nodeCount: 1, groups: [] },
-  { index: 1, title: '正在进行的渲染', status: 'running', percent: 58, percentSource: 'model', startedAt: T0 - 30000, endedAt: null, nodeIds: ['r1', 'r2'], nodeCount: 2, groups: [] },
-  { index: 2, title: '未开始的一步', status: 'pending', percent: null, nodeIds: [], nodeCount: 0, groups: [] },
+  { index: 0, title: '实现配置文件的读取与校验', status: 'done', percent: 100, percentSource: 'model', startedAt: T0 - 90000, endedAt: T0 - 40000, nodeIds: ['d1'], nodeCount: 1, groups: [] },
+  { index: 1, title: '实现写入与原子替换', status: 'running', percent: 58, percentSource: 'model', startedAt: T0 - 30000, endedAt: null, nodeIds: ['r1', 'r2'], nodeCount: 2, groups: [] },
+  { index: 2, title: '接入主流程并处理默认值', status: 'pending', percent: null, nodeIds: [], nodeCount: 0, groups: [] },
 ];
 const view = {
-  asOf: T0 - 1000, task: 'living-layer measure', steps, nodes,
+  asOf: T0 - 1000, task: '为示例 CLI 增加配置文件支持', steps, nodes,
   active: { stepIndex: 1, nodeId: 'r2' },
   counts: { steps: 3, nodes: 3, running: 1, completed: 1 },
 };

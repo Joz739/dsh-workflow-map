@@ -7,7 +7,7 @@
 //   3. (later) the browser half: an inlined copy, kept honest by a differential test
 //
 // CONTRACT FACTS ARE MEASURED, NOT GUESSED (2026-10-17, this session's own log,
-// %USERPROFILE%\.dsh\sessions\…\session-f069ece7…\session.v4.jsonl.zstd):
+// %USERPROFILE%\.dsh\sessions\…\session-<id>\session.v4.jsonl.zstd):
 //   * envelope = { type, seq, time, data, surfaceOp?, sourceEventSeqs? }; seq is strictly
 //     increasing; `time` is wall-clock ms (the first event has no seq at all).
 //   * todo/write  data.todos[] = { content, status }  — REPLACES the whole table.

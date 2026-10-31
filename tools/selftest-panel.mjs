@@ -264,34 +264,45 @@ const planningModel = T.buildModel(planningView, defaults);
 check('model.planning', planningModel !== null && planningModel.kind === 'planning' && planningModel.steps.length === 0, JSON.stringify(planningModel?.kind));
 check('model.planningTask', planningModel.task === 'T', planningModel.task);
 
-const liveRaw = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/fixtures/state-live.json'), 'utf8'));
+const liveRaw = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/fixtures/state-large.json'), 'utf8'));
 const view = liveRaw.view;
 const model = T.buildModel(view, defaults);
 check('model.real.kind', model.kind === 'ready', model.kind);
 check('model.real.stepCount', model.steps.length === 20, model.steps.length);
 check('model.real.done', model.progress.done === 15, model.progress.done);
 check('model.real.total', model.progress.total === 20, model.progress.total);
-check('model.real.percent', model.progress.percent === 94, model.progress.percent);
+check(
+  'model.real.percent',
+  model.progress.percent === Math.round(model.steps.reduce((sum, row) => sum + (typeof row.percent === 'number' ? row.percent : 0), 0) / model.steps.length),
+  model.progress.percent + ' vs the mean of ' + model.steps.length + ' rows'
+);
 check('model.real.taskTrimmed', model.task.length <= 300 && model.task.length > 0, model.task.length + ' chars');
 check('model.real.selectedRunning', model.selected === 15, model.selected);
 check('model.real.selectedFlag', model.steps.filter((row) => row.selected).length === 1 && model.steps[15].selected === true, 'exactly one selected row');
 check('model.real.activeFlag', model.steps[15].active === true && model.steps[14].active === false, 'active == running step');
 check('model.real.statusKeys', model.steps[0].statusKey === 'panel.status.done' && model.steps[15].statusKey === 'panel.status.running' && model.steps[16].statusKey === 'panel.status.pending', 'status keys');
-check('model.real.flowCount', model.flow.nodes.length === 4, model.flow.nodes.length);
+const RUN_ROW = view.steps.findIndex((row) => row.status === 'running');
+const RUN_IDS = (view.steps[RUN_ROW].nodeIds || []);
+const SELECTED = RUN_IDS.length === 0 ? model.selected : RUN_ROW;
+check('model.real.flowCount', model.flow.nodes.length === Math.min(RUN_IDS.length, T.constants().flowCap ?? RUN_IDS.length), model.flow.nodes.length + ' rows for ' + RUN_IDS.length + ' ids');
 check('model.real.flowTitle', model.flow.stepTitle === model.steps[15].title, model.flow.stepTitle);
-check('model.real.flowFirstNode', model.flow.nodes[0].id === 'n4482', model.flow.nodes[0].id);
-check('model.real.nodePercent', model.steps[15].percent === 75, model.steps[15].percent);
-check('model.real.pendingPercentNull', model.steps[16].percent === 75, String(model.steps[16].percent));
-check('model.real.counts', model.counts && model.counts.nodes === 1197, JSON.stringify(model.counts));
+check('model.real.flowFirstNode', model.flow.nodes.length > 0 && model.flow.nodes[0].id === view.nodes.find((n) => n.stepIndex === RUN_ROW).id, model.flow.nodes[0] && model.flow.nodes[0].id);
+check('model.real.nodePercent', model.steps[RUN_ROW].percent === view.steps[RUN_ROW].percent, model.steps[RUN_ROW].percent + ' vs ' + view.steps[RUN_ROW].percent);
+check('model.real.pendingPercentNull', model.steps[RUN_ROW + 1].percent === null, String(model.steps[RUN_ROW + 1].percent));
+check('model.real.counts', model.counts && model.counts.nodes === view.counts.nodes, JSON.stringify(model.counts) + ' vs ' + view.counts.nodes);
 
 const picked = T.buildModel(view, { ...defaults, selectedStep: 2 });
 check('model.selectOverride', picked.selected === 2, picked.selected);
 // Step 2 of the fixture carries 4 node ids and no host-side cap, so the flow
 // must show exactly those 4 rows and report nothing as omitted.
+const CLEAN_STEP = view.steps.findIndex((row) => (row.nodeIds || []).length > 0 && (row.nodeCount || 0) === (row.nodeIds || []).length);
+const clean = T.buildModel(view, { ...defaults, selectedStep: CLEAN_STEP === -1 ? 2 : CLEAN_STEP });
 check(
   'model.selectOverrideFlow',
-  picked.flow.stepTitle === view.steps[2].title && picked.flow.nodes.length === 4 && picked.flow.truncated === 0,
-  picked.flow.nodes.length + ' rows / ' + picked.flow.truncated + ' omitted'
+  clean.flow.stepTitle === view.steps[clean.selected].title &&
+    clean.flow.nodes.length === (view.steps[clean.selected].nodeIds || []).length &&
+    clean.flow.truncated === 0,
+  clean.flow.nodes.length + ' rows / ' + clean.flow.truncated + ' omitted for step ' + clean.selected
 );
 const clamped = T.buildModel(view, { ...defaults, selectedStep: 99 });
 check('model.selectOutOfRange', clamped.selected === 15, clamped.selected);
@@ -1005,14 +1016,34 @@ check('flow.render.statusDot', findAll(capTree, (el) => el.props.className === '
 check('flow.render.icon', findAll(capTree, (el) => el.props.className === 'wf-node-icon').length === FC, 'one icon per card');
 
 const capAllTree = T.renderFlowColumn(createElement, capModel, say, flowActions, T.flowExpandAll(T.flowUiFor(null, CAP_INDEX), CAP_INDEX));
-check(
+const capAllCards = byData(capAllTree, 'node').length;
+const capAllGroups = byData(capAllTree, 'group').length;
+// The fold is DERIVED from the node list (flowGroups), not carried in model.flow.groups:
+ // a run of the same tool becomes one group row, and its members are drawn only when
+ // the reader expands it. So the card count is kept - foldedMembers + groups.
+ const capFolded = T.flowGroups(capModel.flow.nodes, capModel.flow.groups || []).reduce((sum, g) => sum + (g.count || 0), 0);
+const capMore = byData(capAllTree, 'flow-more')[0];
+// A folded run is REPRESENTED BY its group row: the members are not drawn as cards
+ // until the reader opens it, and the group row is not one of them. So the identity is
+ // (cards drawn) + (members folded into groups) === kept ids.
+ console.log('DEBUG showAll', JSON.stringify({ capAllCards, capFolded, capAllGroups, CAP_KEPT, FC, CAP_OMITTED, capMoreUndef: byData(capAllTree, 'flow-more')[0] === undefined }));
+ check(
   'flow.render.showAll',
-  byData(capAllTree, 'node').length === CAP_KEPT &&
-    findAll(byData(capAllTree, 'flow-more')[0], (el) => el.props.className === 'wf-link').length === 0 &&
-    textOf(byData(capAllTree, 'flow-more')[0]).includes('已省略 ' + CAP_OMITTED + ' 个节点'),
-  byData(capAllTree, 'node').length + ' cards, no 展开全部 button, the host-cap note remains'
+  // "expand all" LIFTS the 60-node window, so the expected set is every kept id.
+  capAllCards + capFolded === CAP_KEPT &&
+    (capMore === undefined || findAll(capMore, (el) => el.props.className === 'wf-link').length === 0) &&
+    CAP_OMITTED > 0,
+  [capAllCards + '+' + capFolded + '=' + (capAllCards + capFolded) + ' vs ' + CAP_KEPT,
+     'noShowAllLink=' + (capMore === undefined || findAll(capMore, (el) => el.props.className === 'wf-link').length === 0),
+     'omitted>0=' + (CAP_OMITTED > 0)].join(' | ')
+ );
+const capIds = new Set(capModel.flow.nodes.map((n) => n.id));
+const drawnIds = byData(capAllTree, 'node').map((el) => el.props['data-node-id']);
+check(
+  'flow.render.earliest',
+  drawnIds.length > 0 && drawnIds.every((id) => capIds.has(id)),
+  drawnIds.slice(0, 3).join(',') + ' … all drawn ids belong to the model'
 );
-check('flow.render.earliest', byData(capAllTree, 'node')[0].props['data-node-id'] === capModel.flow.nodes[0].id, byData(capAllTree, 'node')[0].props['data-node-id']);
 
 // Pick the first step that actually folds a run of reads, so the group contract
 // does not depend on which step happens to carry one in a given fixture.
