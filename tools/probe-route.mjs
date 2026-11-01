@@ -34,6 +34,7 @@ import { join, resolve } from "node:path";
 import {
   ROUTE_PREFIX,
   STATE_PATH,
+  STEER_PATH,
   composeView,
   createViewHandler,
   etagFor,
@@ -295,6 +296,17 @@ function fakeHost() {
       return { asOfSeq: 7, values: { [PROJECTION_KEY]: host.viewFor(session) } };
     },
   };
+  // The host's own connection admission. `verdict` lets a test drive each branch the real
+  // service can answer: undefined (admitted), 401, 403, or a thrown check.
+  host.admitCalls = [];
+  host.verdict = undefined;
+  host.connection = {
+    requestRejection(request) {
+      host.admitCalls.push(request);
+      if (host.verdict instanceof Error) throw host.verdict;
+      return host.verdict;
+    },
+  };
   host.viewFor = (session) => (session.id === "session-live" ? servedView : null);
   host.sessions = {
     get(sessionId) {
@@ -350,6 +362,59 @@ equal("(4) with the documented error", JSON.parse(unknownSession.body).error, "u
 const noParam = exchange(routeHandler, { url: STATE_PATH });
 equal("(4) a missing sessionId answers 400 without a session lookup", noParam.status, 400);
 
+// CONNECTION ADMISSION. The route must ask the host's own check on every request, and any
+// verdict other than "no opinion" must stop the request before it reaches a handler.
+check("(4) the route asked the host's admission check", host.admitCalls.length >= 3, `${host.admitCalls.length} call(s)`);
+check(
+  "(4) the admission check receives the request headers",
+  host.admitCalls.length > 0 && typeof host.admitCalls[0].headers === "object",
+  JSON.stringify(host.admitCalls[0]),
+);
+
+host.verdict = 401;
+const notAdmitted401 = exchange(routeHandler, { url: `${STATE_PATH}?sessionId=session-live` });
+equal("(4) a 401 verdict rejects the read", notAdmitted401.status, 401);
+
+host.verdict = 403;
+const notAdmitted403 = exchange(routeHandler, { url: `${STEER_PATH}`, method: "POST", headers: { origin: "https://elsewhere.example" } });
+equal("(4) a 403 verdict rejects a write", notAdmitted403.status, 403);
+check(
+  "(4) a rejected write carries no success marker",
+  JSON.parse(notAdmitted403.body || "{}").ok === false,
+  notAdmitted403.body,
+);
+
+// The gate runs before the OPTIONS short-circuit: a cross-origin preflight is exactly the
+// caller that must not be told the route is there.
+host.verdict = undefined;
+host.admitCalls = [];
+const preflight = exchange(routeHandler, { url: STATE_PATH, method: "OPTIONS" });
+equal("(4) a preflight is still admitted-shape", preflight.status, 204);
+check("(4) the preflight also went through admission", host.admitCalls.length === 1, `${host.admitCalls.length} call(s)`);
+
+host.verdict = new Error("host check exploded");
+const throwing = exchange(routeHandler, { url: `${STATE_PATH}?sessionId=session-live` });
+equal("(4) a throwing admission check answers 503", throwing.status, 503);
+check(
+  "(4) and does not serve the view",
+  !throwing.body.includes("自检任务"),
+  throwing.body.slice(0, 80),
+);
+host.verdict = undefined;
+
+// FAIL CLOSED: a host with no connection service cannot be asked, so the route refuses rather
+// than serving an unauthenticated injection channel.
+const sealed = fakeHost();
+delete sealed.connection;
+apply(sealed);
+const sealedRead = exchange(sealed.routeLog[0].handler, { url: `${STATE_PATH}?sessionId=session-live` });
+equal("(4) a host without connection admission answers 503", sealedRead.status, 503);
+check(
+  "(4) and says why",
+  JSON.parse(sealedRead.body).error.includes("admission"),
+  sealedRead.body.slice(0, 120),
+);
+for (const dispose of sealed.effects) dispose();
 // A second apply on the SAME server: the real one would throw on a duplicate path.
 apply(host);
 equal("(4) the second apply shares the seat", host.routeLog.length, 1);

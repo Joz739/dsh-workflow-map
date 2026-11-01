@@ -470,6 +470,7 @@ export function createViewHandler(options) {
   const note = typeof source.note === "function" ? source.note : () => {};
   const steer = typeof source.steer === "function" ? source.steer : null;
   const unsteer = typeof source.unsteer === "function" ? source.unsteer : null;
+  const admit = typeof source.admit === "function" ? source.admit : null;
 
   return function handleViewRequest(req, res) {
     try {
@@ -479,6 +480,40 @@ export function createViewHandler(options) {
       }
 
       const method = typeof req.method === "string" ? req.method.toUpperCase() : "";
+
+// CONNECTION ADMISSION, ahead of every other consideration including the OPTIONS
+// short-circuit. `/steer` puts text into a running agent, so what keeps this route from
+// being an injection channel for any process on the machine is the host's own Host/Origin
+// and browser-authentication check, not the same-origin policy. The gate is asked about
+// every request: a cross-origin preflight is exactly the kind of caller that must be
+// refused, and refusing it here costs nothing because this route emits no CORS headers.
+      if (admit !== null) {
+        let verdict;
+        try {
+          verdict = admit(req);
+        } catch (error) {
+// An admission check that throws cannot be read as permission.
+          note(`route: admission check threw: ${messageOf(error)}`);
+          sendJson(res, 503, { ok: false, error: "connection admission is unavailable" }, { allow: ALLOW }, method === "HEAD");
+          return;
+        }
+        if (isRecord(verdict) && Number.isInteger(verdict.status)) {
+          sendJson(
+            res,
+            verdict.status,
+            {
+              ok: false,
+              error:
+                typeof verdict.error === "string" && verdict.error !== ""
+                  ? verdict.error
+                  : "the request was not admitted",
+            },
+            { allow: ALLOW },
+            method === "HEAD",
+          );
+          return;
+        }
+      }
 
  // Preflight, even in a same-origin deployment: a 204 here keeps a mistaken cross-origin
  // probe from looking like a broken route. No CORS headers are emitted (same-origin only).

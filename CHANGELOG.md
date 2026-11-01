@@ -3,6 +3,20 @@
 `dsh-workflow-map` 的所有重要变更记录在此。
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [SemVer](https://semver.org/)。
 
+## [0.3.9] - 2026-11-01
+
+### Fixed
+
+- **三个 HTTP 路由接入宿主连接准入（`ctx.connection.requestRejection()`）**。`/dsh-workflow/state`、
+  `/steer`、`/unsteer` 此前只依赖同源策略，没有任何鉴权：`/steer` 会向正在运行的 Agent 投递一条消息，
+  因此任何能访问本机监听端口的进程都能借此注入指令。现在每个请求（含 `OPTIONS` 预检）先经过宿主的
+  Host/Origin 与浏览器认证检查，401 / 403 直接拒绝；准入检查本身抛错按 503 处理，不视为放行；
+  宿主未提供该服务时同样返回 503，不提供服务。
+
+### Changed
+
+- `ROUTE_VERSION` `1` 不变：成功路径的状态码与响应体未改动，新增的是被拒绝时的 401 / 403 / 503 分支。
+
 ## [0.3.8] - 2026-10-31
 
 ### Added
