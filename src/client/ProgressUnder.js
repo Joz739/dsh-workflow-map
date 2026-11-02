@@ -12,6 +12,9 @@
  * "62% self-reported" the model's own report (percentSource "model")
  * "62% measured" the todo table's measured completion ratio (percentSource "todos")
  * "100%" a closed step's pinned value
+ * "waiting for the next turn" NOT a number at all: `turn/end` closed the turn without closing
+ * the step, so nothing is advancing. The rail says WHY it is empty instead of inventing a
+ * percentage or borrowing the "running, distance unknown" band — see wfAwaitingNextTurn.
  * - a step that has NOT started never shows a percentage, even when the wire
  * payload carries a stale one. No number is better than a fake number.
  *
@@ -43,25 +46,55 @@
  * Inlined into client.js by tools/build-client.mjs (single-file browser half).
  */
 
-/** The rail's three label flavours, as opposed to "no label at all". */
-function wfProgressLabel(percent, source, status, say) {
+/**
+ * Is this row WAITING FOR THE NEXT TURN?
+ *
+ * Two DIFFERENT questions live in this file and must never be confused:
+ * - "is a turn running right now" — the session flag (`wfSessionRunning`), and
+ * - "is THIS STEP holding its place until the user sends the next turn" — `awaitingNextTurn`,
+ *   which fold.mjs sets when `turn/end` closed the turn without closing the step.
+ * A waiting step is still `running` (the work is not finished), but nothing is advancing, so the
+ * rail must not claim a direction: no digits, no 30 % indeterminate band, no flowing gradient.
+ *
+ * Accepts the ROW or the bare boolean, because the two entry points hold different things:
+ * `wfRenderProgressDock` has the row, while `wfProgressLabel` takes scalars and is handed the flag.
+ * A missing/absent/undefined field is false — the same honest default the host repairs to.
+ */
+function wfAwaitingNextTurn(value) {
+  if (value === true) return true;
+  if (value === false || value === null || value === undefined) return false;
+  if (typeof value === "object") return value.awaitingNextTurn === true;
+  return false;
+}
+
+/** The rail's four label flavours, as opposed to "no label at all". */
+function wfProgressLabel(percent, source, status, say, awaiting) {
+  // A step that has not started has no progress to report. Showing a number here
+  // would be the exact lie the acceptance criterion forbids. This gate comes FIRST (before the
+  // waiting branch too): a pending row that carries a stale flag must never print
+  // 「等待下一回合」either — it is not waiting, it simply has not begun.
+  if (status === "pending" || status === "skipped") return null;
+  // WAITING FOR THE NEXT TURN. Deliberately placed BEFORE the number check: the host ships no
+  // number for a waiting step (`percentFor` returns null), yet the rail still has to SAY why —
+  // an empty rail would read as "no information", which is a different claim. A stale number in
+  // the payload (an older host, a replayed checkpoint) is ignored: waiting is not "40 % done".
+  if (status === "running" && wfAwaitingNextTurn(awaiting)) {
+    return { kind: "waiting", percent: null, text: say("panel.percent.waiting") };
+  }
   var value = wfFinite(percent);
   if (value === null) return null;
- // A step that has not started has no progress to report. Showing a number here
- // would be the exact lie the acceptance criterion forbids.
-  if (status === "pending" || status === "skipped") return null;
   var rounded = Math.round(wfClamp(value, 0, 100));
   // the cold-start sub-variant of the baseline keeps the SAME visible flavour (~N% estimated):
- // the sub-division is machine-readable (`baseline:steps`), and falling through to the closed
- // flavour would print it as a pinned 100 %-style number, which it is not.
+  // the sub-division is machine-readable (`baseline:steps`), and falling through to the closed
+  // flavour would print it as a pinned 100 %-style number, which it is not.
   if (source === "baseline" || source === "baseline:steps") {
     return { kind: "estimate", percent: rounded, text: say("panel.percent.estimate", { percent: rounded }) };
   }
   if (source === "model") {
     return { kind: "self", percent: rounded, text: say("panel.percent.self", { percent: rounded }) };
   }
- // a MEASURED number (the todo table's own completion ratio). It must read differently
- // from both "self-reported" and "estimated", or the user cannot tell a fact from a guess.
+  // a MEASURED number (the todo table's own completion ratio). It must read differently
+  // from both "self-reported" and "estimated", or the user cannot tell a fact from a guess.
   if (source === "todos") {
     return { kind: "real", percent: rounded, text: say("panel.percent.real", { percent: rounded }) };
   }
@@ -71,17 +104,27 @@ function wfProgressLabel(percent, source, status, say) {
 /**
  * Fill width in percent of the track. A running step with no number yet gets a
  * narrow indeterminate segment (animated, no digits) instead of a fake value.
+ *
+ * A WAITING step gets an EMPTY track: the 30 % band exists to say "working, distance unknown",
+ * and a step waiting for the next turn is not working at all. Drawing the band would keep the
+ * rail moving (the fill's gradient animates) while nothing happens — the one thing this whole
+ * change is about.
  */
 function wfProgressFillWidth(row) {
   var status = row && typeof row.status === "string" ? row.status : "pending";
   if (status === "pending" || status === "skipped") return 0;
+  if (wfAwaitingNextTurn(row)) return 0;
   var value = wfFinite(row.percent);
   if (value === null) return status === "running" ? 30 : 0;
   return Math.round(wfClamp(value, 0, 100));
 }
 
+/** The 30 % band is for "running with no number". A waiting step has no number for a DIFFERENT
+ * reason (there is nothing to measure until the next turn opens), so it must not borrow that
+ * look — otherwise the two states are indistinguishable on the rail, which is the defect. */
 function wfProgressIndeterminate(row) {
   var status = row && typeof row.status === "string" ? row.status : "pending";
+  if (wfAwaitingNextTurn(row)) return false;
   return status === "running" && wfFinite(row.percent) === null;
 }
 
@@ -124,7 +167,11 @@ function wfProgressTiming(row, asOf) {
  // same "no number beats a fake number" rule the percent label already follows. `ago` is a fact
  // about the PAST, so it only needs a number to have existed at all: percent > 0.
   var livePercent = wfFinite(row ? row.percent : null);
-  var hasAnyNumber = livePercent !== null && livePercent > 0 && status !== "pending";
+  // A WAITING step has no advance to date, so there is no estimate to age: the host withholds the
+  // number (`percentFor` → null) and this rail withholds the sentence that would quote it. Placed
+  // with the other gates so the second line never contradicts the first.
+  var hasAnyNumber =
+    livePercent !== null && livePercent > 0 && status !== "pending" && !wfAwaitingNextTurn(row);
   var ago = null;
   if (hasAnyNumber && now !== null && estimateAt !== null && estimateAt > 0 && now > estimateAt) {
     ago = wfProgressDurationText(now - estimateAt);
@@ -136,7 +183,8 @@ function wfProgressTiming(row, asOf) {
 /** One rail: track + fill + the right-hand number (omitted when there is none). */
 function wfRenderProgressDock(h, row, say, asOf) {
   var status = row && typeof row.status === "string" ? row.status : "pending";
-  var label = wfProgressLabel(row ? row.percent : null, row ? row.percentSource : "none", status, say);
+  var awaiting = wfAwaitingNextTurn(row);
+  var label = wfProgressLabel(row ? row.percent : null, row ? row.percentSource : "none", status, say, awaiting);
   var width = wfProgressFillWidth(row);
   var indeterminate = wfProgressIndeterminate(row);
   var compact = !!(row && row.compact === true);
@@ -147,11 +195,15 @@ function wfRenderProgressDock(h, row, say, asOf) {
     key: "track",
     role: "progressbar",
     "aria-label": say("panel.step.progress", { title: row && row.title ? row.title : "" }),
+    // A waiting rail carries NO value at all: `aria-valuenow` is only written when there is a
+    // digit to read out (see below), and the text is the waiting phrase, not a percentage.
     "aria-valuemin": 0,
     "aria-valuemax": 100,
   };
   if (label !== null) {
-    trackProps["aria-valuenow"] = label.percent;
+    // `percent: null` is the waiting flavour: it has a sentence but no number, so it writes the
+    // text only. Writing `aria-valuenow="null"` would announce a value that does not exist.
+    if (label.percent !== null) trackProps["aria-valuenow"] = label.percent;
     trackProps["aria-valuetext"] = label.text;
   }
 
@@ -182,6 +234,9 @@ function wfRenderProgressDock(h, row, say, asOf) {
       "data-dsh-workflow-map": "progress",
       "data-step-index": row ? row.index : undefined,
       "data-status": status,
+      // The waiting state on the rail itself, so the stylesheet can freeze the fill without a
+      // second class and a self-test can tell the two states apart from the DOM alone.
+      "data-awaiting": awaiting ? "true" : "false",
       "data-indeterminate": indeterminate ? "true" : "false",
       "data-timing": ago === null ? "none" : "one",
     },
@@ -192,9 +247,11 @@ function wfRenderProgressDock(h, row, say, asOf) {
         className: "wf-prog-fill",
         key: "fill",
         "data-indeterminate": indeterminate ? "true" : "false",
-  // Exactly one step's rail carries the flowing gradient: decided by the caller's row.live (the host marks only
-  // the single running row), not "everything running animates". Without that field it falls back to the old behaviour.
-        "data-live": (row && row.live === true) || (row && row.live === undefined && status === "running") ? "true" : "false",
+        // Exactly one step's rail carries the flowing gradient: decided by the caller's row.live (the host marks only
+        // the single running row), not "everything running animates". Without that field it falls back to the old behaviour.
+        // A WAITING step is the one exception even when `live` says true: the flow would animate an
+        // advance that is not happening, which is exactly the cue this change removes.
+        "data-live": !awaiting && ((row && row.live === true) || (row && row.live === undefined && status === "running")) ? "true" : "false",
         style: { width: width + "%" },
       })),
       label === null

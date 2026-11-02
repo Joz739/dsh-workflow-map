@@ -229,6 +229,11 @@ function wfApplyDerivedStatuses(rows, plan, todos) {
  // carried through the status rewrite so every row keeps the stamp the host
  // shipped, whichever policy decided its status.
       lastEstimateAt: wfFinite(row.lastEstimateAt) === null ? 0 : Math.max(0, Math.round(wfFinite(row.lastEstimateAt))),
+      // carried through the status rewrite for the same reason: this row's status is decided by
+      // PAE/todo policy, but WHETHER IT IS WAITING FOR THE NEXT TURN is a fact about the turn
+      // (the host's `turn/end`), which no policy here can re-derive. Dropping it would put a
+      // fabricated percentage back on a waiting card the moment the plan disagreed with the log.
+      awaitingNextTurn: row.awaitingNextTurn === true,
       nodeCount: row.nodeCount,
       planIndex: row.planIndex,
       anchorSeq: row.anchorSeq,

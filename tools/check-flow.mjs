@@ -16,12 +16,11 @@
 // Writes evidence/step08-flowcheck.json and exits non-zero on any failure.
 import fs from 'node:fs';
 import path from 'node:path';
-import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { frameOffsets, scanFrames } from './lib-zstd-frames.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..');
-const MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd]);
 
 const results = [];
 const check = (id, pass, detail) => results.push({ id, pass: pass === true, detail: detail === undefined ? '' : String(detail) });
@@ -58,24 +57,22 @@ if (!logPath || !fs.existsSync(logPath)) {
 
 /* --- multi-frame zstd → events ------------------------------------------- */
 const buffer = fs.readFileSync(logPath);
-const offsets = [];
-for (let at = buffer.indexOf(MAGIC); at >= 0; at = buffer.indexOf(MAGIC, at + 1)) offsets.push(at);
+const offsets = frameOffsets(buffer);
 check('log.frames', offsets.length > 0, `${offsets.length} zstd frames in ${path.basename(logPath)}`);
 
+// The frame walk comes from tools/lib-zstd-frames.mjs (its DIAGNOSTIC variant): this tool WANTS
+// the count of undecodable frames as its own evidence (`log.parsed` below), where the strict
+// decoder would throw and hide how much of the log was readable.
+const scanned = scanFrames(buffer);
 const events = [];
-let badFrames = 0;
-for (let index = 0; index < offsets.length; index += 1) {
-  const start = offsets[index];
-  const end = index + 1 < offsets.length ? offsets[index + 1] : buffer.length;
+const badFrames = scanned.badFrames;
+for (const line of scanned.buffer.toString('utf8').split('\n')) {
+  if (line.trim() === '') continue;
   try {
-    const text = zlib.zstdDecompressSync(buffer.subarray(start, end)).toString('utf8');
-    for (const line of text.split('\n')) {
-      if (line.trim() === '') continue;
-      const event = JSON.parse(line);
-      if (event && typeof event === 'object') events.push(event);
-    }
+    const event = JSON.parse(line);
+    if (event && typeof event === 'object') events.push(event);
   } catch (error) {
-    badFrames += 1;
+    /* a line that will not parse is not an undecodable FRAME; folded below as its own check */
   }
 }
 check('log.parsed', events.length > 0 && badFrames === 0, `${events.length} events, ${badFrames} undecodable frames`);
@@ -159,11 +156,19 @@ if (hasPlan) {
 } else {
   skip('steps.counts', 'no PAE plan in this log, so per-step call counts have no boundary');
 }
-check(
-  'steps.untruncatedExact',
-  steps.filter((row) => row.omittedNodes === 0).every((row) => row.calls === row.toolNodes),
-  `${steps.filter((row) => row.omittedNodes === 0).length} complete steps match exactly`
-);
+// THE PER-STEP CALL COUNT NEEDS A BOUNDARY, AND WITHOUT A PAE PLAN THE ANCHOR RANGE IS NOT ONE.
+// With no anchorSeq anywhere, `anchorSeq ?? 0 .. next anchorSeq ?? MAX` collapses to the WHOLE log for
+// every step: every step then "ownd" all 99 calls of the session, a number that cannot describe any step.
+// Per-step counting is therefore claimed only for anchored logs; unanchored logs get an explicit SKIP.
+if (hasPlan) {
+  check(
+    'steps.untruncatedExact',
+    steps.filter((row) => row.omittedNodes === 0).every((row) => row.calls === row.toolNodes),
+    `${steps.filter((row) => row.omittedNodes === 0).length} complete steps match exactly`
+  );
+} else {
+  skip('steps.untruncatedExact', 'no PAE plan in this log, so a step has no call boundary to be exact against');
+}
 if (hasPlan) {
   check(
     'steps.truncatedExplainsGap',
@@ -220,22 +225,31 @@ for (const step of view.steps) {
       return typeof args.file_path === 'string' || typeof args.path === 'string';
     }
   );
+  // A step with no file-touching call cannot hold five of them: without this guard a plan-less log
+  // (widely common: 146 of 168 local logs have no PAE plan) picked an EMPTY candidate and the spot
+  // loop below indexed `calls[-1]`, crashing the whole run with TypeErrors instead of reporting SKIPs.
+  if (fileCalls.length === 0) continue;
   if (spotStep === null || fileCalls.length > spotStep.calls.length) spotStep = { index, step, calls: fileCalls };
 }
 if (hasPlan) {
   check('spot.found', spotStep !== null && spotStep.calls.length >= 5, spotStep ? `step #${spotStep.index} has ${spotStep.calls.length} file calls` : 'no candidate step');
 } else {
   skip('spot.found', 'no PAE plan in this log, so a step cannot be located for the spot check');
+  // The spot row check compares a call's file name with a drawn node in the SAME step. With no plan
+  // there is no step boundary, so picking 5 calls would compare across steps — a different claim.
+  skip('spot.rows', 'no PAE plan in this log, so a call cannot be paired with its own step\'s nodes');
+  skip('spot.files', 'no PAE plan in this log, so a call cannot be paired with its own step\'s nodes');
 }
 
 const basename = (value) => (typeof value === 'string' && value !== '' ? value.replace(/\\/g, '/').split('/').pop() : '');
 const spotChecks = [];
-if (spotStep !== null) {
+if (hasPlan && spotStep !== null) { // same gate as spot.found: no plan means no step to pair calls with
   const model = T.buildModel(view, { ...prefs, selectedStep: spotStep.index });
   const toolNodes = model.flow.nodes.filter((node) => node.kind === 'tool');
   const picks = [0, Math.floor(spotStep.calls.length * 0.25), Math.floor(spotStep.calls.length * 0.5), Math.floor(spotStep.calls.length * 0.75), spotStep.calls.length - 1];
   for (const position of picks) {
     const event = spotStep.calls[position];
+    if (!event || !event.data) continue; // defensive: never index past the call list
     const args = argsOf(event);
     const wanted = basename(args.file_path || args.path);
     const candidates = toolNodes.filter((node) => node.at === event.time && node.tool === event.data.name);

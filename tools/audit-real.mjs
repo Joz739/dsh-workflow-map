@@ -19,34 +19,13 @@ const MODULE = path.join(import.meta.dirname, "..", "src", "fold.mjs");
 const mod = await import(pathToFileURL(MODULE).href);
 const { createInitialState, foldEvent, buildView } = mod;
 
-const MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd]);
+// The frame walk is NOT copied here any more: tools/lib-zstd-frames.mjs is the one decoder, shared
+// with check-real-injects / check-real-sessions / check-flow / check-todo-align. A checker that
+// decoded a log differently from its neighbours would be a checker nobody could compare with.
+import { decompressFrames } from "./lib-zstd-frames.mjs";
 
 /** Fold one multi-frame zstd log into text. A real log is SEVERAL concatenated frames. */
-function frames(buf) {
-  const offsets = [];
-  let from = 0;
-  for (;;) {
-    const at = buf.indexOf(MAGIC, from);
-    if (at === -1) break;
-    offsets.push(at);
-    from = at + 1;
-  }
-  const parts = [];
-  for (let i = 0; i < offsets.length; i += 1) {
-    const start = offsets[i];
-    for (let j = i; j < Math.min(i + 4, offsets.length); j += 1) {
-      const stop = j + 1 < offsets.length ? offsets[j + 1] : buf.length;
-      try {
-        parts.push(zlib.zstdDecompressSync(buf.subarray(start, stop)).toString("utf8"));
-        break;
-      } catch {
- /* try the next candidate end */
-      }
-    }
-  }
-  return parts.join("");
-}
-
+const frames = (buf) => decompressFrames(buf).toString("utf8");
 /** The fold's own title normalisation — a checker must not invent a second rule. */
 const norm = (value) =>
   typeof value === "string"
@@ -73,6 +52,8 @@ let syncViolations = 0;
 let runningViolations = 0;
 let injectSessions = 0;
 const samples = [];
+let unassignedNodes = 0;
+let unassignedSessions = 0;
 
 for (const file of files) {
   const sessionId = path.basename(path.dirname(file)).slice(0, 21);
@@ -119,6 +100,15 @@ for (const file of files) {
   }
 
   if (view.injects.length > 0) injectSessions += 1;
+  // ③ nodes no step's EVENT INTERVAL covered. Reported as EVIDENCE, not as a pass/fail criterion:
+  // an unattributed node is not itself a defect (a batch of calls after a closing todo table really
+  // belongs to no step), but a large number next to a large number of empty steps is what a
+  // mis-attribution looks like from the outside. Whether this becomes a criterion is decided after the
+  // full re-run, not here.
+  if (view.unassigned && view.unassigned.nodes > 0) {
+    unassignedNodes += view.unassigned.nodes;
+    if (view.unassigned.nodes >= 1) unassignedSessions += 1;
+  }
 }
 
 const ok = foldErrors === 0 && syncViolations === 0 && runningViolations === 0;
@@ -127,7 +117,7 @@ console.log(`\nsessions folded : ${scanned}`);
 console.log(`fold errors     : ${foldErrors}`);
 console.log(`① not in todos  : ${syncViolations}`);
 console.log(`② multi running : ${runningViolations}`);
-console.log(`④ inject rows   : ${injectSessions} session(s) carry hot-inject history`);
+console.log(`③ unassigned nodes: ${unassignedNodes} across ${unassignedSessions} session(s) (evidence only, not a criterion)`);
 if (samples.length > 0) {
   console.log("\n--- evidence ---");
   for (const line of samples.slice(0, 20)) console.log(`  ${line}`);

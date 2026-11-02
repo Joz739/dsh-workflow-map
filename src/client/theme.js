@@ -1146,7 +1146,45 @@ var WF_CSS_PAGE = [
     "animation:wf-fx-wrap 2.6s linear infinite;pointer-events:none;z-index:2;" +
     "-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;" +
     "mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}",
- // The connector's flowing keyframes were removed together with the rainbow connectors (only the uniform dashed style remains).
+/* WAITING FOR THE NEXT TURN — the STATIC twin of the running look. `awaitingNextTurn` means
+     `turn/end` closed the turn and no `turn/start` has opened the next one: the step is still
+     `running` (the work is unfinished) but NOTHING is advancing. So every moving cue of the
+     running state is replaced by a still one, and the colour drops to the idle layer so the card
+     no longer reads as "the thing happening now":
+       · frame pseudo-element: the gradient is a flat two-stop line, animation:none — no flow;
+       · card shadow: neutral, no brand glow;
+       · status ring: a filled idle disc, no 1.6 s breathe (the two palette overrides below
+         key on `data-status='running'`, and this block carries the counter-rules at its end);
+       · rail fill / connector: already reported as data-live="false" by ProgressUnder.js and
+         MainFlow.js — these two selectors are the belt to that braces for a cached row. */
+  ".wf-unit[data-awaiting='true']>.wf-unit-center>.wf-unit-card{" +
+    "box-shadow:0 0 0 1px rgba(125,135,152,.28),0 0 10px rgba(125,135,152,.14)}",
+  ".wf-unit[data-awaiting='true']>.wf-unit-center>.wf-unit-card::after{" +
+    "background:linear-gradient(90deg,var(--dsw-alias-state-idle-primary,#7d8798),rgba(125,135,152,.45));" +
+    "background-size:100% 100%;animation:none}",
+  ".wf-unit[data-awaiting='true'] .wf-unit-ring{" +
+    "color:var(--dsw-alias-state-idle-primary,#7d8798);background:rgba(125,135,152,.18);animation:none}",
+  ".wf-unit[data-awaiting='true'] .wf-prog-fill[data-live='true']{background:var(--dsw-alias-state-idle-primary,#7d8798);animation:none}",
+  ".wf-unit[data-awaiting='true'] .wf-unit-link[data-live='true']{animation:none}",
+  /* the waiting sentence: a still label, one colour step down — it says "nothing is happening",
+     so it must never compete with a real percentage. */
+  ".wf-unit[data-awaiting='true'] .wf-badge{color:var(--dsw-alias-label-secondary,#9aa3b2)}",
+  ".wf-prog-label[data-kind='waiting']{color:var(--dsw-alias-label-secondary,#9aa3b2);font-style:normal}",
+  ".wf-prog-dock[data-awaiting='true'] .wf-prog-track{opacity:.55}",
+  ".wf-prog-dock[data-awaiting='true'] .wf-prog-fill{animation:none!important;width:0!important}",
+  /* The two PALETTES below key on `[data-status='running']` and carry TWO extra attribute/
+     class tokens of specificity, so they would repaint a waiting card in the brand/soft accent
+     and undo the static look. These three selectors hold the same weight (`.wf-root` + the
+     un-valued `[data-palette]` equals the palette-specific pairs) and come LATER in the sheet,
+     so `animation:none` and the idle colour survive whichever palette is chosen. */
+  ".wf-root[data-palette] .wf-unit[data-awaiting='true']>.wf-unit-center>.wf-unit-card::after{" +
+    "background:linear-gradient(90deg,var(--dsw-alias-state-idle-primary,#7d8798),rgba(125,135,152,.45));" +
+    "background-size:100% 100%;animation:none}",
+  ".wf-root[data-palette] .wf-unit[data-awaiting='true'] .wf-unit-ring{" +
+    "color:var(--dsw-alias-state-idle-primary,#7d8798);animation:none}",
+  ".wf-root[data-palette] .wf-prog-dock[data-awaiting='true'] .wf-prog-fill{" +
+    "background:var(--dsw-alias-state-idle-primary,#7d8798);animation:none}",
+// The connector's flowing keyframes were removed together with the rainbow connectors (only the uniform dashed style remains).
  // Narrow: the right page stacks UNDER the chain and the satellites fold into tighter gutters.
  // The satellite line shrinks with them (a fixed 26 px run would push the circle off the edge).
   "@container (max-width:900px){.wf-body[data-kind='ready']{flex-direction:column}" +

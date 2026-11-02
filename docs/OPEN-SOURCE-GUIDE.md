@@ -1,6 +1,6 @@
 # 发布指南
 
-本文件面向**维护者**：如何把 `dsh-workflow-map` 发布到 GitHub 与 npm，以及改代码后该跑哪些检查。
+面向**维护者**：如何把 `dsh-workflow-map` 发布到 GitHub 与 npm，以及改代码后该跑哪些检查。
 
 > 命令里的 `<repo>` 指本仓库的本地路径，`<你的用户名>` 指 GitHub 用户名。
 
@@ -21,7 +21,7 @@
 | `client.js` | 浏览器半生成物（`node tools/build-client.mjs` 产出，不手改） |
 | `cordis.patch.yml` | 挂载声明 |
 | `locale/` / `icon.svg` | 词典与图标 |
-| `tools/` | 自测、探针、浏览器量测（**不随 npm 包发布**，进 Git） |
+| `tools/` | 自测、探针、浏览器量测（**不随 npm 包发布**，进 Git；含双浏览器对等检测 `check-browser.mjs`） |
 
 **发布前核对**：`package.json` 里 `repository.url`、`homepage`、`bugs.url` 三处必须指向真实的 GitHub 用户名与仓库名；
 仓库改名或 fork 后要同步改这三处。
@@ -155,7 +155,7 @@ curl "http://127.0.0.1:<GUI端口>/dsh-workflow/state?sessionId=<会话ID>"
 # 改过 src/client/*.js 必须重新生成浏览器半
 node tools/build-client.mjs
 
-# 离线自测（10 套）
+# 离线自测（10 套，逐套输出通过数/总数与退出码）
 node tools/selftest-fold.mjs          # 折叠语义
 node tools/selftest-host.mjs          # 注册、schema、投影接线
 node tools/selftest-orchestrator.mjs  # PAE 计划读取与合并
@@ -168,7 +168,7 @@ node tools/probe-route.mjs            # 真实 HTTP 路由
 node tools/probe-steer.mjs            # 注入 / 撤回通道
 ```
 
-合计 **1533 条离线断言**。也可一条命令：
+各套件的通过数与退出码以当次运行输出为准；`npm test` 链式执行全部 10 套。
 
 ```bash
 npm test
@@ -196,7 +196,7 @@ pwsh -File tools/measure-settings.ps1  # 设置卡与导出
 pwsh -File tools/measure-main.ps1      # 单页几何与交互
 ```
 
-合计 **323 条浏览器量测**（0.3.4 起 `measure-main` 另含 15 条浅色/深色主题对比检查）。
+浏览器量测的条数与通过数以当次运行输出为准（`measure-main` 另含浅色/深色主题对比检查）。
 
 > `tools/retired/` 里是量「已移除界面」的历史脚本，**不属于验证链**，不期望通过。
 

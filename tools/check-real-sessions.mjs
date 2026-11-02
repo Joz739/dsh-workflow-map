@@ -9,47 +9,23 @@
 // node tools/check-real-sessions.mjs                  # reads ~/.dsh/sessions
 // node tools/check-real-sessions.mjs <sessions-root>  # use a different root
 //
-// Exit 0 = every session folds; 1 = some session threw (session id and error are listed).
+// Outcome is THREE-WAY, because two different things were being counted as one:
+//   ok    - the log folded and the wire view built.
+//   empty - the log file is 0 bytes. That is a SAMPLING artefact (a session that was opened and never
+//           wrote an event), not a plugin defect; decompressing nothing cannot succeed, so calling it
+//           "failed" reported the wrong thing and made the tool's exit code unusable as a gate.
+//           Every empty log is still printed by name with its size and mtime - it is visible, not hidden.
+//   failed - a NON-EMPTY log that would not decompress, would not parse as JSON, or that made `foldEvent`
+//           or `buildView` throw. Only this class decides the exit code.
+// Exit 0 = no real folding failure; 1 = at least one non-empty log failed (session id and error are listed).
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { zstdDecompressSync } from "node:zlib";
+import { decompressFrames } from "./lib-zstd-frames.mjs";
 
 import { buildView, createInitialState, foldEvent } from "../src/fold.mjs";
 
 const ROOT = process.argv[2] ?? join(homedir(), ".dsh", "sessions");
-const MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd]);
-
-/**
- * Decompress a concatenation of independent zstd frames — the session log's own on-disk format.
- * Node's zstd helpers stop after the first frame, so the frames are located by magic number and
- * decoded one by one; a candidate boundary that does not decode is merged into the next attempt
- * (a magic number can occur inside compressed bytes).
- */
-function decompressFrames(buf) {
-  const offsets = [];
-  for (let i = buf.indexOf(MAGIC, 0); i !== -1; i = buf.indexOf(MAGIC, i + 4)) offsets.push(i);
-  if (offsets.length === 0) return zstdDecompressSync(buf);
-  const parts = [];
-  let start = 0;
-  while (start < offsets.length) {
-    let end = start + 1;
-    let out = null;
-    for (; end <= offsets.length; end += 1) {
-      const sliceEnd = end === offsets.length ? buf.length : offsets[end];
-      try {
-        out = zstdDecompressSync(buf.subarray(offsets[start], sliceEnd));
-        break;
-      } catch {
-        out = null;
-      }
-    }
-    if (out === null) throw new Error(`unreadable zstd frame at byte ${offsets[start]}`);
-    parts.push(out);
-    start = end;
-  }
-  return Buffer.concat(parts);
-}
 
 /** Every stored session, deduplicated across workspace directories (`<workspace>/<session-id>/`). */
 function sessionDirs(root) {
@@ -66,14 +42,24 @@ function sessionDirs(root) {
 }
 
 const failures = [];
+const empties = [];
 const totals = { events: 0, nodes: 0, injects: 0 };
-let sessions = 0;
+let sessions = 0; // logs that carried events at all (ok + failed); empty files are counted apart
+let ok = 0;
 let slowest = { session: "", ms: 0 };
 
 for (const { session, dir } of sessionDirs(ROOT)) {
+  // 0 bytes = an EMPTY SAMPLE, not a folding failure. There is nothing to decompress, so reporting it as
+  // "unreadable" attributed a sampling artefact to the plugin. It is counted apart and still printed by name.
+  const logPath = join(dir, "session.v4.jsonl.zstd");
+  const size = statSync(logPath).size;
+  if (size === 0) {
+    empties.push({ session, path: logPath, mtimeMs: statSync(logPath).mtimeMs });
+    continue;
+  }
   let events;
   try {
-    const text = decompressFrames(readFileSync(join(dir, "session.v4.jsonl.zstd"))).toString("utf8");
+    const text = decompressFrames(readFileSync(logPath)).toString("utf8");
     events = text
       .split("\n")
       .filter((line) => line.trim() !== "")
@@ -95,16 +81,23 @@ for (const { session, dir } of sessionDirs(ROOT)) {
     totals.injects += view.injects ? view.injects.length : 0;
     const ms = Number(process.hrtime.bigint() - startedAt) / 1e6;
     if (ms > slowest.ms) slowest = { session, ms };
+    ok += 1;
   } catch (error) {
     failures.push({ session, detail: `${error.name}: ${error.message}` });
   }
 }
 
+for (const empty of empties) {
+  const when = new Date(empty.mtimeMs).toISOString();
+  console.log(`EMPTY ${empty.session}  0 bytes  mtime ${when}  ${empty.path}`);
+}
 for (const failure of failures) console.log(`FAIL ${failure.session}  ${failure.detail}`);
 console.log(
-  `\nsessions: ${sessions}  ok: ${sessions - failures.length}  failed: ${failures.length}` +
+  `\nsessions: ${sessions}  ok: ${ok}  empty: ${empties.length}  failed: ${failures.length}` +
     `  events: ${totals.events}  nodes: ${totals.nodes}  inject rows: ${totals.injects}` +
     (slowest.session === "" ? "" : `  slowest: ${slowest.session.slice(-12)}=${slowest.ms.toFixed(0)}ms`),
 );
+console.log(`logs on disk : ${sessions + empties.length}  (${sessions} carried events: ok ${ok} + failed ${failures.length}; ${empties.length} empty)`);
 console.log(`root: ${ROOT}`);
+// Only a real folding failure fails the gate. An empty log is reported loudly, never silently skipped.
 process.exitCode = failures.length === 0 ? 0 : 1;

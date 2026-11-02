@@ -1175,7 +1175,45 @@ window.__ModuleLoader__.load({
         "animation:wf-fx-wrap 2.6s linear infinite;pointer-events:none;z-index:2;" +
         "-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;" +
         "mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude}",
-     // The connector's flowing keyframes were removed together with the rainbow connectors (only the uniform dashed style remains).
+    /* WAITING FOR THE NEXT TURN — the STATIC twin of the running look. `awaitingNextTurn` means
+         `turn/end` closed the turn and no `turn/start` has opened the next one: the step is still
+         `running` (the work is unfinished) but NOTHING is advancing. So every moving cue of the
+         running state is replaced by a still one, and the colour drops to the idle layer so the card
+         no longer reads as "the thing happening now":
+           · frame pseudo-element: the gradient is a flat two-stop line, animation:none — no flow;
+           · card shadow: neutral, no brand glow;
+           · status ring: a filled idle disc, no 1.6 s breathe (the two palette overrides below
+             key on `data-status='running'`, and this block carries the counter-rules at its end);
+           · rail fill / connector: already reported as data-live="false" by ProgressUnder.js and
+             MainFlow.js — these two selectors are the belt to that braces for a cached row. */
+      ".wf-unit[data-awaiting='true']>.wf-unit-center>.wf-unit-card{" +
+        "box-shadow:0 0 0 1px rgba(125,135,152,.28),0 0 10px rgba(125,135,152,.14)}",
+      ".wf-unit[data-awaiting='true']>.wf-unit-center>.wf-unit-card::after{" +
+        "background:linear-gradient(90deg,var(--dsw-alias-state-idle-primary,#7d8798),rgba(125,135,152,.45));" +
+        "background-size:100% 100%;animation:none}",
+      ".wf-unit[data-awaiting='true'] .wf-unit-ring{" +
+        "color:var(--dsw-alias-state-idle-primary,#7d8798);background:rgba(125,135,152,.18);animation:none}",
+      ".wf-unit[data-awaiting='true'] .wf-prog-fill[data-live='true']{background:var(--dsw-alias-state-idle-primary,#7d8798);animation:none}",
+      ".wf-unit[data-awaiting='true'] .wf-unit-link[data-live='true']{animation:none}",
+      /* the waiting sentence: a still label, one colour step down — it says "nothing is happening",
+         so it must never compete with a real percentage. */
+      ".wf-unit[data-awaiting='true'] .wf-badge{color:var(--dsw-alias-label-secondary,#9aa3b2)}",
+      ".wf-prog-label[data-kind='waiting']{color:var(--dsw-alias-label-secondary,#9aa3b2);font-style:normal}",
+      ".wf-prog-dock[data-awaiting='true'] .wf-prog-track{opacity:.55}",
+      ".wf-prog-dock[data-awaiting='true'] .wf-prog-fill{animation:none!important;width:0!important}",
+      /* The two PALETTES below key on `[data-status='running']` and carry TWO extra attribute/
+         class tokens of specificity, so they would repaint a waiting card in the brand/soft accent
+         and undo the static look. These three selectors hold the same weight (`.wf-root` + the
+         un-valued `[data-palette]` equals the palette-specific pairs) and come LATER in the sheet,
+         so `animation:none` and the idle colour survive whichever palette is chosen. */
+      ".wf-root[data-palette] .wf-unit[data-awaiting='true']>.wf-unit-center>.wf-unit-card::after{" +
+        "background:linear-gradient(90deg,var(--dsw-alias-state-idle-primary,#7d8798),rgba(125,135,152,.45));" +
+        "background-size:100% 100%;animation:none}",
+      ".wf-root[data-palette] .wf-unit[data-awaiting='true'] .wf-unit-ring{" +
+        "color:var(--dsw-alias-state-idle-primary,#7d8798);animation:none}",
+      ".wf-root[data-palette] .wf-prog-dock[data-awaiting='true'] .wf-prog-fill{" +
+        "background:var(--dsw-alias-state-idle-primary,#7d8798);animation:none}",
+    // The connector's flowing keyframes were removed together with the rainbow connectors (only the uniform dashed style remains).
      // Narrow: the right page stacks UNDER the chain and the satellites fold into tighter gutters.
      // The satellite line shrinks with them (a fixed 26 px run would push the circle off the edge).
       "@container (max-width:900px){.wf-body[data-kind='ready']{flex-direction:column}" +
@@ -2012,6 +2050,11 @@ window.__ModuleLoader__.load({
      // when the last progress estimate arrived (0 = never). The rail uses it for the
      // "estimated N minutes ago" segment and prints nothing at all when it is 0.
           lastEstimateAt: wfFinite(step.lastEstimateAt) === null ? 0 : Math.max(0, Math.round(wfFinite(step.lastEstimateAt))),
+          // is THIS step waiting for the next turn (fold.mjs sets it when `turn/end` closes the turn
+          // without closing the step). A DIFFERENT question from `view.running`: the session can be
+          // working on something else while this row waits. The rail reads it to withhold every
+          // number, so a damaged/absent field must never read as "waiting" — hence `=== true`.
+          awaitingNextTurn: step.awaitingNextTurn === true,
           nodeCount: wfFinite(step.nodeCount) === null ? 0 : step.nodeCount,
           planIndex: wfFinite(step.planIndex) === null ? null : step.planIndex,
           anchorSeq: wfFinite(step.anchorSeq),
@@ -2258,6 +2301,9 @@ window.__ModuleLoader__.load({
           percent: rows[u].percent,
           percentSource: rows[u].percentSource,
           lastEstimateAt: rows[u].lastEstimateAt,
+          // the unit card draws the waiting state (static ring, no live marker) and its rail prints
+          // the waiting sentence instead of a number, so the flag has to reach the page model too.
+          awaitingNextTurn: rows[u].awaitingNextTurn === true,
           startedAt: rows[u].startedAt,
           toolCount: unitToolCount,
           requiresConfirmation: rows[u].requiresConfirmation === true,
@@ -2689,6 +2735,9 @@ window.__ModuleLoader__.load({
      * "62% self-reported" the model's own report (percentSource "model")
      * "62% measured" the todo table's measured completion ratio (percentSource "todos")
      * "100%" a closed step's pinned value
+     * "waiting for the next turn" NOT a number at all: `turn/end` closed the turn without closing
+     * the step, so nothing is advancing. The rail says WHY it is empty instead of inventing a
+     * percentage or borrowing the "running, distance unknown" band — see wfAwaitingNextTurn.
      * - a step that has NOT started never shows a percentage, even when the wire
      * payload carries a stale one. No number is better than a fake number.
      *
@@ -2720,25 +2769,55 @@ window.__ModuleLoader__.load({
      * Inlined into client.js by tools/build-client.mjs (single-file browser half).
      */
 
-    /** The rail's three label flavours, as opposed to "no label at all". */
-    function wfProgressLabel(percent, source, status, say) {
+    /**
+     * Is this row WAITING FOR THE NEXT TURN?
+     *
+     * Two DIFFERENT questions live in this file and must never be confused:
+     * - "is a turn running right now" — the session flag (`wfSessionRunning`), and
+     * - "is THIS STEP holding its place until the user sends the next turn" — `awaitingNextTurn`,
+     *   which fold.mjs sets when `turn/end` closed the turn without closing the step.
+     * A waiting step is still `running` (the work is not finished), but nothing is advancing, so the
+     * rail must not claim a direction: no digits, no 30 % indeterminate band, no flowing gradient.
+     *
+     * Accepts the ROW or the bare boolean, because the two entry points hold different things:
+     * `wfRenderProgressDock` has the row, while `wfProgressLabel` takes scalars and is handed the flag.
+     * A missing/absent/undefined field is false — the same honest default the host repairs to.
+     */
+    function wfAwaitingNextTurn(value) {
+      if (value === true) return true;
+      if (value === false || value === null || value === undefined) return false;
+      if (typeof value === "object") return value.awaitingNextTurn === true;
+      return false;
+    }
+
+    /** The rail's four label flavours, as opposed to "no label at all". */
+    function wfProgressLabel(percent, source, status, say, awaiting) {
+      // A step that has not started has no progress to report. Showing a number here
+      // would be the exact lie the acceptance criterion forbids. This gate comes FIRST (before the
+      // waiting branch too): a pending row that carries a stale flag must never print
+      // 「等待下一回合」either — it is not waiting, it simply has not begun.
+      if (status === "pending" || status === "skipped") return null;
+      // WAITING FOR THE NEXT TURN. Deliberately placed BEFORE the number check: the host ships no
+      // number for a waiting step (`percentFor` returns null), yet the rail still has to SAY why —
+      // an empty rail would read as "no information", which is a different claim. A stale number in
+      // the payload (an older host, a replayed checkpoint) is ignored: waiting is not "40 % done".
+      if (status === "running" && wfAwaitingNextTurn(awaiting)) {
+        return { kind: "waiting", percent: null, text: say("panel.percent.waiting") };
+      }
       var value = wfFinite(percent);
       if (value === null) return null;
-     // A step that has not started has no progress to report. Showing a number here
-     // would be the exact lie the acceptance criterion forbids.
-      if (status === "pending" || status === "skipped") return null;
       var rounded = Math.round(wfClamp(value, 0, 100));
       // the cold-start sub-variant of the baseline keeps the SAME visible flavour (~N% estimated):
-     // the sub-division is machine-readable (`baseline:steps`), and falling through to the closed
-     // flavour would print it as a pinned 100 %-style number, which it is not.
+      // the sub-division is machine-readable (`baseline:steps`), and falling through to the closed
+      // flavour would print it as a pinned 100 %-style number, which it is not.
       if (source === "baseline" || source === "baseline:steps") {
         return { kind: "estimate", percent: rounded, text: say("panel.percent.estimate", { percent: rounded }) };
       }
       if (source === "model") {
         return { kind: "self", percent: rounded, text: say("panel.percent.self", { percent: rounded }) };
       }
-     // a MEASURED number (the todo table's own completion ratio). It must read differently
-     // from both "self-reported" and "estimated", or the user cannot tell a fact from a guess.
+      // a MEASURED number (the todo table's own completion ratio). It must read differently
+      // from both "self-reported" and "estimated", or the user cannot tell a fact from a guess.
       if (source === "todos") {
         return { kind: "real", percent: rounded, text: say("panel.percent.real", { percent: rounded }) };
       }
@@ -2748,17 +2827,27 @@ window.__ModuleLoader__.load({
     /**
      * Fill width in percent of the track. A running step with no number yet gets a
      * narrow indeterminate segment (animated, no digits) instead of a fake value.
+     *
+     * A WAITING step gets an EMPTY track: the 30 % band exists to say "working, distance unknown",
+     * and a step waiting for the next turn is not working at all. Drawing the band would keep the
+     * rail moving (the fill's gradient animates) while nothing happens — the one thing this whole
+     * change is about.
      */
     function wfProgressFillWidth(row) {
       var status = row && typeof row.status === "string" ? row.status : "pending";
       if (status === "pending" || status === "skipped") return 0;
+      if (wfAwaitingNextTurn(row)) return 0;
       var value = wfFinite(row.percent);
       if (value === null) return status === "running" ? 30 : 0;
       return Math.round(wfClamp(value, 0, 100));
     }
 
+    /** The 30 % band is for "running with no number". A waiting step has no number for a DIFFERENT
+     * reason (there is nothing to measure until the next turn opens), so it must not borrow that
+     * look — otherwise the two states are indistinguishable on the rail, which is the defect. */
     function wfProgressIndeterminate(row) {
       var status = row && typeof row.status === "string" ? row.status : "pending";
+      if (wfAwaitingNextTurn(row)) return false;
       return status === "running" && wfFinite(row.percent) === null;
     }
 
@@ -2801,7 +2890,11 @@ window.__ModuleLoader__.load({
      // same "no number beats a fake number" rule the percent label already follows. `ago` is a fact
      // about the PAST, so it only needs a number to have existed at all: percent > 0.
       var livePercent = wfFinite(row ? row.percent : null);
-      var hasAnyNumber = livePercent !== null && livePercent > 0 && status !== "pending";
+      // A WAITING step has no advance to date, so there is no estimate to age: the host withholds the
+      // number (`percentFor` → null) and this rail withholds the sentence that would quote it. Placed
+      // with the other gates so the second line never contradicts the first.
+      var hasAnyNumber =
+        livePercent !== null && livePercent > 0 && status !== "pending" && !wfAwaitingNextTurn(row);
       var ago = null;
       if (hasAnyNumber && now !== null && estimateAt !== null && estimateAt > 0 && now > estimateAt) {
         ago = wfProgressDurationText(now - estimateAt);
@@ -2813,7 +2906,8 @@ window.__ModuleLoader__.load({
     /** One rail: track + fill + the right-hand number (omitted when there is none). */
     function wfRenderProgressDock(h, row, say, asOf) {
       var status = row && typeof row.status === "string" ? row.status : "pending";
-      var label = wfProgressLabel(row ? row.percent : null, row ? row.percentSource : "none", status, say);
+      var awaiting = wfAwaitingNextTurn(row);
+      var label = wfProgressLabel(row ? row.percent : null, row ? row.percentSource : "none", status, say, awaiting);
       var width = wfProgressFillWidth(row);
       var indeterminate = wfProgressIndeterminate(row);
       var compact = !!(row && row.compact === true);
@@ -2824,11 +2918,15 @@ window.__ModuleLoader__.load({
         key: "track",
         role: "progressbar",
         "aria-label": say("panel.step.progress", { title: row && row.title ? row.title : "" }),
+        // A waiting rail carries NO value at all: `aria-valuenow` is only written when there is a
+        // digit to read out (see below), and the text is the waiting phrase, not a percentage.
         "aria-valuemin": 0,
         "aria-valuemax": 100,
       };
       if (label !== null) {
-        trackProps["aria-valuenow"] = label.percent;
+        // `percent: null` is the waiting flavour: it has a sentence but no number, so it writes the
+        // text only. Writing `aria-valuenow="null"` would announce a value that does not exist.
+        if (label.percent !== null) trackProps["aria-valuenow"] = label.percent;
         trackProps["aria-valuetext"] = label.text;
       }
 
@@ -2859,6 +2957,9 @@ window.__ModuleLoader__.load({
           "data-dsh-workflow-map": "progress",
           "data-step-index": row ? row.index : undefined,
           "data-status": status,
+          // The waiting state on the rail itself, so the stylesheet can freeze the fill without a
+          // second class and a self-test can tell the two states apart from the DOM alone.
+          "data-awaiting": awaiting ? "true" : "false",
           "data-indeterminate": indeterminate ? "true" : "false",
           "data-timing": ago === null ? "none" : "one",
         },
@@ -2869,9 +2970,11 @@ window.__ModuleLoader__.load({
             className: "wf-prog-fill",
             key: "fill",
             "data-indeterminate": indeterminate ? "true" : "false",
-      // Exactly one step's rail carries the flowing gradient: decided by the caller's row.live (the host marks only
-      // the single running row), not "everything running animates". Without that field it falls back to the old behaviour.
-            "data-live": (row && row.live === true) || (row && row.live === undefined && status === "running") ? "true" : "false",
+            // Exactly one step's rail carries the flowing gradient: decided by the caller's row.live (the host marks only
+            // the single running row), not "everything running animates". Without that field it falls back to the old behaviour.
+            // A WAITING step is the one exception even when `live` says true: the flow would animate an
+            // advance that is not happening, which is exactly the cue this change removes.
+            "data-live": !awaiting && ((row && row.live === true) || (row && row.live === undefined && status === "running")) ? "true" : "false",
             style: { width: width + "%" },
           })),
           label === null
@@ -3376,6 +3479,11 @@ window.__ModuleLoader__.load({
      // carried through the status rewrite so every row keeps the stamp the host
      // shipped, whichever policy decided its status.
           lastEstimateAt: wfFinite(row.lastEstimateAt) === null ? 0 : Math.max(0, Math.round(wfFinite(row.lastEstimateAt))),
+          // carried through the status rewrite for the same reason: this row's status is decided by
+          // PAE/todo policy, but WHETHER IT IS WAITING FOR THE NEXT TURN is a fact about the turn
+          // (the host's `turn/end`), which no policy here can re-derive. Dropping it would put a
+          // fabricated percentage back on a waiting card the moment the plan disagreed with the log.
+          awaitingNextTurn: row.awaitingNextTurn === true,
           nodeCount: row.nodeCount,
           planIndex: row.planIndex,
           anchorSeq: row.anchorSeq,
@@ -6717,7 +6825,11 @@ window.__ModuleLoader__.load({
       var row = unit && typeof unit === "object" ? unit : {};
       var index = wfFinite(row.index) === null ? position : Math.round(row.index);
       var status = typeof row.status === "string" ? row.status : "pending";
-     // Two different facts, deliberately kept apart:
+      // Waiting for the next turn: still `running`, but not advancing. Every animated piece on this
+      // card (the "● working ..." marker, the flowing frame, the breathing ring) reads this one local,
+      // so the two states cannot drift apart.
+      var awaiting = row.awaitingNextTurn === true;
+    // Two different facts, deliberately kept apart:
      // selected the step the panel remembers (the last one opened) — the chain's highlight
      // open the step whose page is on the right right now — the card's aria-pressed
       var selected = context.selectedStep === index;
@@ -6743,6 +6855,10 @@ window.__ModuleLoader__.load({
           "data-plan-index": row.planIndex === null ? undefined : row.planIndex,
           "data-status": status,
           "data-status-source": row.statusSource,
+          // "this step is waiting for the next turn": still `running` (the work is not finished), yet
+          // nothing is advancing. The stylesheet freezes the frame/ring on it and the test reads it
+          // here, so the two states are distinguishable from the DOM alone.
+          "data-awaiting": awaiting ? "true" : "false",
           "data-selected": selected ? "true" : "false",
           "data-active": row.active ? "true" : "false",
           "aria-pressed": open ? "true" : "false",
@@ -6760,7 +6876,14 @@ window.__ModuleLoader__.load({
           h(
             "span",
             { className: "wf-unit-meta", key: "meta" },
-            h("span", { className: "wf-badge", key: "badge" }, say(row.statusKey || "panel.status.pending")),
+            // The badge names the state the CARD is in. A waiting row is still `running` on the wire, so
+            // the plain status word would advertise activity that is not happening — the same defect the
+            // number had. `panel.status.awaiting` exists for exactly that one substitution.
+            h(
+              "span",
+              { className: "wf-badge", key: "badge" },
+              say(awaiting ? "panel.status.awaiting" : row.statusKey || "panel.status.pending")
+            ),
             metaBits.map(function (bit, at) {
               return h("span", { key: "bit-" + at }, bit);
             }),
@@ -6780,7 +6903,11 @@ window.__ModuleLoader__.load({
                 )
               : null
           ),
-          status === "running" ? wfRenderLive(h, say, "step") : null
+          // "● working ..." is the marker for an ADVANCE in progress. A waiting step is still running,
+          // but it is not advancing — printing the blinking marker there would be the same lie the
+          // number was: something is happening, when the session is in fact waiting for the user.
+          // (Waiting has its own static sentence, on the rail: 「等待下一回合」.)
+          status === "running" && !awaiting ? wfRenderLive(h, say, "step") : null
         )
       );
 
@@ -6802,8 +6929,11 @@ window.__ModuleLoader__.load({
           "data-step-index": index,
           "data-status": status,
           "data-selected": selected ? "true" : "false",
-     // "needs confirm" on the row itself, so the card's left edge and the ring can be styled
-     // without the badge row having to be in view.
+          // The waiting state lives on the ROW as well as on the card: the ring, the badge and the
+          // flowing frame are all styled from `.wf-unit[data-*]`, and FlowEffects queries the row.
+          "data-awaiting": awaiting ? "true" : "false",
+          // "needs confirm" on the row itself, so the card's left edge and the ring can be styled
+          // without the badge row having to be in view.
           "data-confirm": wfConfirmRows(row).length > 0 || row.requiresConfirmation === true ? "true" : "false",
         },
         wfRenderSatSide(h, row.left, "left", say, actions, unitContext),
@@ -6826,9 +6956,10 @@ window.__ModuleLoader__.load({
               key: "link",
               "aria-hidden": "true",
               "data-done": status === "done" ? "true" : "false",
-     // Only the one connector that points directly at the single running step carries the flowing gradient.
-     // row.live is derived by the store from the host's runningIndex, so at most one row qualifies.
-              "data-live": row.live === true ? "true" : "false",
+    // Only the one connector that points directly at the single running step carries the flowing gradient.
+    // row.live is derived by the store from the host's runningIndex, so at most one row qualifies —
+    // and a WAITING row is excluded even then: the connector animates an approach that is not happening.
+              "data-live": row.live === true && !awaiting ? "true" : "false",
             })
           : null
       );
@@ -7893,6 +8024,7 @@ window.__ModuleLoader__.load({
       "panel.status.failed": "失败",
       "panel.status.skipped": "已跳过",
       "panel.status.pending": "待执行",
+      "panel.status.awaiting": "等待",
       "panel.kind.tool": "工具",
       "panel.kind.message": "消息",
       "panel.kind.report": "报告",
@@ -7908,6 +8040,9 @@ window.__ModuleLoader__.load({
      // wording says where the number came from — an estimate, not a measurement.
       "panel.percent.ago": "{duration}前估计",
       "panel.percent.unknown": "时间未知",
+      // WAITING FOR THE NEXT TURN. Not a percentage and not a placeholder: the rail prints this
+      // instead of digits because the log has no evidence of progress in either direction.
+      "panel.percent.waiting": "等待下一回合",
       "panel.live": "正在",
       "panel.step.confirm": "需确认",
       "panel.step.progress": "{title} 进度",
@@ -8104,6 +8239,7 @@ window.__ModuleLoader__.load({
       "panel.status.failed": "Failed",
       "panel.status.skipped": "Skipped",
       "panel.status.pending": "Pending",
+      "panel.status.awaiting": "Waiting",
       "panel.kind.tool": "Tool",
       "panel.kind.message": "Message",
       "panel.kind.report": "Report",
@@ -8117,6 +8253,8 @@ window.__ModuleLoader__.load({
       "panel.percent.real": "{percent}% measured",
       "panel.percent.ago": "{duration} ago",
       "panel.percent.unknown": "time unknown",
+      // the waiting flavour, same key as the zh dictionary.
+      "panel.percent.waiting": "waiting for the next turn",
       "panel.live": "Working",
      // same keys as the zh dictionary — the shape self-test asserts the two
      // key sets are identical.
@@ -9609,6 +9747,10 @@ window.__ModuleLoader__.load({
       renderProgressDock: wfRenderProgressDock,
       progressLabel: wfProgressLabel,
       progressFillWidth: wfProgressFillWidth,
+      // the waiting gate itself, and the band decision that must stay FALSE while it is on — the
+      // self-test drives both directly so the two states are compared on their own data.
+      progressIndeterminate: wfProgressIndeterminate,
+      awaitingNextTurn: wfAwaitingNextTurn,
      // the second line's arithmetic and its duration formatter.
       progressTiming: wfProgressTiming,
       progressDurationText: wfProgressDurationText,

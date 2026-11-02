@@ -35,9 +35,9 @@ https://github.com/deepseek-ai/deepseek-harness/discussions/11660
 | | |
 |---|---|
 | ![主界面完整预览（浅色主题）](docs/screenshots/02-main-light.png) | ![运行中的步骤预览：流动渐变外框](docs/screenshots/03-running-step.png) |
-| **主界面 · 浅色主题** —— 与深色同一布局，配色随宿主主题切换 | **运行中的单元** —— 流动渐变外框标出「此刻在调用」 |
+| **主界面 · 浅色主题**：与深色同一布局，配色随宿主主题切换 | **运行中的单元**：流动渐变外框标出「此刻在调用」 |
 | ![分步详情预览：右页的类型清单与调用记录](docs/screenshots/04-step-detail.png) | ![热注入界面预览：把提示词排入下一步队列](docs/screenshots/05-hot-inject.png) |
-| **分步详情** —— 右页列出该步的类型清单、调用参数与结果摘要 | **热注入** —— 提示词排入下一步执行队列，被取用前可撤回 |
+| **分步详情**：右页列出该步的类型清单、调用参数与结果摘要 | **热注入**：提示词排入下一步执行队列，被取用前可撤回 |
 | ![设置面板预览：配色、动效、详情深度与导出](docs/screenshots/06-settings.png) | |
 
 以上六张为离屏渲染的界面预览，不含任何真实会话内容。
@@ -45,7 +45,7 @@ https://github.com/deepseek-ai/deepseek-harness/discussions/11660
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.9-success)
+![version](https://img.shields.io/badge/version-1.0.0-success)
 
 ---
 
@@ -117,19 +117,24 @@ body 超 64 KiB，`503` 宿主未暴露相应能力。
 每步的百分比按以下**优先级**取值（`src/fold.mjs` 的 `percentFor`）：
 | 优先级 | 来源 | 计算规则 | 上限 |
 |---|---|---|---|
-| 1 | 待办表实测 `todos` | `round(已完成项 / 总项 × 100)`；自报存在时也只取该实测值 | 99 |
-| 2 | 模型自报 `model` | 待办表无可计行时，取最近一次 `stepProgress/report` 的百分比 | 99 |
-| 3 | 时间基线 `baseline` | `elapsed / median(本会话已完步耗时) × 100` | 90 |
-| 4 | 计划步序 `baseline:steps` | 无历史耗时时，用 `当前步序 / 总步数 × 100` 冷启动 | 90 |
-| — | `none` | 四个来源均不可用 | 不显示数字 |
+| 1 | 模型自报 `model` | 取该步最近一次 `stepProgress/report` 的百分比 | 99 |
+| 2 | 时间基线 `baseline` | `elapsed / median(本会话已完步耗时) × 100` | 90 |
+| 3 | 计划步序 `baseline:steps` | 尚无已完步耗时时，用 `当前步序 / 总步数 × 100` 冷启动（计划 ≥ 2 步且不是首步） | 90 |
+| — | `none` | 三条来源均不可用 | 不显示数字 |
 
-约束：未结束的步不会显示 100%；已结束（完成或失败）的步固定为 100%。
+约束：未结束的步不会显示 100%；已结束（完成或失败）的步固定为 100%；回合已结束、仍在等待下一回合的步不显示数字，
+而不是填 100%。
 
-选用规则依据可核验性：待办表是逐行计数得到的量值，模型自报没有对应的行级依据。因此只要待办表存在已完成行，
-百分比取该计数比值（`percentFor` 的两个分支均返回 `measured`），自报仅在无行可计数时作为备选；且取
-**最近一次**自报，使后续报告能够改变显示值。高水位记录 `step.maxPercent` 保留且不回退，不参与显示值计算。
+**待办表的全局完成率不参与步级百分比。** 它是「已完成行 / 全部行」的会话级事实，不是这一步的测量值：把它填进某一步，
+等于把整体数字交给局部，同一份半完成的清单里每一步都读到同一个值，且只在该表被重写时才变。在 167 份会话日志上实测，
+38 个运行中的步里有 23 个显示的正是整场会话的完成率（按现行 fold 重算为 39 个 / 25 个——两个抽样时点的会话数不同，方向与量级一致）。模型自报与时间基线都是关于该步的量，因此只保留这两条来源；
+高水位记录 `step.maxPercent` 仍写入，只作为两条推算来源的下限，不抬高自报值，也不参与已结束步的计算。
 `foldTodos` 将已结束行改回 `in_progress`、或降级为 `pending` 时，清空 `percent` 与 `maxPercent` 并重置
 `startedAt`：已结束记录的数字属于那一次结束，不属于重新打开它的行。
+
+**`awaitingNextTurn`**：待办表仍把该行写成 `in_progress`，但它所在的回合已由 `turn/end` 结束、且没有 `turn/start`
+开启下一回合（PAE 会在下一回合继续这一步）。此时面板标「等待下一回合」，进度条不出数字。它是**步级**字段，
+与会话级的 `view.running`（此刻有没有开着回合）是两个问题，视图同时发布两者。
 
 进度条下方另有一行元信息：`N 分钟前估计`，即 `view.asOf − step.lastEstimateAt`。
 该值描述数字的**陈旧程度**，用于区分「正在更新」与「长时间未更新」。字段缺失时整行不渲染。
@@ -175,7 +180,7 @@ body 超 64 KiB，`503` 宿主未暴露相应能力。
 
 ## 3. 安装
 
-> **市场安装的前提**：该入口要求同时满足两个条件。（1）`dsh-workflow-map` 已发布到 npm（当前为 `0.3.4`）；
+> **市场安装的前提**：该入口要求同时满足两个条件。（1）`dsh-workflow-map` 已发布到 npm（当前版本见 `package.json` 的 `version` 字段）；
 > （2）`awesome-dsh-plugin` 的 PR 已合并，且市场索引（`dsh-plugin-catalog`，经 jsDelivr 分发）已刷新收录该条目。
 > 满足后在 **DSH 市场**（Plugins → Discover）搜索 `workflow` 即可安装，无需命令行；
 > 若尚未收录，使用下面的命令行方式（3.2）安装同一个包，两者效果一致。
@@ -236,6 +241,11 @@ curl -i "http://127.0.0.1:<GUI端口>/dsh-workflow/state?sessionId=<会话ID>"
 
 首次安装后需重启一次；此后仅调整界面无需重启。
 
+**从 `0.3.x` 升级到 `1.0.0`**：检查点版本 `STATE_VERSION` 由 5 升到 6（新增步的事件区间字段），
+旧检查点无法回溯计算节点归属，按既有契约丢弃并从会话日志重建。所以升级后**首次打开历史会话会重新
+折叠一次**，期间地图可能短暂为空再出现；不需要任何手动操作，也不会丢失会话日志。详见
+[CHANGELOG](CHANGELOG.md) 的 `[1.0.0]` 段。
+
 ---
 
 ## 5. 数据边界
@@ -248,6 +258,8 @@ curl -i "http://127.0.0.1:<GUI端口>/dsh-workflow/state?sessionId=<会话ID>"
 - **PAE 计划文件**：`<项目>/.pae/<会话ID>/orchestrator.json`。只读访问，以 `mtime:size` 为缓存键，
   仅在文件变化时重新解析；解析结果深冻结。文件缺失、写入中或字段异常时返回 `null` 并降级到
   仅用待办表，不抛出异常。
+
+**节点归属与 `view.unassigned`**。每个事件按它所在的 seq 落到覆盖该 seq 的步（`windowStart` / `windowEnd`，多步覆盖时取最晚开始者）；PAE 计划的 `anchorSeqs` 存在时以锚点区间为准。不覆盖任何步的事件不回退到「当前运行步」或「最后一步」，而是计入 `view.unassigned.nodes`（首个落不下来事件的 seq 记在 `sinceSeq`）。该计数与 `counts.nodes`（已归属节点数）分开发布，两者不得相加当作会话总量之外的其他含义：只有相加才是该会话记录的全部活动。
 
 ### 5.2 不读取的内容
 
@@ -323,7 +335,7 @@ curl -i "http://127.0.0.1:<GUI端口>/dsh-workflow/state?sessionId=<会话ID>"
 # 修改 src/client/*.js 后必须重新生成浏览器半
 node tools/build-client.mjs
 
-# 离线自测（10 套）
+# 离线自测（10 套，逐套输出通过数/总数与退出码）
 node tools/selftest-fold.mjs          # 折叠语义
 node tools/selftest-host.mjs          # 注册、schema、投影接线
 node tools/selftest-orchestrator.mjs  # 计划文件读取与合并
@@ -336,7 +348,7 @@ node tools/probe-route.mjs            # HTTP 路由（真实 loopback）
 node tools/probe-steer.mjs            # 注入 / 撤回通道
 
 # 真实日志只读回归
-node tools/check-real-injects.mjs     # 批量折叠历史日志
+node tools/check-real-injects.mjs     # 批量折叠历史日志，逐会话报告结果
 node tools/audit-real.mjs             # 四项约束审计
 ```
 
@@ -354,7 +366,7 @@ pwsh -File tools/measure-detail.ps1
 pwsh -File tools/measure-settings.ps1
 pwsh -File tools/measure-main.ps1
 ```
-
+浏览器对等检测（Edge 与 Chrome 各跑一次）：`node tools/check-browser.mjs`，退出码 0 仅当两个引擎的断言集合与逐项结论相同。
 `client.js` 是构建产物（首行含 GENERATED 标记），不应手工修改。
 `tools/retired/` 内为针对已移除界面的历史脚本，不属于验证链。
 
@@ -437,12 +449,13 @@ dsh-workflow-map/
 轮询先比对 `rev`，未变化时直接返回 304，不重建视图。文件正文不进状态。
 
 **为什么百分比有时长时间不动？**
-数字只在有新事件时变化。待办表与自报都未更新时，时间基线会随时间推高但封顶 90%。
-第二行的「N 分钟前估计」就是提示它有多旧。
+自报只在模型重新上报该步时变化；时间基线随经过时间推高，封顶 90%，到顶后不再变化。
+若这一步正等待下一回合（回合已结束、待办表仍标 `in_progress`），面板不出数字，只显示「等待下一回合」。
+第二行的「N 分钟前估计」提示显示值有多旧。
 
 **为什么未结束的步不会到 100%？**
-待办表封顶 99、时间基线封顶 90；只有状态进入完成/失败才固定 100%。
-这是为了避免「看起来快好了」与「已经好了」混淆。
+自报封顶 99、时间基线封顶 90；只有状态进入完成/失败才固定 100%。
+这是为了避免「看起来快好了」与「已经好了」混淆。会话结束后仍在等待下一回合的步不显示数字，而不是填 100%。
 
 **会把用户代码上传吗？**
 不会。插件不发起任何网络请求；只读本地会话日志与 `.pae` 计划文件。

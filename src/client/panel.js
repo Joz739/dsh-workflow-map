@@ -88,6 +88,7 @@ var DICT_ZH = {
   "panel.status.failed": "失败",
   "panel.status.skipped": "已跳过",
   "panel.status.pending": "待执行",
+  "panel.status.awaiting": "等待",
   "panel.kind.tool": "工具",
   "panel.kind.message": "消息",
   "panel.kind.report": "报告",
@@ -103,6 +104,9 @@ var DICT_ZH = {
  // wording says where the number came from — an estimate, not a measurement.
   "panel.percent.ago": "{duration}前估计",
   "panel.percent.unknown": "时间未知",
+  // WAITING FOR THE NEXT TURN. Not a percentage and not a placeholder: the rail prints this
+  // instead of digits because the log has no evidence of progress in either direction.
+  "panel.percent.waiting": "等待下一回合",
   "panel.live": "正在",
   "panel.step.confirm": "需确认",
   "panel.step.progress": "{title} 进度",
@@ -299,6 +303,7 @@ var DICT_EN = {
   "panel.status.failed": "Failed",
   "panel.status.skipped": "Skipped",
   "panel.status.pending": "Pending",
+  "panel.status.awaiting": "Waiting",
   "panel.kind.tool": "Tool",
   "panel.kind.message": "Message",
   "panel.kind.report": "Report",
@@ -312,6 +317,8 @@ var DICT_EN = {
   "panel.percent.real": "{percent}% measured",
   "panel.percent.ago": "{duration} ago",
   "panel.percent.unknown": "time unknown",
+  // the waiting flavour, same key as the zh dictionary.
+  "panel.percent.waiting": "waiting for the next turn",
   "panel.live": "Working",
  // same keys as the zh dictionary — the shape self-test asserts the two
  // key sets are identical.
@@ -1804,6 +1811,10 @@ var __test = {
   renderProgressDock: wfRenderProgressDock,
   progressLabel: wfProgressLabel,
   progressFillWidth: wfProgressFillWidth,
+  // the waiting gate itself, and the band decision that must stay FALSE while it is on — the
+  // self-test drives both directly so the two states are compared on their own data.
+  progressIndeterminate: wfProgressIndeterminate,
+  awaitingNextTurn: wfAwaitingNextTurn,
  // the second line's arithmetic and its duration formatter.
   progressTiming: wfProgressTiming,
   progressDurationText: wfProgressDurationText,

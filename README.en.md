@@ -36,9 +36,9 @@ flowing frame), the step detail page on the right, and the persistent injection 
 | | |
 |---|---|
 | ![Main screen full preview (light theme)](docs/screenshots/02-main-light.png) | ![Running step preview: flowing gradient frame](docs/screenshots/03-running-step.png) |
-| **Main screen · light theme** — same layout, colours follow the host theme | **Running unit** — the flowing frame marks "calling right now" |
+| **Main screen, light theme**: same layout, colours follow the host theme | **Running unit**: the flowing frame marks "calling right now" |
 | ![Step detail preview: type list and call records on the right page](docs/screenshots/04-step-detail.png) | ![Hot inject preview: queue a prompt for the next step](docs/screenshots/05-hot-inject.png) |
-| **Step detail** — type list, call arguments and result summary for that step | **Hot inject** — queue a prompt for the next step, revocable before it is claimed |
+| **Step detail**: type list, call arguments and result summary for that step | **Hot inject**: queue a prompt for the next step, revocable before it is claimed |
 | ![Settings panel preview: palette, motion, detail depth and export](docs/screenshots/06-settings.png) | |
 
 All six are offscreen renders of the interface and contain no real session content.
@@ -46,7 +46,7 @@ All six are offscreen renders of the interface and contain no real session conte
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-0.3.9-success)
+![version](https://img.shields.io/badge/version-1.0.0-success)
 
 ---
 
@@ -123,22 +123,29 @@ the capability.
 Each step's percentage is resolved by the following **priority** (`percentFor` in `src/fold.mjs`):
 | Priority | Source | Rule | Cap |
 |---|---|---|---|
-| 1 | Todo table `todos` | `round(completed / total * 100)`; when a self-report exists, this measured value is still what is returned | 99 |
-| 2 | Model self-report `model` | Only when the todo table has no countable rows: the most recent `stepProgress/report` percentage | 99 |
-| 3 | Time baseline `baseline` | `elapsed / median(finished-step durations in this session) * 100` | 90 |
-| 4 | Plan ordinal `baseline:steps` | Cold start with `current step / total steps * 100` when no durations exist | 90 |
-| - | `none` | None of the four is available | No number shown |
+| 1 | Model self-report `model` | The most recent `stepProgress/report` percentage for that step | 99 |
+| 2 | Time baseline `baseline` | `elapsed / median(finished-step durations in this session) * 100` | 90 |
+| 3 | Plan ordinal `baseline:steps` | Cold start with `current step / total steps * 100` when no finished-step duration exists yet (plan of at least 2 steps, not the first one) | 90 |
+| - | `none` | None of the three is available | No number shown |
 
-Constraint: an unfinished step never shows 100 %; a finished (done or failed) step is pinned to 100 %.
+Constraint: an unfinished step never shows 100 %; a finished (done or failed) step is pinned to 100 %; a step whose turn has
+ended and that is still waiting for the next turn shows no number, rather than 100 %.
 
-The choice follows verifiability: the todo table is a count of rows, a model self-report has no per-row
-basis. So whenever the todo table has completed rows, the percentage is that ratio (both branches of
-`percentFor` return `measured`); the self-report is a fallback only when no row can be counted, and the
-**most recent** report is used so that a later report can move the value. The high-water record
-`step.maxPercent` is kept and never rolled back, and does not take part in the displayed value.
-When `foldTodos` takes a finished row back to `in_progress`, or demotes it to `pending`, it clears
-`percent` and `maxPercent` and resets `startedAt`: a finished record's number belongs to that closure,
-not to the row that reopens it.
+**The todo table's global completion ratio is not a per-step percentage.** It is finished rows over all rows - a fact about
+the session, not a measurement of the step the rail is drawn under. Feeding it into a step hands a total to a part: every
+row of a half-finished checklist reads the same number, and it moves only when the table is rewritten. Measured over 167
+session logs, 23 of 38 running steps carried exactly their session's completion ratio (recounted with the
+current fold: 25 of 39 - the two samples were taken at different times, same direction and magnitude). A model
+self-report and the time
+baseline are both quantities about this step, so those are the only two routes; the high-water record `step.maxPercent` is
+still written, floors the two extrapolation routes only, never raises a self-report, and takes no part in a finished step's
+value. When `foldTodos` takes a finished row back to `in_progress`, or demotes it to `pending`, it clears `percent` and
+`maxPercent` and resets `startedAt`: a finished record's number belongs to that closure, not to the row that reopens it.
+
+**`awaitingNextTurn`**: the todo table still writes that row as `in_progress`, but the turn it was working in has already
+ended through `turn/end` and no `turn/start` has opened the next one (PAE continues this step in the next turn). The panel
+then marks it "waiting for the next turn" and the rail publishes no number. It is a per-STEP field; whether a turn is open
+right now is the session-level `view.running`, a different question, and the view publishes both.
 
 A second line under the rail reads `estimated N minutes ago`, i.e. `view.asOf - step.lastEstimateAt`.
 It describes how **stale** the number is, distinguishing "being updated" from "unchanged for a long time".
@@ -189,7 +196,7 @@ can collapse the host's composer on that page; switching back unmounts the view 
 ## 3. Installation
 
 > **Prerequisites for installing from the market**: two conditions must both hold. (1) `dsh-workflow-map`
-> is published on npm (currently `0.3.4`). (2) The `awesome-dsh-plugin` PR is merged **and** the market index
+> is published on npm (the current version is the `version` field in `package.json`). (2) The `awesome-dsh-plugin` PR is merged **and** the market index
 > (`dsh-plugin-catalog`, served via jsDelivr) has refreshed and picked up the entry.
 > Once both hold, install from the **DSH market** (Plugins > Discover) by searching `workflow`, no terminal needed.
 > If it is not indexed yet, use the command line below (3.2) to install the same package; both routes are equivalent.
@@ -250,6 +257,13 @@ The plugin has two halves with different load times:
 
 Restart once after the first install; afterwards UI-only changes need no restart.
 
+**Upgrading from `0.3.x` to `1.0.0`**: the checkpoint version `STATE_VERSION` goes from 5 to 6 (a step
+now records the event interval it ran in). A checkpoint written before the bump cannot be used to recompute
+node attribution, so under the existing contract it is dropped and the state is rebuilt from the session log.
+The **first open of a historical session therefore folds it again**, and the map may briefly be empty before
+it reappears; nothing needs to be done by hand and no session log is lost. See the `[1.0.0]` section of
+[CHANGELOG](CHANGELOG.md).
+
 ---
 
 ## 5. Data boundary
@@ -262,6 +276,8 @@ Restart once after the first install; afterwards UI-only changes need no restart
 - **PAE plan file**: `<project>/.pae/<sessionId>/orchestrator.json`. Read-only, cached by `mtime:size` and
   re-parsed only when the file changes; the parsed result is deep-frozen. A missing file, a partial write or
   malformed fields yield `null` and degrade to the todo table only, never throwing.
+
+**Node attribution and `view.unassigned`.** An event lands on the step whose seq interval covers it (`windowStart` / `windowEnd`; when several steps cover the same seq, the one that started latest wins); when the PAE plan carries `anchorSeqs`, the anchor range decides. An event that no step covers is **not** folded back onto "the running step" or "the last step": it is counted in `view.unassigned.nodes`, with the first seq that failed to land kept in `sinceSeq`. That counter and `counts.nodes` (attributed nodes) are published separately; adding the two gives every activity the session recorded, and neither figure stands in for that total on its own.
 
 ### 5.2 What is not read
 
@@ -341,7 +357,7 @@ steps, their status, the percentage source, the node list and the report artifac
 # after editing src/client/*.js, rebuild the browser half
 node tools/build-client.mjs
 
-# offline self-tests (10 suites)
+# offline self-tests (10 suites; each suite prints its passed/total count and exit code)
 node tools/selftest-fold.mjs          # fold semantics
 node tools/selftest-host.mjs          # registration, schema, projection wiring
 node tools/selftest-orchestrator.mjs  # plan file reading and merging
@@ -354,7 +370,7 @@ node tools/probe-route.mjs            # HTTP routes (real loopback)
 node tools/probe-steer.mjs            # injection / revoke channel
 
 # read-only regression over real logs
-node tools/check-real-injects.mjs     # fold historical logs in bulk
+node tools/check-real-injects.mjs     # fold historical logs in bulk, per-session result
 node tools/audit-real.mjs             # four-constraint audit
 ```
 
@@ -372,8 +388,9 @@ pwsh -File tools/measure-detail.ps1
 pwsh -File tools/measure-settings.ps1
 pwsh -File tools/measure-main.ps1
 ```
-
 `client.js` is a build artifact (its first line carries a GENERATED marker) and must not be edited by hand.
+Browser parity check (Edge and Chrome, one run each): `node tools/check-browser.mjs`; it exits 0 only when both engines
+produce the same assertion set with the same per-item verdicts.
 `tools/retired/` holds historical scripts for removed UI; they are not part of the verification chain.
 
 ---
@@ -458,12 +475,14 @@ The fold is pure with no IO; the view is derived from state, and state has hard 
 File bodies never enter the state.
 
 **Why does the percentage sometimes stay still for a long time?**
-The number only moves when new events arrive. When neither the todo table nor the report updates, the time
-baseline creeps up but is capped at 90 %. The second line ("estimated N minutes ago") states how stale it is.
+A self-report moves only when the model reports that step again; the time baseline creeps up with the elapsed time, is
+capped at 90 %, and stops moving once it reaches the cap. If the step is waiting for the next turn (the turn has ended
+while the todo table still says `in_progress`), the rail publishes no number and the panel shows "waiting for the next
+turn" instead. The second line ("estimated N minutes ago") states how stale the displayed value is.
 
 **Why does an unfinished step never reach 100 %?**
-The todo table caps at 99 and the time baseline at 90; only a done/failed status pins 100 %. This keeps
-"nearly there" from being confused with "already there".
+A self-report caps at 99 and the time baseline at 90; only a done/failed status pins 100 %. This keeps "nearly there"
+from being confused with "already there". A step that is still waiting for the next turn shows no number rather than 100 %.
 
 **Does it upload user code?**
 No. The plugin makes no network requests; it reads only the local session log and the `.pae` plan file.

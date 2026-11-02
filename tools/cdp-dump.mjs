@@ -23,17 +23,42 @@ if (!outPath || !url) {
 const width = Number(widthArg) || 1400;
 const height = Number(heightArg) || 900;
 const budget = Number(budgetArg) || 6000;
-const EDGE_CANDIDATES = [
-  exeArg,
-  process.env.WF_EDGE,
-  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-  "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
-].filter(Boolean);
-const exe = EDGE_CANDIDATES.find((candidate) => existsSync(candidate));
-if (!exe) {
-  console.error(`no browser binary found; tried ${EDGE_CANDIDATES.join(", ")}`);
+// Candidate order is DELIBERATE and must not be reordered: every measure-*.ps1 in this repo was
+// written against Edge, so Edge stays first and Chrome is only reached when Edge is missing or when
+// the caller names a binary explicitly (argv[6] or WF_EDGE). Adding Chrome here fixes "the tool
+// cannot reach Chrome at all" without silently changing what the old measurements ran on.
+//
+// An EXPLICIT request must never fall back. When the caller names a binary that does not exist, the
+// old `.filter(Boolean)` chain silently skipped it and ran the first existing candidate instead — so
+// `measure-x.ps1 -Chrome C:\nope\chrome.exe` produced a real measurement that the report would have
+// credited to a browser it never touched. An explicit path is therefore resolved on its own and the
+// run fails when it is missing, while auto-detection keeps its Edge-first order below.
+const explicit = exeArg || process.env.WF_EDGE;
+if (explicit && !existsSync(explicit)) {
+  console.error(`the browser binary named by the caller does not exist: ${explicit}`);
   process.exit(3);
 }
+const BROWSER_CANDIDATES = [
+  explicit,
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+  process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe"),
+].filter(Boolean);
+const exe = BROWSER_CANDIDATES.find((candidate) => existsSync(candidate));
+if (!exe) {
+  console.error(`no browser binary found; tried ${BROWSER_CANDIDATES.join(", ")}`);
+  process.exit(3);
+}
+// The report credits a measurement to a browser by name, so the tool states WHICH binary it ran — an
+// explicit Chrome request that silently measured in Edge is exactly the kind of evidence defect this
+// guard exists to prevent. Printed on stdout next to the DOM line, so the caller's log carries it.
+// The report credits a measurement to a browser by name, so every dump leaves a RECEIPT next to the
+// DOM naming the exact binary that produced it. It is a FILE, not stdout text: six of the ten measure
+// scripts call this from inside a PowerShell function, where a stray stdout line becomes part of the
+// function's return value and gets swallowed — the first version of this line reached only 4 of 20
+// runs. A file cannot be swallowed, and it can be re-checked afterwards without trusting a log.
 
 const profile = mkdtempSync(path.join(tmpdir(), "wf-cdp-"));
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -148,6 +173,12 @@ try {
   const html = evaluated?.result?.value;
   if (typeof html !== "string" || html.length < 100) fail(`the page returned no usable DOM (${url})`, 7);
   writeFileSync(outPath, html, "utf8");
+  // The receipt sits NEXT TO the DOM (<out>.browser.txt) so the caller can print it per suite without
+  // the dump script depending on the caller's logging, and a later audit can recount how many runs
+  // actually named a binary. Written before the success line, so a receipt exists iff a DOM exists.
+  try {
+    writeFileSync(`${outPath}.browser.txt`, `${exe}\n`, "utf8");
+  } catch { /* receipt is evidence only; never fail a good dump over it */ }
   console.log(`dom ${html.length} bytes -> ${outPath}`);
   await send("Browser.close").catch(() => {});
   cleanup();

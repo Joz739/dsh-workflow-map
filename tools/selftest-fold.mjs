@@ -16,6 +16,9 @@
 // (e) truncation — 350 nodes -> 300 kept, 50 counted, text bounded
 // (f) consecutive same-tool runs — 4 reads of one directory fold into one group
 // (g) empty session — nothing invented, nothing throws
+// … (h)–(r) branch lanes / jobs / the single running step / percents / the todo ledger
+// (s) turn/end is LAYERED: an interrupted turn closes the step, a normal one WAITS for the next
+//     turn (`awaitingNextTurn`) and publishes no number
 // plus: no clock read in the module, idempotent re-fold, lossless-JSON view,
 // unrelated events keep the state reference, the exported versions.
 //
@@ -686,7 +689,13 @@ function foldAll(events) {
   ]);
   const closedView = buildView(closed, closed.asOf);
   equal("(l) turn/end closes the turn", closedView.running, false);
+  // RE-CHECKED when turn/end gained its layering (2026-11-01): this payload carries NO reason, so it
+  // takes the unknown → non-terminal route and the row keeps `running` — the expectation is
+  // unchanged and now also carries the wait flag. What the row must NOT do is publish a number:
+  // that is the half of the old behaviour the layering removed, asserted here because this is the
+  // one place that already had a closed turn in hand.
   equal("(l) the step row survives the closed turn (why rows cannot answer it)", closedView.steps[0].status, "running");
+  equal("(l) …and it is marked as waiting, with no number", [closedView.steps[0].awaitingNextTurn, closedView.steps[0].percent, closedView.steps[0].percentSource], [true, null, "none"]);
 
   const reopened = foldAll([
     userMessage("再来一次"),
@@ -813,7 +822,11 @@ function foldAll(events) {
 // the step list now follows the todo table's own statuses (a `pending` row demotes a step that
 // still carries `done`/`running`, and a pending row no table names is dropped), so a version-3
 // checkpoint would hold the older mapping and must rebuild too.
-  equal("stateVersion is 5", STATE_VERSION, 5);
+// It bumps to 6 for the EVENT INTERVAL: a step now records `windowStart` / `windowEnd` and a node
+// is attributed by that interval instead of by "whichever step is running right now". A version-5
+// checkpoint holds node→step assignments made by that pointer and holds no interval, so it cannot
+// be corrected after the fact — the registry must rebuild it from the log like every bump before it.
+  equal("stateVersion is 6", STATE_VERSION, 6);
   equal("schemaVersion is 1", SCHEMA_VERSION, 1);
 
   const source = readFileSync(MODULE_PATH, "utf8");
@@ -1138,6 +1151,15 @@ function foldAll(events) {
 // routes introduced earlier) plus the "no such field survives anywhere" contract in
 // (n7)/(n8). Not one of them was merely deleted, and the finished-step duration pool those scenarios
 // produce is still asserted — the time baseline still divides by it.
+//
+// 2026-11-01, the global-rate removal. `percentFor` used to hand a RUNNING step the todo table's
+// own completion ratio (`done rows / all rows`) — twice: once instead of a self-report, once below
+// it. That ratio is a session-level fact, not a measurement of the step, so both branches are gone
+// and the routes are now `model` → `baseline` → `baseline:steps` → `none`. The six assertions that
+// pinned the old behaviour keep their SCENARIO and change their ORACLE: (n1)/(n1b)/(n1c)/(n1d) now
+// have to show that the ratio is NOT what a step displays, and (n4)/(n5) that a self-report is not
+// adjusted by it in either direction. Every expected number below carries its arithmetic in the
+// comment above it.
 
 {
  /** A `todo/write` at an explicit time (the module-level builder always uses T0 + seq·1000). */
@@ -1156,13 +1178,19 @@ function foldAll(events) {
     todoWrite([["甲", "completed"], ["乙", "in_progress"]], T0 + 302000), // 甲 ran 300 s; 乙 opens
   ]);
   equal("(n1) the finished step left exactly one duration behind", twoStep.durations, [300000]);
-  const n1 = laterView(twoStep, 60000); // 乙 is 60 s in, and one of its two rows is done
-  equal("(n1) the checklist ratio is what the bar shows", [n1.steps[1].percent, n1.steps[1].percentSource], [50, "todos"]);
+  const n1 = laterView(twoStep, 60000); // 乙 is 60 s in
+  // ARITHMETIC: one finished step ⇒ the pool is [300 s], so the baseline is 300 000 ms. 乙 has run
+  // 60 s ⇒ round(60 000 / 300 000 × 100) = round(20) = 20, source `baseline`. The two-row table is
+  // at 1 of 2 = 50 %, and THAT number must not appear on the step: it belongs to the session.
+  equal("(n1) the time baseline is the number, not the session's 1-of-2 ratio", [n1.steps[1].percent, n1.steps[1].percentSource], [20, "baseline"]);
+  equal("(n1) and it is emphatically not the global 50 %", n1.steps[1].percent === 50, false);
   equal("(n1) a closed step stays pinned at 100 % with its own source", [n1.steps[0].percent, n1.steps[0].percentSource], [100, "closed"]);
 
- // The time baseline only speaks when the table has NO done row to measure — the PAE path in
- // section (b) covers that. Here the row exists, so 400 s later the same 50 % still stands.
-  equal("(n1b) 400 s later the two-row checklist still reads 50 %", [laterView(twoStep, 400000).steps[1].percent, laterView(twoStep, 400000).steps[1].percentSource], [50, "todos"]);
+  // The same step later. ARITHMETIC: 400 000 / 300 000 = 133.3 → 133, clamped to the 90 % ceiling
+  // of the extrapolation route. It must still not be the table's 50 %.
+  const n1b = laterView(twoStep, 400000);
+  equal("(n1b) 400 s in, the baseline is clamped at the 90 % ceiling", [n1b.steps[1].percent, n1b.steps[1].percentSource], [90, "baseline"]);
+  equal("(n1b) and 400 s later it still is not the global 50 %", n1b.steps[1].percent === 50, false);
 
  // --- (n1c) the upper clamp: an underestimated percent cannot project for ever -----------------
   resetSeq();
@@ -1173,7 +1201,13 @@ function foldAll(events) {
   ]);
   const n1c = laterView(oneOf20, 400000);
   equal("(n1c) the measured ratio really is 1 of 20", [oneOf20.todos.filter((item) => item.status === "completed").length, oneOf20.todos.length], [1, 20]);
-  equal("(n1c) 1 of 20 rows reads 5 % measured, never the pinned 100", [n1c.steps[1].percent, n1c.steps[1].percentSource], [5, "todos"]);
+  // ARITHMETIC: same pool as (n1) — one finished step of 300 s (300 000 ms). r2 has run 400 s ⇒
+  // 133.3 → 133 → clamped to 90. THE POINT OF THIS CASE: the old defect made this row read exactly
+  // the session's 1-of-20 = 5 %. Asserting only "not `todos`" would pass even if a different bug
+  // happened to produce 5 %, so the 5 itself is asserted against.
+  equal("(n1c) 1 of 20 rows does NOT read 5 %; the time baseline does", [n1c.steps[1].percent, n1c.steps[1].percentSource], [90, "baseline"]);
+  equal("(n1c) the exact old-defect value never comes back", n1c.steps[1].percent === 5, false);
+  check("(n1c) no running step carries the todo-table source any more", n1c.steps.every((step) => step.percentSource !== "todos"), JSON.stringify(n1c.steps.map((step) => step.percentSource)));
 
  // --- (n1d) nineteen of twenty rows is still a MEASUREMENT, capped at 99 % for an open step -----
   resetSeq();
@@ -1183,7 +1217,11 @@ function foldAll(events) {
     todoWrite([["r1", "completed"], ...Array.from({ length: 18 }, (_, i) => [`r${i + 2}`, "completed"]), ["r20", "in_progress"]], T0 + 300000),
   ]);
   const n1d = laterView(nineteenOf20, 300000);
-  equal("(n1d) 19 of 20 rows reads 95 % measured", [n1d.steps[19].percent, n1d.steps[19].percentSource], [95, "todos"]);
+  // ARITHMETIC: the 19 finished rows each contributed a duration; the median of the pool is 298 000 ms
+  // (the first row's 298 s — it opened after the user message and closed at T0 + 300 s). 300 000 /
+  // 298 000 = 100.7 → 101 → clamped to 90. The session's 19-of-20 = 95 % must not appear.
+  equal("(n1d) 19 of 20 rows does NOT read 95 %; the time baseline does", [n1d.steps[19].percent, n1d.steps[19].percentSource], [90, "baseline"]);
+  equal("(n1d) the exact old-defect value never comes back", n1d.steps[19].percent === 95, false);
 
  // --- (n2) a ≥90 % self-report still stands alone with no done row to measure ------------------
   resetSeq();
@@ -1211,7 +1249,10 @@ function foldAll(events) {
     todoWrite([["1. a", "in_progress"], ["2. b", "completed"], ["3. c", "completed"], ["4. d", "pending"], ["5. e", "pending"]]),
   ]);
   const n4 = laterView(inflated, 60000);
-  equal("(n4) the measured ratio is what the bar shows", [n4.steps[0].percent, n4.steps[0].percentSource], [40, "todos"]);
+  // The table is at 2 of 5 = 40 %, and the old code REPLACED the 85 with that 40 (an inflated report
+  // could not stand). A self-report is a statement about the step, so it is now the number as-is.
+  equal("(n4) an inflated self-report IS the number now", [n4.steps[0].percent, n4.steps[0].percentSource], [85, "model"]);
+  equal("(n4) and the global 2-of-5 = 40 % never overrides it", n4.steps[0].percent === 40, false);
   equal("(n4) the high-water record is kept, not rolled back", n4.steps[0].maxPercent, 85);
 
  // --- (n5) a stale low report cannot hide measured work ---------------------------------------
@@ -1222,7 +1263,12 @@ function foldAll(events) {
     report(40),
   ]);
   const n5 = laterView(staleLow, 60000);
-  equal("(n5) measured work above the report wins too", [n5.steps[0].percent, n5.steps[0].percentSource], [60, "todos"]);
+  // The table is at 3 of 5 = 60 %, and the old code RAISED the 40 to that 60 (a stale low report
+  // could not hide measured work). Same rule in the other direction: the report stands, and the
+  // recorded high-water stays at 40 because nothing above it was ever published for this step.
+  equal("(n5) a stale low self-report is the number too (neither direction is adjusted)", [n5.steps[0].percent, n5.steps[0].percentSource], [40, "model"]);
+  equal("(n5) and the global 3-of-5 = 60 % never raises it", n5.steps[0].percent === 60, false);
+  equal("(n5) the high-water record follows the number actually published", n5.steps[0].maxPercent, 40);
 
  // --- (n6) the cold-start bar from the plan's own ordinal -------------------------------------
   resetSeq();
@@ -1242,6 +1288,25 @@ function foldAll(events) {
   check("(n7) the state never carries etaMs", JSON.stringify(inflated).indexOf("etaMs") === -1 && Object.keys(inflated.steps[0]).indexOf("etaMs") === -1, Object.keys(inflated.steps[0]).join(","));
   check("(n7) the view does NOT carry it either (no consumer-less field)", !Object.prototype.hasOwnProperty.call(n4.steps[0], "etaMs") && !Object.prototype.hasOwnProperty.call(n4.steps[1], "etaMs") && JSON.stringify(n4).indexOf("etaMs") === -1, Object.keys(n4.steps[0]).join(","));
   equal("(n7) the view stays lossless JSON with the field gone", JSON.parse(JSON.stringify(n4)), n4);
+
+  // --- (n9) the acceptance criterion itself: no step number equals the session's global rate -------
+  // 8 rows, 4 completed, 1 running, NO self-report. The session's completion ratio is 4 / 8 = 50 %.
+  // Under the deleted branch this running step read exactly `min(99, round(50)) = 50`. ARITHMETIC
+  // for what it reads now: there is no finished step yet (the four completed rows were created as
+  // completed by a single table, so none of them ever contributed a duration ⇒ `medianOf` is null),
+  // which is the cold start: ordinal 5 of 8 ⇒ round(5 / 8 × 100) = round(62.5) = 63, source
+  // `baseline:steps`, under the 90 % ceiling.
+  resetSeq();
+  const eightRows = foldAll([
+    userMessage("八步会话"),
+    todoWrite([["r1", "completed"], ["r2", "completed"], ["r3", "completed"], ["r4", "completed"], ["r5", "in_progress"], ["r6", "pending"], ["r7", "pending"], ["r8", "pending"]]),
+  ]);
+  const n9 = laterView(eightRows, 60000);
+  equal("(n9) the scenario really is 4 of 8 completed", [eightRows.todos.filter((item) => item.status === "completed").length, eightRows.todos.length], [4, 8]);
+  equal("(n9) the running step reads the plan's own ordinal, not the session ratio", [n9.steps[4].percent, n9.steps[4].percentSource], [63, "baseline:steps"]);
+  equal("(n9) the global completion rate (50 %) is NOT the step's number", n9.steps[4].percent === 50, false);
+  check("(n9) and its source is never the todo table", n9.steps[4].percentSource !== "todos", n9.steps[4].percentSource);
+  check("(n9) NO running step in the view carries the todo-table source", n9.steps.filter((step) => step.status === "running").every((step) => step.percentSource !== "todos"), JSON.stringify(n9.steps.map((step) => [step.status, step.percentSource])));
 
  // --- (n8) replay / idempotence with the new branches ------------------------------------------
   resetSeq();
@@ -1573,8 +1638,464 @@ function foldAll(events) {
 }
 
 // ---------------------------------------------------------------------------
+// (s) turn/end is a LAYERED ending: an interrupted turn closes, a normal one waits
+// ---------------------------------------------------------------------------
+// The defect this section pins down: a session whose turn had ended kept a step 'running' at a
+// half-filled bar forever. The fix splits `turn/end` by `data.reason.kind` (measured on 167 local
+// logs: completed 739 · error 171 · aborted 136 · interrupted 17 · max-tokens 4), so each case
+// below states its reason EXPLICITLY and the expected outcome is written out by hand:
+//   • terminal   (aborted / error / failed / interrupted) → every running row closes at 100 %;
+//   • continuing (completed / max-tokens) → the row the todo table still calls in_progress stays
+//     running, gains `awaitingNextTurn`, and shows NO number ("waiting" is not "40 % done");
+//   • unknown / missing kind → treated as continuing and recorded in `unknownTurnReasons`.
+// "The phenomenon is gone" alone would pass with these three collapsed into one another, so every
+// case also asserts the OPPOSITE case's outcome (s1 proves nothing is left running, s3 proves the
+// normal ending does NOT close the row).
+
+{
+  const { default: hostModule } = await import("../lib/index.js");
+
+  /** A turn that is open and working on 甲 — the state every case below starts from. */
+  const workingEvents = () => [
+    userMessage("做一步"),
+    ev("turn/start", { turn: 1 }),
+    todos([["甲", "in_progress"], ["乙", "pending"]]),
+    report(40, "四成"),
+  ];
+  /** `turn/end` with the given reason kind; `undefined` = the payload carries no reason at all. */
+  const endingTurn = (kind) => (kind === undefined ? ev("turn/end", { turn: 1 }) : ev("turn/end", { turn: 1, reason: { kind } }));
+  const closedByTurn = (kind) => [...workingEvents(), endingTurn(kind)];
+
+  // --- (s1) an interrupted turn closes the step it was running --------------------------------
+  const aborted = foldAll(closedByTurn("aborted"));
+  const abortedView = buildView(aborted, aborted.asOf);
+  equal("(s1) an aborted turn closes the step it was running", abortedView.steps[0].status, "done");
+  equal("(s1) the closed step is pinned at 100 %", [abortedView.steps[0].percent, abortedView.steps[0].percentSource], [100, "model"]);
+  equal("(s1) and NOTHING is left running", abortedView.counts.running, 0);
+  equal("(s1) the turn itself is closed", abortedView.running, false);
+  equal("(s1) a closed step is not waiting for any turn", abortedView.steps[0].awaitingNextTurn, false);
+
+  // --- (s2) a failed turn and a killed turn behave exactly like an aborted one -----------------
+  for (const kind of ["error", "interrupted", "failed"]) {
+    const failedView = buildView(foldAll(closedByTurn(kind)), aborted.asOf);
+    equal(`(s2) a '${kind}' turn closes the step too`, [failedView.steps[0].status, failedView.steps[0].percent, failedView.counts.running], ["done", 100, 0]);
+  }
+  // The terminal set is ONE named constant: this filter fails the moment a reason is moved in or
+  // out of it without the behaviour following (that is the assertion's whole point).
+  const terminalKinds = ["aborted", "error", "failed", "interrupted"];
+  const terminalObserved = terminalKinds.filter((kind) => {
+    const state = foldAll(closedByTurn(kind));
+    return buildView(state, state.asOf).counts.running === 0;
+  });
+  equal("(s2) the whole terminal set closes the step (one constant, four reasons)", terminalObserved, terminalKinds);
+
+  // --- (s3) a turn that ended normally KEEPS the step that continues into the next turn -------
+  const completed = foldAll(closedByTurn("completed"));
+  const completedView = buildView(completed, completed.asOf);
+  equal("(s3) a completed turn leaves the in_progress step running", completedView.steps[0].status, "running");
+  equal("(s3) and marks it as WAITING for the next turn", completedView.steps[0].awaitingNextTurn, true);
+  equal("(s3) the second (pending) row is untouched", [completedView.steps[1].status, completedView.steps[1].awaitingNextTurn], ["pending", false]);
+  equal("(s3) the session itself is idle", completedView.running, false);
+
+  // --- (s4) and it shows NO number (the old behaviour pinned it, or froze the last guess) -----
+  equal("(s4) a waiting step publishes no percent", completedView.steps[0].percent, null);
+  equal("(s4) and says so in its source", completedView.steps[0].percentSource, "none");
+  // The report(40) it received earlier is still on record: the number is WITHHELD, not erased.
+  equal("(s4) the self-report is still kept on the state", completed.steps[0].maxPercent >= 40, true);
+
+  // --- (s5) max-tokens is a normal ending, not an interruption ---------------------------------
+  const capped = foldAll(closedByTurn("max-tokens"));
+  const cappedView = buildView(capped, capped.asOf);
+  equal(
+    "(s5) a max-tokens turn waits for the next turn like any normal one",
+    [cappedView.steps[0].status, cappedView.steps[0].awaitingNextTurn, cappedView.steps[0].percent, cappedView.steps[0].percentSource],
+    ["running", true, null, "none"],
+  );
+  equal("(s5) and nothing was closed", cappedView.counts.completed, 0);
+
+  // --- (s6) the next turn clears the wait and the number comes back ---------------------------
+  const resumed = foldAll([...closedByTurn("completed"), ev("turn/start", { turn: 2 })]);
+  const resumedView = buildView(resumed, resumed.asOf);
+  equal("(s6) turn/start clears the waiting flag", resumedView.steps[0].awaitingNextTurn, false);
+  equal("(s6) the step is executing again", [resumedView.steps[0].status, resumedView.running], ["running", true]);
+  equal("(s6) and a number is published again (the model's own report)", [resumedView.steps[0].percent, resumedView.steps[0].percentSource], [40, "model"]);
+
+  // A SECOND ending after the wait began: the step is still waiting, so an abort must be able to
+  // close it from that state too — `closeStep` clearing the flag is what makes "closed" and
+  // "still waiting" impossible at once (s1 alone cannot see this: it closes an EXECUTING row).
+  const abortedWhileWaiting = foldAll([
+    ...closedByTurn("completed"),
+    ev("turn/start", { turn: 2 }),
+    ev("turn/end", { turn: 2, reason: { kind: "aborted" } }),
+  ]);
+  const abortedWhileWaitingView = buildView(abortedWhileWaiting, abortedWhileWaiting.asOf);
+  equal(
+    "(s6) an abort closes a step that had been waiting, flag and all",
+    [abortedWhileWaitingView.steps[0].status, abortedWhileWaitingView.steps[0].awaitingNextTurn, abortedWhileWaitingView.steps[0].percent],
+    ["done", false, 100],
+  );
+
+  // The todo table can also finish a WAITING step (the model writes its own table; no new turn is
+  // opened first). Closing it must clear the wait in the same write, otherwise the panel renders a
+  // finished step that still claims to be waiting for a turn.
+  const finishedByTable = foldAll([...closedByTurn("completed"), todos([["甲", "completed"], ["乙", "in_progress"]])]);
+  const finishedByTableView = buildView(finishedByTable, finishedByTable.asOf);
+  equal(
+    "(s6) the todo table can finish a waiting step and clears the flag with it",
+    [finishedByTableView.steps[0].status, finishedByTableView.steps[0].awaitingNextTurn, finishedByTableView.steps[0].percent],
+    ["done", false, 100],
+  );
+
+  // --- (s7) an unknown or missing reason is NOT read as an interruption -----------------------
+  const noReason = foldAll(closedByTurn(undefined));
+  const noReasonView = buildView(noReason, noReason.asOf);
+  equal("(s7) a turn/end with no reason leaves the step waiting, never closed", [noReasonView.steps[0].status, noReasonView.steps[0].awaitingNextTurn], ["running", true]);
+  // The empty string is recorded ON PURPOSE: it says "this event carried no kind", which is the
+  // fact a replay needs. A placeholder token like "unknown" would not distinguish the two cases.
+  equal("(s7) the missing reason is recorded as the empty string", noReason.unknownTurnReasons, [""]);
+  const exotic = foldAll(closedByTurn("context-window"));
+  equal("(s7) a reason the code has never seen is recorded verbatim", exotic.unknownTurnReasons, ["context-window"]);
+  equal("(s7) and it does not close the step either", buildView(exotic, exotic.asOf).steps[0].status, "running");
+  // Deduplicated and bounded: a log that repeats one unknown reason must not grow the state.
+  let repeated = foldAll(closedByTurn("completed"));
+  for (let i = 0; i < 20; i += 1) repeated = foldEvent(repeated, ev("turn/end", { turn: 1, reason: { kind: "weird" } }));
+  equal("(s7) the unknown-reason list stays deduplicated", repeated.unknownTurnReasons.filter((kind) => kind === "weird").length, 1);
+  check("(s7) and bounded (<= 8 entries)", repeated.unknownTurnReasons.length <= 8, JSON.stringify(repeated.unknownTurnReasons));
+  equal("(s7) known reasons never enter the list", [aborted.unknownTurnReasons, completed.unknownTurnReasons, capped.unknownTurnReasons], [[], [], []]);
+
+  // --- (s8) the new field is plain JSON, and both halves survive a round trip ------------------
+  equal("(s8) the view is lossless JSON", JSON.parse(JSON.stringify(completedView)), completedView);
+  equal("(s8) the state is lossless JSON, waiting flag included", JSON.parse(JSON.stringify(completed)).steps[0].awaitingNextTurn, true);
+  equal("(s8) the unknown-reason list is plain JSON too", JSON.parse(JSON.stringify(noReason)).unknownTurnReasons, [""]);
+
+  // --- (s9) a checkpoint restore keeps the flag, and repairs a missing one to false -----------
+  // Driven through the HOST's own stateSchema (lib/index.js) — that is the code a cold read runs,
+  // so repairing the row here instead would prove nothing about the shipped path.
+  let projection = null;
+  hostModule.apply({
+    sessionProjections: {
+      register: (options) => {
+        projection = options;
+        return () => {};
+      },
+    },
+    sessions: { get: () => undefined },
+    webServer: { register: () => () => {} },
+    effect: (execute) => execute(),
+  });
+  const stateSchema = projection && projection.stateSchema;
+  check("(s9) the projection supplied a stateSchema", typeof stateSchema?.parse === "function", "missing stateSchema.parse");
+  equal("(s9) a checkpoint with a waiting step restores the flag", stateSchema.parse(JSON.parse(JSON.stringify(completed))).steps[0].awaitingNextTurn, true);
+  const withoutField = JSON.parse(JSON.stringify(completed));
+  delete withoutField.steps[0].awaitingNextTurn;
+  equal("(s9) a checkpoint without the field restores as not waiting", stateSchema.parse(withoutField).steps[0].awaitingNextTurn, false);
+  const damagedFlag = JSON.parse(JSON.stringify(completed));
+  damagedFlag.steps[0].awaitingNextTurn = "yes";
+  equal("(s9) a damaged flag repairs to false, never to the string", stateSchema.parse(damagedFlag).steps[0].awaitingNextTurn, false);
+  equal("(s9) the unknown-reason list survives the restore", stateSchema.parse(JSON.parse(JSON.stringify(noReason))).unknownTurnReasons, [""]);
+  equal("(s9) a checkpoint without it restores as an empty list", stateSchema.parse({}).unknownTurnReasons, []);
+  equal("(s9) and drops non-string entries instead of coercing them", stateSchema.parse({ unknownTurnReasons: ["a", 5, null, "b"] }).unknownTurnReasons, ["a", "b"]);
+
+  // The wire schema treats the flag as OPTIONAL but type-checked: "yes" reaching the browser half
+  // would render "waiting" out of a value no code ever wrote.
+  const viewSchema = projection && projection.wire && projection.wire.viewSchema;
+  check("(s9) the view schema exists", typeof viewSchema?.parse === "function", "missing viewSchema.parse");
+  let rejected = false;
+  try {
+    viewSchema.parse({ ...completedView, steps: [{ ...completedView.steps[0], awaitingNextTurn: 1 }] });
+  } catch {
+    rejected = true;
+  }
+  check("(s9) the view schema rejects a non-boolean waiting flag", rejected, "a numeric flag was accepted");
+}
+
+// ---------------------------------------------------------------------------
+// (t) node attribution follows the step's EVENT INTERVAL, and an uncovered node is COUNTED
+// ---------------------------------------------------------------------------
+//
+// This is the section that separates "the symptom is gone" from "the rule is right".
+//
+// The old rule named a step from the CURRENT pointer (`runningStep` / the in_progress todo row), so:
+//   • a batch of calls arriving after the table had moved on all landed on whichever row was last
+//     touched, and
+//   • work whose row no longer existed was dropped outright, leaving `done` steps reading "0 tools".
+// Both were measured on 167 local logs (2026-11-01): 193 of 504 `done` steps owned no node (38.3%),
+// and 36 sessions had one step holding every node in the session.
+//
+// A rewrite that merely stops filling the last step — "drop them instead" — would make the first
+// number look better and the second better still, while being exactly as wrong. So this section pins
+// the MECHANISM, not the counts:
+//   (t1)+(t2)  the interval is recorded and a node inside it goes to THAT step, even after the table
+//              has moved on to a later row (the case the pointer got wrong);
+//   (t3)       a batch the intervals do not cover is counted as unassigned, NOT pushed into a step;
+//   (t4)       the positive control: with a covering interval the same call DOES land — so (t3) cannot
+//              be satisfied by returning null unconditionally;
+//   (t5)       overlap resolves deterministically to the later start.
+// Together these fail for both the old rule (t2/t3) and for a "just drop everything" shortcut (t1/t4/t5).
+{
+  // --- (t1)+(t2) the interval is recorded, and nodes inside it follow it -----------------------
+  // Two rows: 甲 runs first and is completed, then 乙 starts. The calls are placed so that each
+  // arrives while its OWN step's window covers it — including one that arrives AFTER 甲 was closed,
+  // which the pointer rule would have given to 乙.
+  // SEQUENCE ORDER IS THE CONTRACT: the fold consumes events in seq order, so every builder call
+  // below must run in the order the event HAPPENS. Assigning seqs by declaration order instead
+  // would fold a later event first, the fold would reject it as a replay (`seq <= state.seq`), and
+  // the section would be testing its own mistake instead of the attribution rule.
+  resetSeq();
+  const who = userMessage("两步");
+  const firstTable = todos([["甲", "in_progress"], ["乙", "pending"]]);
+  const callA = toolCall("read", { path: "C:\\repo\\甲.js" }, "t-call-a");
+  const resA = toolResult("t-call-a", "甲 contents");
+  const secondTable = todos([["甲", "completed"], ["乙", "in_progress"]]);
+  const callB = toolCall("write", { file_path: "C:\\repo\\乙.js" }, "t-call-b");
+  const resB = toolResult("t-call-b", "ok");
+  const tEvents = [who, firstTable, callA, resA, secondTable, callB, resB];
+  const tState = foldAll(tEvents);
+  const tView = buildView(tState, tState.asOf);
+  // The windows are the seqs of the TWO todo/write events, which is the only thing that can open
+  // or close one: the first table started 甲, the second closed it and started 乙.
+  equal(
+    "(t1) the first step's interval opens at its own in_progress row and closes at the closing table",
+    [tState.steps[0].windowStart, tState.steps[0].windowEnd],
+    [firstTable.seq, secondTable.seq],
+  );
+  check(
+    "(t1) windowStart < windowEnd (a step that ran has a non-empty interval)",
+    tState.steps[0].windowStart < tState.steps[0].windowEnd,
+    `got ${tState.steps[0].windowStart}..${tState.steps[0].windowEnd}`,
+  );
+  equal("(t1) the second step's interval opens at the same table that closed the first", tState.steps[1].windowStart, secondTable.seq);
+  equal("(t1) and it is still open (it is the running step)", tState.steps[1].windowEnd, null);
+
+  // (t2) BOTH calls land on the step whose interval contains them. `callA` runs inside 甲's window;
+  // `callB` runs inside 乙's. The pointer rule would have put the first one somewhere else only if 甲
+  // had already been closed when it arrived — which is exactly (t3)'s shape, not this one. What (t2)
+  // proves is the positive direction: interval containment really names the step.
+  // (t2) Each NODE lands on the step whose interval contains its seq. Only tool/CALLS produce
+  // nodes — a `tool/result` patches the node its call already created, it does not append a second
+  // one — so this session has exactly two nodes: callA inside 甲's interval, callB inside 乙's.
+  equal(
+    "(t2) each node lands on the step whose interval contains its seq",
+    tView.nodes.map((node) => node.stepIndex),
+    [0, 1],
+  );
+  equal("(t2) each step therefore owns exactly its own work", tView.steps.map((step) => step.nodeCount), [1, 1]);
+  equal("(t2) nothing was left unattributed in this session", tView.unassigned.nodes, 0);
+
+  // --- (t3) a batch written AFTER every interval closed is UNASSIGNED, not pushed into a step ----
+  // The shape: the model ticks off all three rows in ONE todo/write (so 乙 and 丙 never run), then
+  // makes three calls. No interval covers them — the last interval closed at that very table — so
+  // every one of them must be counted, and none may land on the last step.
+  resetSeq();
+  const who2 = userMessage("批量勾选");
+  const openTable = todos([["子", "in_progress"], ["丑", "pending"], ["寅", "pending"]]);
+  const tickAll = todos([["子", "completed"], ["丑", "completed"], ["寅", "completed"]]);
+  const batch1 = toolCall("read", { path: "C:\\repo\\x.js" }, "t-b1");
+  const batch2 = toolCall("grep", { pattern: "x", path: "C:\\repo" }, "t-b2");
+  const batch3 = toolCall("pwsh", { command: "echo hi" }, "t-b3");
+  const batchEvents = [who2, openTable, tickAll, batch1, batch2, batch3];
+  const batchState = foldAll(batchEvents);
+  const batchView = buildView(batchState, batchState.asOf);
+
+  equal("(t3) all three rows are done, so no step is running", batchView.counts.running, 0);
+  equal("(t3) the calls after the closing table are ALL unassigned", batchView.unassigned.nodes, 3);
+  // The steps own NOTHING here: the only table that ever started a row closed all three in the
+  // same event that started nothing, so no interval covers the calls. "0 owned" is the correct
+  // reading — the alternative (3 owned) would mean they were guessed back onto a step.
+  equal("(t3) the steps shown own none of those calls", batchView.counts.nodes, 0);
+  // The three steps own ONLY the nodes created inside their windows. Here that is the tables' own
+  // epoch: nothing else ran. So the owned total is 3 (the todo/write is not a node) and the 3 calls
+  // above are all outside it.
+  equal("(t3) the last step owns no call at all", batchView.steps[2].nodeCount, 0);
+  equal("(t3) sinceSeq is the FIRST seq that failed to land", batchState.unassigned.sinceSeq, batch1.seq);
+
+  // --- (t4) the positive control: the same call DOES land when an interval covers it -----------
+  // Without this, "return null always" would satisfy (t3).
+  resetSeq();
+  const who3 = userMessage("覆盖");
+  const coverTable = todos([["甲", "in_progress"]]);
+  const coveredCall = toolCall("read", { path: "C:\\repo\\covered.js" }, "t-cov");
+  const coveredState = foldAll([who3, coverTable, coveredCall]);
+  const coveredView = buildView(coveredState, coveredState.asOf);
+  equal("(t4) a call inside an open interval is attributed to that step", coveredView.nodes.map((node) => node.stepIndex), [0]);
+  equal("(t4) and therefore nothing is unassigned", coveredState.unassigned.nodes, 0);
+
+  // --- (t5) overlapping intervals resolve to the LATER start, then the higher index -------------
+  // Built by hand: two steps whose windows both contain one seq. The answer must be independent of
+  // array order, so the same pair is fed in both orders.
+  const mkStep = (index, start) => ({
+    index,
+    title: `手工${index}`,
+    stepKey: `手工${index}`,
+    source: "todo",
+    status: "running",
+    startedAt: T0,
+    endedAt: null,
+    awaitingNextTurn: false,
+    percent: null,
+    lastEstimateAt: 0,
+    percentSource: "none",
+    maxPercent: 0,
+    reportSummary: "",
+    nodeIds: [],
+    nodeCount: 0,
+    truncatedNodes: 0,
+    windowStart: start,
+    windowEnd: null,
+    anchorSeq: undefined,
+    planIndex: undefined,
+    modelStep: null,
+    lastActivityAt: 0,
+    outcome: "",
+    groups: [],
+  });
+  const early = mkStep(0, 10);
+  const late = mkStep(1, 20);
+  const overlapState = { ...createInitialState(), steps: [early, late], todos: [], unassigned: { nodes: 0, sinceSeq: null } };
+  // The event's OWN seq is written explicitly: the manual windows are seqs 10 and 20, so the
+  // call has to arrive at a seq both of them cover (30). Using the auto-counter would depend on
+  // how many events earlier sections folded — a hidden coupling that makes a failing assertion
+  // look like an attribution bug.
+  const picked = foldEvent(overlapState, ev("tool/call", { turn: 1, step: 1, callId: "t-o", name: "read", arguments: JSON.stringify({ path: "C:\\repo\\o.js" }) }, { seq: 30 }));
+  equal("(t5) with two covering intervals the LATER start wins (and is index 1)", picked.steps[1].nodeCount, 1);
+  equal("(t5) the earlier step is NOT also credited", picked.steps[0].nodeCount, 0);
+  const reversed = { ...createInitialState(), steps: [{ ...late, index: 0 }, { ...early, index: 1 }], todos: [] };
+  const pickedReversed = foldEvent(reversed, ev("tool/call", { turn: 1, step: 1, callId: "t-o2", name: "read", arguments: JSON.stringify({ path: "C:\\repo\\o.js" }) }, { seq: 30 }));
+  // The LATER start is still the winner; here it sits at index 0.
+  equal("(t5) the winner is chosen by windowStart, not by array position", pickedReversed.steps[0].nodeCount, 1);
+  equal("(t5) the losing step stays empty in the reversed order too", pickedReversed.steps[1].nodeCount, 0);
+
+  // --- (t6) the unassigned counter grows one at a time and keeps its FIRST seq ------------------
+  resetSeq();
+  const who4 = userMessage("无归属");
+  const emptyTable = todos([["甲", "completed"]]);
+  const orphan1 = toolCall("read", { path: "C:\\repo\\o1.js" }, "t-o1");
+  const orphan2 = toolCall("read", { path: "C:\\repo\\o2.js" }, "t-o2b");
+  const orphan3 = toolCall("read", { path: "C:\\repo\\o3.js" }, "t-o3");
+  const orphanState = foldAll([who4, emptyTable, orphan1, orphan2, orphan3]);
+  equal("(t6) every uncovered node is counted", orphanState.unassigned.nodes, 3);
+  equal("(t6) sinceSeq keeps the FIRST failing seq only", orphanState.unassigned.sinceSeq, orphan1.seq);
+  equal("(t6) the counter is surfaced on the wire view", buildView(orphanState, orphanState.asOf).unassigned.nodes, 3);
+  equal("(t6) and it never leaks into a step's node total", buildView(orphanState, orphanState.asOf).counts.nodes, 0);
+
+  // --- (t7) a branch lane follows the same interval ----------------------------------------------
+  resetSeq();
+  const who5 = userMessage("分支");
+  const laneTable = todos([["甲", "in_progress"]]);
+  const laneLaunch = toolCall("subagent", { description: "并行调研" }, "t-sub");
+  const laneState = foldAll([who5, laneTable, laneLaunch]);
+  const laneView = buildView(laneState, laneState.asOf);
+  equal("(t7) a subagent started inside a step's interval belongs to that step", laneView.branches.map((b) => b.stepIndex), [0]);
+
+  // The NO-FALLBACK case has to be built where a step EXISTS but its interval does not cover the
+  // launch. "The session has no steps yet" is not that case any more: the first node of a session
+  // opens the synthetic planning row AT ITS OWN SEQ (see `appendNode`), so that row legitimately
+  // covers it and the lane belongs to it. What this case must prove is the removal of the OLD rule —
+  // "else the LAST step" — so the state below holds one CLOSED step and the launch arrives after
+  // its window ended.
+  resetSeq();
+  const closedStep = {
+    ...mkStep(0, 10),
+    status: "done",
+    percent: 100,
+    percentSource: "closed",
+    windowEnd: 40,
+  };
+  const staleState = { ...createInitialState(), steps: [closedStep] };
+  const staleLaunch = foldEvent(
+    staleState,
+    ev("tool/call", { turn: 1, step: 1, callId: "t-sub2", name: "subagent", arguments: JSON.stringify({ description: "无窗口" }) }, { seq: 90 }),
+  );
+  const staleView = buildView(staleLaunch, staleLaunch.asOf);
+  equal("(t7) a launch AFTER the only step's interval is null, NOT the last step", staleView.branches.map((b) => b.stepIndex), [null]);
+  equal("(t7) and the node it produced is counted as unassigned, not filed under that step", staleLaunch.unassigned.nodes, 1);
+
+  // --- (t8) the new fields survive a lossless JSON round trip -----------------------------------
+  const roundTrip = JSON.parse(JSON.stringify(batchState));
+  equal("(t8) unassigned survives JSON.stringify", roundTrip.unassigned, batchState.unassigned);
+  equal("(t8) windowStart survives", roundTrip.steps[0].windowStart, batchState.steps[0].windowStart);
+  equal("(t8) windowEnd survives", roundTrip.steps[0].windowEnd, batchState.steps[0].windowEnd);
+  equal("(t8) a null window start stays null rather than becoming 0", roundTrip.steps[1].windowStart, null);
+
+  // --- (t9) the host's checkpoint repair keeps legal windows and nulls the rest ------------------  
+  const { default: hostModule2 } = await import("../lib/index.js");
+  let projection2 = null;
+  hostModule2.apply({
+    sessionProjections: {
+      register: (options) => {
+        projection2 = options;
+        return () => {};
+      },
+    },
+    sessions: { get: () => undefined },
+    webServer: { register: () => () => {} },
+    effect: (execute) => execute(),
+  });
+  const schema2 = projection2 && projection2.stateSchema;
+  check("(t9) the projection supplied a stateSchema", typeof schema2?.parse === "function", "missing stateSchema.parse");
+  const keptWindow = schema2.parse(JSON.parse(JSON.stringify(batchState)));
+  equal("(t9) a legal windowStart is preserved", keptWindow.steps[0].windowStart, batchState.steps[0].windowStart);
+  equal("(t9) a legal windowEnd is preserved", keptWindow.steps[0].windowEnd, batchState.steps[0].windowEnd);
+  const brokenWindow = JSON.parse(JSON.stringify(batchState));
+  brokenWindow.steps[0].windowStart = "7";
+  brokenWindow.steps[0].windowEnd = 1.5;
+  equal("(t9) a non-integer windowStart repairs to null (never to 0)", schema2.parse(brokenWindow).steps[0].windowStart, null);
+  equal("(t9) a non-integer windowEnd repairs to null", schema2.parse(brokenWindow).steps[0].windowEnd, null);
+  equal("(t9) a checkpoint without unassigned restores it as a zeroed record", schema2.parse({}).unassigned, { nodes: 0, sinceSeq: null });
+  equal("(t9) a legal unassigned count survives the restore", schema2.parse(JSON.parse(JSON.stringify(batchState))).unassigned.nodes, 3);
+  const damagedUnassigned = JSON.parse(JSON.stringify(batchState));
+  damagedUnassigned.unassigned.nodes = -4;
+  equal("(t9) a negative count repairs to 0 instead of being believed", schema2.parse(damagedUnassigned).unassigned.nodes, 0);
+}
+
+// ---------------------------------------------------------------------------
+// (u) when the conversation shows NO task list, the panel shows ONE row: "任务执行中"
+// ---------------------------------------------------------------------------
+// The requirement, stated as a rule: "if the user cannot see a task list in the conversation, do not
+// invent a workflow of several rows — show one row meaning the task is running". What the user can
+// see is exactly `view.todos` (the client draws its task list from `view.todos`), so that is the
+// trigger: an empty table, not an absent plan.
+//
+// (u1) is the positive case; (u2) is the contrast that stops this from becoming "always one row"
+// — once a table exists the map must follow IT, which is the constraint the whole plugin is built on.
+
+{
+  // --- (u1) no task list yet => exactly one running row, and it is named "任务执行中" ------------
+  resetSeq();
+  const q1 = userMessage("先看看仓库结构");
+  const q2 = toolCall("read", { path: "C:\\repo\\README.md" }, "u-call-1");
+  const q3 = toolResult("u-call-1", "readme");
+  const q4 = toolCall("pwsh", { command: "git status" }, "u-call-2");
+  const qState = foldAll([q1, q2, q3, q4]);
+  const qView = buildView(qState, qState.asOf);
+
+  equal("(u1) the conversation shows no task list", qView.todos, []);
+  equal("(u1) so exactly ONE step is shown", qView.steps.length, 1);
+  equal("(u1) and it is named 任务执行中", qView.steps.map((step) => step.title), ["任务执行中"]);
+  equal("(u1) it is the running row, so the panel can say the task is running", qView.steps[0].status, "running");
+  // The user chose "keep drawing the flow, only rename the title": the work done in this state must
+  // still land on that row and stay visible rather than being pushed into `unassigned`.
+  equal("(u1) the work is still attributed to it (the flow is drawn as before)", qView.steps[0].nodeCount, 2);
+  equal("(u1) and nothing leaks into unassigned", qView.unassigned.nodes, 0);
+  equal("(u1) there is exactly one row, not a workflow of invented steps", qView.counts.steps, 1);
+
+  // --- (u2) a task list appears => the row yields to it ------------------------------------------
+  // Without this, "one row named 任务执行中 forever" would satisfy (u1) while breaking the rule that
+  // the map shows exactly what the conversation's task list shows.
+  resetSeq();
+  const r1 = userMessage("三件小事");
+  const r2 = toolCall("read", { path: "C:\\repo\\a.js" }, "u2-call-1");
+  const r3 = todos([["第一件", "in_progress"], ["第二件", "pending"]]);
+  const rState = foldAll([r1, r2, r3]);
+  const rView = buildView(rState, rState.asOf);
+  equal("(u2) once a task list exists the synthetic row is gone", rView.steps.map((step) => step.title), ["第一件", "第二件"]);
+  equal("(u2) and no row is left called 任务执行中", rView.steps.some((step) => step.title === "任务执行中"), false);
+}
+
+// ---------------------------------------------------------------------------
 // report
 // ---------------------------------------------------------------------------
+
 
 const total = passed + failures.length;
 if (failures.length === 0) {

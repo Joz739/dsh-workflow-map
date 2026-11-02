@@ -1,7 +1,7 @@
 # dsh-workflow-map — bundle 挂载声明
 #
 # 作用：把这个包的宿主半插入 DSH 的插件行。
-# 浏览器半不由本文件声明 —— package.json 的 `dsh.client`（platform: web）指向本包的
+# 浏览器半不在这里声明：package.json 的 `dsh.client`（platform: web）指向本包的
 # ./client，因此这里没有 client 行。
 #
 # id 在整个 profile 的 patch 层里必须唯一。

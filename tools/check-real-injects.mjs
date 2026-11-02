@@ -3,35 +3,11 @@
 // Read-only: it never writes to .dsh and never touches the plugin's state.
 import fs from "node:fs";
 import path from "node:path";
-import zlib from "node:zlib";
+import { decompressFrames } from "./lib-zstd-frames.mjs";
 import { createInitialState, foldEvent, buildView } from "../src/fold.mjs";
 
-const MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd]);
-function frames(buf) {
-  const offsets = [];
-  let from = 0;
-  for (;;) {
-    const at = buf.indexOf(MAGIC, from);
-    if (at === -1) break;
-    offsets.push(at);
-    from = at + 1;
-  }
-  const parts = [];
-  for (let i = 0; i < offsets.length; i += 1) {
-    const start = offsets[i];
-    for (let j = i; j < Math.min(i + 4, offsets.length); j += 1) {
-      const stop = j + 1 < offsets.length ? offsets[j + 1] : buf.length;
-      try {
-        parts.push(zlib.zstdDecompressSync(buf.subarray(start, stop)).toString("utf8"));
-        break;
-      } catch {
- /* try the next candidate end */
-      }
-    }
-  }
-  return parts.join("");
-}
-
+/** Fold one multi-frame zstd log into text — the ONE decoder (tools/lib-zstd-frames.mjs). */
+const frames = (buf) => decompressFrames(buf).toString("utf8");
 const root = path.join(process.env.USERPROFILE || "", ".dsh", "sessions");
 const files = [];
 (function walk(dir) {

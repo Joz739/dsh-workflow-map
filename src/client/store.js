@@ -801,6 +801,11 @@ function wfBuildModel(view, prefs, nowMs) {
  // when the last progress estimate arrived (0 = never). The rail uses it for the
  // "estimated N minutes ago" segment and prints nothing at all when it is 0.
       lastEstimateAt: wfFinite(step.lastEstimateAt) === null ? 0 : Math.max(0, Math.round(wfFinite(step.lastEstimateAt))),
+      // is THIS step waiting for the next turn (fold.mjs sets it when `turn/end` closes the turn
+      // without closing the step). A DIFFERENT question from `view.running`: the session can be
+      // working on something else while this row waits. The rail reads it to withhold every
+      // number, so a damaged/absent field must never read as "waiting" — hence `=== true`.
+      awaitingNextTurn: step.awaitingNextTurn === true,
       nodeCount: wfFinite(step.nodeCount) === null ? 0 : step.nodeCount,
       planIndex: wfFinite(step.planIndex) === null ? null : step.planIndex,
       anchorSeq: wfFinite(step.anchorSeq),
@@ -1047,6 +1052,9 @@ function wfBuildModel(view, prefs, nowMs) {
       percent: rows[u].percent,
       percentSource: rows[u].percentSource,
       lastEstimateAt: rows[u].lastEstimateAt,
+      // the unit card draws the waiting state (static ring, no live marker) and its rail prints
+      // the waiting sentence instead of a number, so the flag has to reach the page model too.
+      awaitingNextTurn: rows[u].awaitingNextTurn === true,
       startedAt: rows[u].startedAt,
       toolCount: unitToolCount,
       requiresConfirmation: rows[u].requiresConfirmation === true,

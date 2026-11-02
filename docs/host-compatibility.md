@@ -1,8 +1,8 @@
 # 宿主兼容性核验（DSH `0.2.1-rc.1` – `0.2.1-rc.5`）
 
-本文件回答一个问题：本插件声明的宿主范围，在 `0.2.1` 全系列（`rc.1` 至 `rc.5`）里是否真的有依据。
+要回答的问题：本插件声明的宿主范围，在 `0.2.1` 全系列（`rc.1` 至 `rc.5`）里是否真的有依据。
 
-结论以 `package.json` 的 `engines.dsh` 为唯一声明口径；本文件记录该口径的判据、核验方法与逐条证据，供使用者自行复核。
+结论以 `package.json` 的 `engines.dsh` 为唯一声明口径。下文记录该口径的判据、核验方法与逐条证据，供使用者自行复核。
 
 ---
 
@@ -94,7 +94,7 @@ DSH 闸门带 `includePrerelease`，因此 `0.2.2-rc.x` 这类后续 `0.2.x` 预
 |---|---|---|
 | `0.2.1-rc.1` | npm 闭包元数据（206 包）+ 9 个契约点的逐文件 SHA / 锚点窗口 | 契约面与 `rc.5` 一致；闭包比 `rc.3` 少 3 个包（见 §4.3） |
 | `0.2.1-rc.2` | 同上 | 同上 |
-| `0.2.1-rc.3` | 同上 + 核验机实机运行（插件加载、面板注入、视图路由） | 基线版本 |
+| `0.2.1-rc.3` | 同上 + 隔离实机运行（插件加载、面板注入、视图路由） | 基线版本 |
 | `0.2.1-rc.4` | npm 闭包元数据 + 5 个变动包逐文件 SHA + 契约锚点窗口 | 契约面无变化 |
 | `0.2.1-rc.5` | npm 闭包元数据 + 逐文件比对 + **隔离 `DSH_HOME` 实机运行**（`--dump-config` 解析、web 宿主启动、`/dsh-workflow/*` 三种端点实测，见 §3.1） | 契约面无变化，且宿主半在 `rc.5` 上实机应答 |
 
@@ -102,9 +102,9 @@ DSH 闸门带 `includePrerelease`，因此 `0.2.2-rc.x` 这类后续 `0.2.x` 预
 
 ### 3.1 `rc.5` 隔离实机运行记录（2026-10-30）
 
-核验机内核是 `rc.3`，因此不升级本机环境：在 `%TEMP%\wfmap-rc5-run\` 另起一套 `npm i @deepseek-ai/dsh@0.2.1-rc.5`，`DSH_HOME=%TEMP%\wfmap-rc5-run\home`（隔离），新 profile `wfmap5` 的 `dsh.profile.bundles` = `dsh-base` + `dsh-web-app` + `dsh-workflow-map`（后者以 `link:` 指向本仓库的工作副本，未改动源文件）。全程不写本机 `~/.dsh`、不动 `desktop` profile。
+核验环境的内核是 `rc.3`，因此不改动既有环境：在 `<临时目录>\wfmap-rc5-run\` 另起一套 `npm i @deepseek-ai/dsh@0.2.1-rc.5`，`DSH_HOME=<临时目录>\wfmap-rc5-run\home`（隔离），新 profile `wfmap5` 的 `dsh.profile.bundles` = `dsh-base` + `dsh-web-app` + `dsh-workflow-map`（后者以 `link:` 指向本仓库的工作副本，未改动源文件）。全程不写 `~/.dsh`、不改动任何既有 profile。
 
-**A 级 —— `rc.5` 的 loader 解析本插件 manifest 与 patch：通过**
+**A 级：`rc.5` 的 loader 解析本插件 manifest 与 patch，通过**
 
 ```text
 node <run>\node_modules\@deepseek-ai\dsh\lib\bin.js --profile wfmap5 --dump-config
@@ -116,9 +116,9 @@ node <run>\node_modules\@deepseek-ai\dsh\lib\bin.js --profile wfmap5 --dump-conf
 # stdout 全文无 unknown / invalid / unresolved / warn / error 类告警
 ```
 
-**B 级 —— `rc.5` 宿主上路由实机应答：通过**
+**B 级：在 `rc.5` 宿主上路由实机应答，通过**
 
-同一套 `rc.5` 起 web 宿主（`--profile wfmap5 --port 55999 --no-open --host 127.0.0.1`），逐端点实测（响应头均为 `content-type: application/json; charset=utf-8`，与 `src/route.js` 的契约一致）：
+同一套 `rc.5` 起 web 宿主（`--profile wfmap5 --port <port> --no-open --host 127.0.0.1`），逐端点实测（响应头均为 `content-type: application/json; charset=utf-8`，与 `src/route.js` 的契约一致）：
 
 | 请求 | 状态 | 响应体（原文） | 说明 |
 |---|---|---|---|
@@ -132,16 +132,16 @@ node <run>\node_modules\@deepseek-ai\dsh\lib\bin.js --profile wfmap5 --dump-conf
 
 **两个会把人带偏的坑（实测）**
 
-1. **系统代理会把 `127.0.0.1` 也拦走。** 本机代理 `127.0.0.1:26561` 的 `ProxyOverride` 不含 `localhost`/`127.0.0.1`，于是 `Invoke-WebRequest http://127.0.0.1:55999/...` 全部返回 **404 且空体**——看着像「插件没挂」。改用裸 socket 或 `-NoProxy` 后立刻看到 `401`（页面）与本插件的 JSON（路由）。**结论：HTTP 404 不能单独作为「路由未注册」的证据。**
-2. **`--profile <name>` 后面不能再跟 `web`。** `dsh --profile wfmap5 web` 报 `too many arguments. Expected 0 arguments but got 1: web`（`web` 是 profile 名，不是子命令）；正确写法是 `dsh --profile wfmap5 --port 55999 --no-open --host 127.0.0.1`。
+1. **系统代理会把 `127.0.0.1` 也拦走。** 代理配置的 `ProxyOverride` 不含 `localhost`/`127.0.0.1` 时，`Invoke-WebRequest http://127.0.0.1:<port>/...` 会返回 **404 且空体**，看着像「插件没挂」。改用裸 socket 或 `-NoProxy` 后立即看到 `401`（页面）与本插件的 JSON（路由）。**结论：HTTP 404 不能单独作为「路由未注册」的证据。**
+2. **`--profile <name>` 后面不能再跟 `web`。** `dsh --profile wfmap5 web` 报 `too many arguments. Expected 0 arguments but got 1: web`（`web` 是 profile 名，不是子命令）；正确写法是 `dsh --profile wfmap5 --port <port> --no-open --host 127.0.0.1`。
 
-**复跑命令**（升级到 `rc.5` 后任选一个临时目录执行，不动本机环境）：
+**复跑命令**（升级到 `rc.5` 后任选一个临时目录执行，不改动既有环境；`<port>` 任选一个空闲端口）：
 
 ```powershell
 $run="$env:TEMP\wfmap-rc5-run"; $env:DSH_HOME="$run\home"
-node "$run\node_modules\@deepseek-ai\dsh\lib\bin.js" --profile wfmap5 --port 55999 --no-open --host 127.0.0.1
+node "$run\node_modules\@deepseek-ai\dsh\lib\bin.js" --profile wfmap5 --port <port> --no-open --host 127.0.0.1
 # 另开窗口（-NoProxy 是关键，否则会被系统代理拦成假 404）：
-Invoke-WebRequest 'http://127.0.0.1:55999/dsh-workflow/state?sessionId=none' -SkipHttpErrorCheck -NoProxy
+Invoke-WebRequest 'http://127.0.0.1:<port>/dsh-workflow/state?sessionId=none' -SkipHttpErrorCheck -NoProxy
 # 期望：404 + {"ok":false,"error":"unknown session"}
 ```
 
@@ -299,10 +299,10 @@ for (const r of ranges) console.log(r, versions.map((v) => [v, semver.satisfies(
 
 ## 八、限制声明
 
-- **动态核验范围**：截至 2026-10-30，`0.2.1-rc.3` 是本机实机运行版本；`0.2.1-rc.5` 已在隔离 `DSH_HOME` 的临时区实机启动并实测路由应答（§3.1），但不覆盖「真实会话内的投影内容」——`rc.5` 上没有跑过带会话的完整回合，`/state` 只验到「按契约返回 `unknown session`」。`rc.4` 仍只做了静态比对（闭包元数据、逐文件 SHA-256、契约锚点窗口），未实机启动。
+- **动态核验范围**：截至 2026-10-30，`0.2.1-rc.3` 是实机运行过的版本；`0.2.1-rc.5` 已在隔离 `DSH_HOME` 的临时区实机启动并实测路由应答（§3.1），但不覆盖「真实会话内的投影内容」：`rc.5` 上没有跑过带会话的完整回合，`/state` 只验到「按契约返回 `unknown session`」。`rc.4` 仍只做了静态比对（闭包元数据、逐文件 SHA-256、契约锚点窗口），未实机启动。
 - **比对对象**：只比对 npm 上已发布的产物，不覆盖未发布的仓库提交。
 - **闭包口径**：206 个包名按 `dsh-base` 与 `dsh-web-app` 的依赖并集确定；更换清单会改变闭包边界。
-- **第三方依赖**：闭包内含 `cordis`、`schemastery`、`zod` 等第三方包，它们不随 DSH 的 `rc` 编号发布，本文件不对其版本承诺做任何声明。
+- **第三方依赖**：闭包内含 `cordis`、`schemastery`、`zod` 等第三方包，它们不随 DSH 的 `rc` 编号发布，这里不对其版本承诺做任何声明。
 - **上界外版本**：`0.3.0` 及以后未做任何核验，声明上也不覆盖。
 - **判定语义**：§2.3 的矩阵来自 semver 7.8.5；换用其他实现时 `includePrerelease` 的细节可能不同。
 
@@ -317,4 +317,4 @@ for (const r of ranges) console.log(r, versions.map((v) => [v, semver.satisfies(
 | semver 实现 | 7.8.5（`satisfies`，分别带与不带 `includePrerelease`） |
 | 闭包规模 | 206 个包名，24 个存在版本间差异 |
 | 逐文件比对包 | `dsh-app-boot`、`dsh-session`、`dsh-session-projection`、`dsh-host-webserver`、`dsh-agent-loop`、`dsh-session-persistence-jsonl`、`dsh-plugin-manager`、`dsh-client-ui-layout`、`dsh-client-ui-sidebar`、`dsh-client-ui-conversation`、`dsh-client-ui-chat`、`dsh-cordis-client-runner`、`dsh-llm-deepseek-account`、`dsh-mcp-resources` |
-| 实机运行内核 | `0.2.1-rc.3`（本机内核）；`0.2.1-rc.5`（隔离 `DSH_HOME` 临时区，仅路由与 loader 层） |
+| 实机运行内核 | `0.2.1-rc.3`（基线运行内核）；`0.2.1-rc.5`（隔离 `DSH_HOME` 临时区，仅路由与 loader 层） |

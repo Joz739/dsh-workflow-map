@@ -1660,6 +1660,163 @@ check('say.failedSkipped', say('panel.status.failed') === '失败' && say('panel
 check('say.stepConfirm', say('panel.step.confirm') === '需确认' && say('panel.step.progress', { title: 'x' }) === 'x 进度', say('panel.step.confirm'));
 
 /* ------------------------------------------------------------------------- */
+/* (p) waiting for the next turn: the static state, and the digits it withholds */
+/* ------------------------------------------------------------------------- */
+
+// DEFECT 2, browser half. fold.mjs closes a turn (`turn/end`) without closing the step, so the
+// step stays `running` and gains `awaitingNextTurn`. The panel must then look DIFFERENT from a step
+// that is working: no flowing frame, no blinking "working" marker, no percentage, and — instead of
+// an empty rail — the sentence that says why it is empty. The checks below are the contract.
+
+// (p1) the flag travels: wire step → buildModel row → through the status rewrite.
+const awaitingView = viewOf(
+  [{ planIndex: 1, title: 'waiting', status: 'running', percent: null, percentSource: 'none', awaitingNextTurn: true }],
+  planOf({ statuses: { '1': 'in_progress' } })
+);
+const awaitingModel = T.buildModel(awaitingView, defaults);
+check(
+  '(p1) field.pipedThrough',
+  awaitingModel.steps[0].awaitingNextTurn === true && awaitingModel.page.units[0].awaitingNextTurn === true,
+  JSON.stringify({ row: awaitingModel.steps[0].awaitingNextTurn, unit: awaitingModel.page.units[0].awaitingNextTurn })
+);
+// The BADGE also names the waiting state: a `running` row still reads 进行中 on the wire, which is
+// the same claim a number makes — that something is happening. `panel.status.awaiting` replaces it.
+check(
+  '(p1) badge.saysWaiting',
+  (function () {
+    const tree = T.renderPanel(awaitingModel, defaults, say, actions, ui);
+    const badge = findAll(byData(tree, 'step')[0], (el) => el.props && el.props.className === 'wf-badge')[0];
+    return badge !== undefined && textOf(badge) === '等待';
+  })(),
+  'the card badge reads 等待, not 进行中'
+);
+// …and it SURVIVES the PAE/todo status rewrite, which builds a fresh row object: the flag is a fact
+// about the TURN, so no status policy may drop it (that would put a fabricated bar back on screen).
+const awaitingRederived = T.applyDerivedStatuses(awaitingModel.steps, awaitingModel.plan, awaitingModel.todos);
+check(
+  '(p1) field.survivesStatusRewrite',
+  awaitingRederived[0].awaitingNextTurn === true,
+  String(awaitingRederived[0].awaitingNextTurn)
+);
+check(
+  '(p1) field.defaultsFalse',
+  T.buildModel(viewOf([{ planIndex: 1, title: 'working', status: 'running' }], planOf({ statuses: { '1': 'in_progress' } })), defaults).steps[0]
+    .awaitingNextTurn === false,
+  'an absent flag is false, never "waiting"'
+);
+
+// (p2) NO DIGITS. The wire below deliberately carries a stale 50 % on a waiting row (an older host,
+// a replayed checkpoint): the rail must still refuse to print it — waiting is not "half done".
+const waitingLabel = T.progressLabel(50, 'todos', 'running', say, true);
+check(
+  '(p2) label.waitingKind',
+  waitingLabel !== null && waitingLabel.kind === 'waiting' && waitingLabel.percent === null && waitingLabel.text === '等待下一回合',
+  JSON.stringify(waitingLabel)
+);
+check(
+  '(p2) label.noPercentageInText',
+  waitingLabel.text.indexOf('%') === -1 && waitingLabel.text.indexOf('50') === -1,
+  waitingLabel.text
+);
+// The same number on the SAME status without the flag still prints: (p2) is about the state, not
+// about the arguments being wrong.
+check(
+  '(p2) label.contrastStillCounts',
+  T.progressLabel(50, 'todos', 'running', say, false).kind === 'real',
+  JSON.stringify(T.progressLabel(50, 'todos', 'running', say, false))
+);
+// A pending/skipped row is gated BEFORE the waiting branch: it must print nothing at all, not the
+// waiting sentence (the risk listed in the step file).
+check(
+  '(p2) label.pendingBeatsWaiting',
+  T.progressLabel(50, 'todos', 'pending', say, true) === null && T.progressLabel(50, 'todos', 'skipped', say, true) === null,
+  'a not-started row never claims to be waiting'
+);
+
+// (p3) the track is EMPTY: no 30 % band (that band means "working, distance unknown"), no flow.
+const awaitingRow = { status: 'running', percent: null, awaitingNextTurn: true };
+check('(p3) fill.emptyInTrack', T.progressFillWidth(awaitingRow) === 0, String(T.progressFillWidth(awaitingRow)));
+check('(p3) fill.notIndeterminate', T.progressIndeterminate(awaitingRow) === false, String(T.progressIndeterminate(awaitingRow)));
+
+// (p4) the CONTRAST GROUP: the identical row without the flag keeps both the band and the 30 %,
+// which proves (p3) reads the state rather than "happened to have no number".
+const workingRow = { status: 'running', percent: null, awaitingNextTurn: false };
+check('(p4) contrast.fillIs30', T.progressFillWidth(workingRow) === 30, String(T.progressFillWidth(workingRow)));
+check('(p4) contrast.indeterminate', T.progressIndeterminate(workingRow) === true, String(T.progressIndeterminate(workingRow)));
+
+// (p5) the dictionary: both new keys exist in BOTH locales, are non-empty, and are not the key
+// itself (a missing translation would fall back to the key and print raw property names).
+const waitingKeys = ['panel.percent.waiting', 'panel.status.awaiting'];
+check(
+  '(p5) dict.sameKeysBothLocales',
+  waitingKeys.every((key) => typeof dicts.zh[key] === 'string' && typeof dicts.en[key] === 'string'),
+  JSON.stringify(waitingKeys.map((key) => [key, dicts.zh[key], dicts.en[key]]))
+);
+check(
+  '(p5) dict.textsAreReal',
+  waitingKeys.every((key) => dicts.zh[key].trim() !== '' && dicts.en[key].trim() !== '' && dicts.zh[key] !== key && dicts.en[key] !== key),
+  JSON.stringify(waitingKeys.map((key) => [dicts.zh[key], dicts.en[key]]))
+);
+check(
+  '(p5) dict.regeneratedKeySets',
+  JSON.stringify(zhKeys) === JSON.stringify(enKeys) && zhKeys.includes('panel.percent.waiting') && zhKeys.includes('panel.status.awaiting'),
+  zhKeys.length + ' keys, both locales'
+);
+
+// (p6) the rendered card: no "● working ..." marker, and the row/card carry data-awaiting.
+const awaitingTree = T.renderPanel(awaitingModel, defaults, say, actions, ui);
+const awaitingLive = findAll(awaitingTree, (el) => el.props && el.props['data-dsh-workflow-map'] === 'live');
+const awaitingCard = byData(awaitingTree, 'step')[0];
+const awaitingUnit = byData(awaitingTree, 'unit')[0];
+check('(p6) render.noLiveMarker', awaitingLive.length === 0, awaitingLive.length + ' live markers on a waiting step');
+check(
+  '(p6) render.awaitingOnCardAndRow',
+  awaitingCard.props['data-awaiting'] === 'true' && awaitingUnit.props['data-awaiting'] === 'true',
+  JSON.stringify({ card: awaitingCard.props['data-awaiting'], unit: awaitingUnit.props['data-awaiting'] })
+);
+check(
+  '(p6) render.railSaysWhy',
+  textOf(byData(awaitingTree, 'progress')[0]) === '等待下一回合',
+  textOf(byData(awaitingTree, 'progress')[0])
+);
+// …and the rail carries no value for a screen reader either.
+const awaitingTrack = byData(awaitingTree, 'progress')[0].children[0].children[0].props;
+check(
+  '(p6) render.railHasNoValue',
+  awaitingTrack['aria-valuenow'] === undefined && awaitingTrack['aria-valuetext'] === '等待下一回合',
+  JSON.stringify({ now: awaitingTrack['aria-valuenow'], text: awaitingTrack['aria-valuetext'] })
+);
+// The contrast group, rendered: the same view with the flag off DOES draw the marker.
+const workingRenderView = viewOf(
+  [{ planIndex: 1, title: 'working', status: 'running', percent: null, percentSource: 'none', awaitingNextTurn: false }],
+  planOf({ statuses: { '1': 'in_progress' } })
+);
+const workingTree = T.renderPanel(T.buildModel(workingRenderView, defaults), defaults, say, actions, ui);
+check(
+  '(p6) render.contrastHasLiveMarker',
+  findAll(workingTree, (el) => el.props && el.props['data-dsh-workflow-map'] === 'live').length === 1 &&
+    byData(workingTree, 'step')[0].props['data-awaiting'] === 'false',
+  'a working step still shows "● working ..."'
+);
+
+// (p7) the shipped bundle: the dictionary entry and both attribute names really made it into
+// client.js, so an F5 is enough to see the change (the browser half is a single file).
+check(
+  '(p7) bundle.waitingDictLiteral',
+  source.includes('"panel.percent.waiting": "等待下一回合"') && source.includes('"panel.percent.waiting": "waiting for the next turn"'),
+  'both locales are in the built bundle'
+);
+check(
+  '(p7) bundle.awaitingAttribute',
+  source.includes('"data-awaiting": awaiting ? "true" : "false"'),
+  'the attribute is emitted by the built renderer'
+);
+check(
+  '(p7) bundle.waitingFlavourCss',
+  source.includes(".wf-prog-label[data-kind='waiting']"),
+  'the static waiting style is in the built stylesheet'
+);
+/* ------------------------------------------------------------------------- */
 /* stylesheet */
 /* ------------------------------------------------------------------------- */
 

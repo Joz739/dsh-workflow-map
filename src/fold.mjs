@@ -68,8 +68,22 @@
 // demotes a step that still carried `done`/`running`, and a step any table no longer names is
 // dropped). Checkpoints written before the bump hold ledgers from the older mapping — wrong
 // statuses and leftover rows — so the same contract applies: drop and rebuild from the log.
-export const STATE_VERSION = 5;
-
+// STATE_VERSION 5 keeps its number after the 2026-11-01 step-row change (`awaitingNextTurn`
+// plus the state's `unknownTurnReasons`): both have an HONEST default that the host's stateSchema
+// repairs to (false / empty list), so a v5 checkpoint restored from disk is not answered wrongly.
+// The version is bumped only where a missing field would have to be guessed — see v1→v4 above.
+//
+// STATE_VERSION 6 : a step now records the EVENT INTERVAL it ran in (`windowStart` / `windowEnd`,
+// the seqs at which the todo table first made it `in_progress` and first closed it), and a node is
+// attributed by that interval instead of by "whichever step happens to be running when the node
+// arrives". The old rule could not be reconstructed after the fact: it named a step from the
+// CURRENT pointer at fold time, so a checkpoint written under it holds node→step assignments that
+// look valid and are wrong (measured 2026-11-01 over 167 local logs: of 504 `done` steps 193
+// (38.3%) owned no node at all, while 36 sessions had one step holding every node in the session).
+// Neither the interval nor the `unassigned` counter can be derived from a v5 checkpoint — the
+// events that would be replayed are not stored in it — so the same contract as v1→v5 applies:
+// drop the checkpoint and rebuild from the log.
+export const STATE_VERSION = 6;
 export const SCHEMA_VERSION = 1;
 
 // ---------------------------------------------------------------------------
@@ -119,8 +133,14 @@ export const REPORTS_PER_STEP = 40;
 
 const TYPE_TODOS = "todo/write";
 
-/** Title of the synthetic step that holds everything done before the first plan step. */
-const PLANNING_TITLE = "规划与调研";
+// Title of the synthetic step that holds work done before the first plan step.
+//
+// It reads "任务执行中" and not a descriptive label on purpose: this row is the ONLY thing the panel
+// shows while the conversation has no task list of its own, so it must say what is HAPPENING
+// rather than name a phase the user never asked about. A heading like "规划与调研" also claimed a
+// kind of work the log cannot prove — the same step holds tool calls, questions and reports, and
+// nothing in the log says they were research. "Task running" is the one statement the row can back.
+const PLANNING_TITLE = "任务执行中";
 const TYPE_TOOL_CALL = "tool/call";
 const TYPE_TOOL_RESULT = "tool/result";
 const TYPE_STEP_START = "step/start";
@@ -163,6 +183,31 @@ const PLUGIN_SOURCE_PREFIX = "plugin:";
 const SELF_SOURCE_KIND = "plugin:dsh-workflow-map";
 const TYPE_APPROVAL_ASKED = "approval/asked";
 const TYPE_APPROVAL_DECIDED = "approval/decided";
+
+// ---------------------------------------------------------------------------
+// turn reasons — the `data.reason.kind` of a `turn/end`
+// ---------------------------------------------------------------------------
+// MEASURED, not guessed (167 local session logs, 1067 `turn/end` events, 2026-11-01):
+//   completed 739 · error 171 · aborted 136 · interrupted 17 · max-tokens 4
+// (and `data` is always exactly `{ turn, reason }`, never a bare `{ turn }`).
+//
+// TERMINAL: the turn stopped and the same step will NOT be continued from here.
+//   • aborted     — the user stopped it (reason.reason.kind is usually "user");
+//   • error       — the transport/model failed (reason.error carries the message);
+//   • failed      — the same meaning as error under the other spelling;
+//   • interrupted — the process died mid-turn (a host kill, a crash). The task book only named
+//     aborted/failed; `interrupted` is decided here because it has the same consequence — nothing
+//     resumes the step — and it is kept in THIS ONE SET, so reversing that judgement is a one-line
+//     change and no other code moves.
+//
+// CONTINUING: the turn ended normally, and PAE continues the same step on the next turn.
+//   • completed, max-tokens (the model hit its token ceiling; the turn ended normally enough that
+//     the next turn continues the step).
+const TERMINAL_TURN_REASONS = new Set(["aborted", "error", "failed", "interrupted"]);
+const CONTINUING_TURN_REASONS = new Set(["completed", "max-tokens"]);
+
+/** How many unrecognised turn reasons the state keeps for a replay to inspect. */
+const UNKNOWN_TURN_REASONS_LIMIT = 8;
 // The tool the model uses to ask the user something (measured name, from the harness's
 // own tool definition in dsh-tool-ask-user).
 const ASK_USER_QUESTION_TOOL = "ask_user_question";
@@ -346,7 +391,20 @@ export function createInitialState() {
     // until PAE rewrites them, so they cannot answer it, and a long model answer can go minutes
     // without a tool call (its events arrive at the end). Exposed as `view.running`; the browser
     // half freezes every animation when it is false.
+    //
+    // NOT THE SAME QUESTION as a step's `awaitingNextTurn`:
+    //   • `turnActive` / `view.running` = is the SESSION running a turn right now;
+    //   • `step.awaitingNextTurn`       = is THIS STEP waiting for the next turn (the todo table
+    //     still names it `in_progress`, but the turn it was working in has ended in a way that
+    //     leaves it open — PAE continues it on the next turn).
+    // A step can be awaiting while the session is idle (the normal end of a PAE step), and a step
+    // can be executing while `turnActive` is true. Neither implies the other, so the view publishes
+    // both and the panel asks the one it actually needs.
     turnActive: false,
+    // Turn reasons this fold has never been taught (`completed` / `max-tokens` and the terminal set
+    // are known). Bounded and deduplicated: a replay of a real log can then say WHICH kind it did
+    // not understand instead of silently guessing. Newest last; the oldest are dropped.
+    unknownTurnReasons: [],
     // Hot-inject history. One row per message this plugin's `/steer` channel put into
     // the session: `{ id, at, text, pickedUp }`. `pickedUp` flips to true the moment the
     // session's own `user/message` event with the same id enters the log — that is the
@@ -369,6 +427,14 @@ export function createInitialState() {
     // `{ id, state: "asked"|"decided", stepIndex, label, at }`. Bounded; the oldest decided
     // rows are dropped first, because only an UNPAIRED ask matters.
     approvals: [],
+    // Nodes no step's event interval covered. NOT a look-the-other-way counter: a node the fold
+    // cannot attribute is work the log DID record, and the old code dropped it silently
+    // (`appendNode` returned the state unchanged), which is why a `done` step could read "0 tools"
+    // while the session's calls were all still there. The count is published as `view.unassigned`
+    // so a reader can see how much of the flow is unattributed instead of trusting a total that
+    // quietly shrank. `sinceSeq` is the FIRST seq that failed to land — the instant attribution
+    // started to leak.
+    unassigned: { nodes: 0, sinceSeq: null },
     seq: null,
   };
 }
@@ -390,6 +456,10 @@ function newStep(index, title, at, source) {
     status: STEP_STATUS.running,
     startedAt: at,
     endedAt: null,
+    // true = this step is WAITING for the next turn (a `turn/end` that did not end it). Set by
+    // foldTurnEnd, cleared by closeStep and by foldTurnStart. It is state, not a view trick: the
+    // panel needs it to draw "waiting" instead of a number, and a checkpoint has to carry it.
+    awaitingNextTurn: false,
     percent: null,
     lastEstimateAt: 0,
     percentSource: "none",
@@ -398,8 +468,17 @@ function newStep(index, title, at, source) {
     nodeIds: [],
     nodeCount: 0,
     truncatedNodes: 0,
+    // The EVENT INTERVAL this step ran in — the seqs at which the todo table first made it
+    // `in_progress` and first closed it. This is the attribution key (see `windowStep`): a node
+    // belongs to the step whose interval CONTAINS its seq, which is a measurement of the log, not a
+    // guess about which row the fold happened to be pointing at when the event arrived. `null` means
+    // "not observed" — a window that was never opened covers nothing.
+    windowStart: null,
+    // The END of the interval is EXCLUSIVE: the event that closes a step belongs to that step, so
+    // `seq < windowEnd` is the test, not `seq <= windowEnd`.
+    windowEnd: null,
     // The seq this step opened at (the PAE context message). `undefined` = never anchored,
-    // which `stepForNode` reads as "not part of an anchored plan".
+    // which the attribution reads as "not part of an anchored plan".
     anchorSeq: undefined,
     // The plan ordinal PAE prints ("executing plan step 3/14"). `undefined` for a todo-only session.
     planIndex: undefined,
@@ -448,8 +527,15 @@ function runningStep(state) {
  * being re-labelled 'pending': the work it recorded really happened, and demoting it would
  * also un-count its nodes from the completed total. A row that was never started (startedAt 0)
  * cannot be closed honestly, so it alone falls back to pending.
+ *
+ * THE WINDOW OF A STRAY ROW IS CLOSED HERE, at the seq of the event that handed the running
+ * pointer to another row (`seq`). That is the only instant the log supports: the stray stopped
+ * executing because something else took over. Without this the stray keeps `windowEnd: null`,
+ * which means "still open" — and an open interval keeps ABSORBING every later event, so the very
+ * next step's calls would be attributed to a step that had already finished. `seq` is null only
+ * when this pass runs as a view projection (see `syncToTodos`), and then nothing is written.
  */
-function soleRunning(state, time) {
+function soleRunning(state, time, seq) {
   let keep = -1;
   const inProgress = inProgressStepIndex(state);
   if (isFiniteNumber(inProgress) && state.steps[inProgress]) keep = inProgress;
@@ -468,52 +554,121 @@ function soleRunning(state, time) {
     if (index === keep || step.status !== STEP_STATUS.running) return step;
     changed = true;
     if (!(step.startedAt > 0)) {
-      return { ...step, status: STEP_STATUS.pending, endedAt: null, percent: null, percentSource: "none" };
+      // A row demoted to pending is not executing, so it cannot be waiting for a turn either —
+      // `awaitingNextTurn` is only meaningful on a `running` row (the view draws the waiting state
+      // from it and would otherwise show a not-started step as "waiting").
+      return { ...step, status: STEP_STATUS.pending, endedAt: null, percent: null, percentSource: "none", awaitingNextTurn: false };
     }
     durations = [...durations, time - step.startedAt].filter((value) => value > 0);
-    return closeStep(step, time);
+    return closeStep(step, time, seq);
   });
   return changed ? { ...state, steps: reindex(steps), durations } : state;
 }
 /**
- * The plan step a node belongs to. Three sources, in priority order:
+ * The step an event's seq falls inside, measured from the steps' own event intervals.
+ *
+ * THE RULE. A step is a RANGE of the log, not a pointer that moves as events arrive. The todo
+ * table states when it made a row `in_progress` (windowStart) and when it first closed it
+ * (windowEnd), so "which step does this node belong to" is a containment test on those two seqs:
+ *
+ *     windowStart !== null && windowStart <= seq && (windowEnd === null || seq < windowEnd)
+ *
+ * windowEnd is EXCLUSIVE because the closing event itself still belongs to the step it closed.
+ *
+ * WHY IT REPLACED "the running step". The old rule named a step from the CURRENT running row, so
+ * an event was attributed to whatever the fold happened to be pointing at when it arrived — which
+ * is not the same question. Two measured consequences over 167 local logs (2026-11-01): 193 of 504
+ * `done` steps (38.3%) owned no node at all, while 36 sessions had a single step holding every node
+ * in the session. The interval cannot produce that kind of error: a step that never ran holds
+ * nothing BY CONSTRUCTION, and no step can absorb another step's calls.
+ *
+ * OVERLAP. Two steps may cover the same seq when a table is rewritten while a row is still open.
+ * The tie is broken DETERMINISTICALLY — latest `windowStart` first, then highest `index` — so the
+ * answer never depends on array order or on which event was folded first.
+ *
+ * PAE ANCHORS STILL WIN. The orchestrator's `anchorSeqs` are the steps' own declared boundaries and
+ * are measured, so when any step is anchored the anchor range decides; an event before the first
+ * anchor belongs to NO step (planning-phase work) instead of being invented into one.
+ *
+ * NO FALLBACK. There is deliberately no "else the running step" / "else the last step" branch. A seq
+ * no interval covers is unattributed, and `appendNode` counts it in `state.unassigned` rather than
+ * dropping it or guessing: "no step covers this" is a finding about the log, not an error to paper over.
+ */
+function windowStep(state, seq) {
+  if (!isFiniteNumber(seq)) return null;
+  let best = null;
+  for (const step of state.steps) {
+    const start = step.windowStart;
+    if (!isFiniteNumber(start) || start > seq) continue;
+    const end = step.windowEnd;
+    if (isFiniteNumber(end) && seq >= end) continue;
+    if (
+      best === null ||
+      start > best.windowStart ||
+      (start === best.windowStart && step.index > best.index)
+    ) {
+      best = step;
+    }
+  }
+  return best;
+}
+
+/**
+ * The step a node belongs to. Two sources, in priority order:
  *   1. the PAE anchor range — the last anchored step whose anchorSeq <= this event's seq
  *      (orchestrator.json's `anchorSeqs` maps step index -> the seq of the context message
  *      that OPENS that step; feeds it in, and until then the PAE `user/message`
  *      events open the steps themselves);
- *   2. the in_progress todo row, when the caller knows one;
- *   3. the running step, else the last step.
+ *   2. the step whose event interval contains this seq (see `windowStep`).
  *
- * A node whose seq predates every anchor (planning-phase work) belongs to no step at all
- * and is dropped by the caller — inventing a step for it would be a guess.
+ * `inProgressIndex` is accepted and IGNORED: it is the old "the table says this row is in_progress
+ * right now" hint, which is exactly the pointer this change removed. The parameter is kept so every
+ * existing call site keeps compiling, and the body documents that it must not be used again.
+ *
+ * A node whose seq predates every anchor (planning-phase work), or that no interval covers, belongs
+ * to no step at all: the caller counts it as unassigned — inventing a step for it would be a guess.
  */
-function stepForNode(state, seq, inProgressIndex) {
-  if (seq !== null && state.steps.length > 0) {
+function stepForNode(state, seq, _inProgressIndex) {
+  if (state.steps.length === 0) return null;
+  if (isFiniteNumber(seq) && state.steps.some((step) => step.anchorSeq !== undefined)) {
     let anchored = null;
     for (const step of state.steps) {
       if (step.anchorSeq !== undefined && step.anchorSeq <= seq) anchored = step;
     }
-    if (anchored) return anchored;
-    if (state.steps.some((step) => step.anchorSeq !== undefined)) return null;
+    return anchored;
   }
-  if (isFiniteNumber(inProgressIndex) && state.steps[inProgressIndex]) return state.steps[inProgressIndex];
-  return runningStep(state);
+  return windowStep(state, seq);
 }
-
 /**
- * Per-step percent. Four routes, in priority order:
+ * Per-step percent. Three routes, in priority order:
  *   1. a CLOSED step is pinned — its number is finished work, not a time estimate, so a
  *      later (slower) sibling must not be able to pull its bar back down;
- *   2. a model self-report, BLENDED with the todo table's own completion ratio : the todo
- *      table is a measurement, so it decides the number whenever it has rows to speak for — an
- *      inflated report can no longer pin the bar above the work actually done, and a stale low one
- *      can no longer hide it. With no rows to measure, the report (high water) stands alone;
- *   3. the todo table's completion ratio on its own (a real measurement, capped at 99 % — the
- *      remaining row is still in progress);
- *   4. the time baseline: this step's elapsed time / the median finished-step duration, capped at
+ *   2. a model self-report, capped at 99 % — the model's own statement about THIS step;
+ *   3. the time baseline: this step's elapsed time / the median finished-step duration, capped at
  *      90 % because it is an extrapolation, not a measurement. With no finished step (the cold
  *      start) the plan's own ordinal - current step / total steps - stands in as `baseline:steps`, but
  *      only from the second step of a ≥ 2-step plan: 0 of N is not progress.
+ * With none of the three there is NO number (`source: "none"`): an empty rail is honest, a
+ * fabricated number is not.
+ *
+ * WHY THE TODO TABLE'S COMPLETION RATIO IS NOT ONE OF THE ROUTES (deleted 2026-11-01). That ratio
+ * is finished ROWS over all rows — a fact about the WHOLE SESSION, not about the step the rail is
+ * drawn under. Putting it into a step's `percent` hands a total to a part: every row of a
+ * half-finished checklist read the same number, the number moved only when the model rewrote the
+ * table, and it did not move at all when the step itself advanced. Measured over 167 local session
+ * logs (2026-11-01): 23 of the 38 running steps carried exactly their session's global ratio.
+ *
+ * The obvious replacement — "this step's node count / the session's node count" — is NOT used
+ * either: a node count only ever grows, so every step would sit at the share it happened to
+ * accumulate and never move again. That is the same error with a longer fuse.
+ *
+ * The high-water record (`step.maxPercent`) stays exactly where it was: it is recorded, it floors
+ * the two EXTRAPOLATION routes below (a baseline that can walk backwards was the F1 defect), and
+ * it never raises a self-report or a closed step.
+ *
+ * ONE GATE IN FRONT OF ALL OF THEM: a step that is waiting for the next turn carries no number at
+ * all (`awaitingNextTurn` + a closed turn). "Waiting" is not "partly done", and it is certainly
+ * not 100 % — the log has no evidence either way, so the honest answer is no number.
  */
 function percentFor(state, step, now) {
   if (step.status === STEP_STATUS.done || step.status === STEP_STATUS.failed) {
@@ -527,38 +682,27 @@ function percentFor(state, step, now) {
   if (step.status !== STEP_STATUS.running) {
     return { percent: null, source: "none" };
   }
-  // Priority 2 when a self-report exists: the todo table's completion ratio is a measurement (no
-  // clock, no extrapolation), so it determines the number whenever it has rows to report on.
-  // The self-report can only lower the result, never raise it above the measured ratio.
-  const rowsTotal = state.todos.length;
-  const rowsDone = state.todos.filter((item) => item.status === "completed").length;
+  // WAITING FOR THE NEXT TURN IS NOT PROGRESS. Both halves come from the log: `turn/end` closed
+  // the turn and no `turn/start` has opened the next one, so this step cannot be advancing no
+  // matter what its todo row still says. It gets NO number (source "none") rather than the todos
+  // ratio or the time baseline: a number here would be a fabrication, and 100 % would claim work
+  // the log does not support. `turn/start` clears the flag and the normal routes resume.
+  //
+  // `!== true` rather than `=== false` on purpose: a state restored from a damaged checkpoint has
+  // no `turnActive` at all, and that must read as "not running" — the same answer as false.
+  if (state.turnActive !== true && step.awaitingNextTurn === true) {
+    return { percent: null, source: "none" };
+  }
+  // A SELF-REPORT is the model's own statement about THIS step, so it is the number — in BOTH
+  // directions. The todo table's global ratio used to override it right here (an inflated 85 % was
+  // measured down to the session's 40 %, a stale 40 % was measured up to its 60 %); that ratio is
+  // a fact about the whole session, so it is gone from this function entirely.
   const reported = state.reports.find((entry) => entry.stepIndex === step.index);
   if (reported && isFiniteNumber(reported.percent)) {
-    // A self-report and the todo table disagree in both directions. The todo table's ratio is a
-    // MEASUREMENT (a count over rows; no clock, no extrapolation), so it decides the displayed number
-    // whenever it has rows to speak for:
-    //   • report below it → the measurement (a stale low report must not hide work already done);
-    //   • report above it → the measurement (a report must not claim more than the rows show).
-    // Keeping the report out of the displayed value removes both directions of error; it is not a
-    // claim about how often a report is wrong. The high-water record (step.maxPercent) is still kept
-    // and never rolled back; it simply no longer takes part in the displayed value.
-    const measured = rowsTotal > 0 && rowsDone > 0 ? Math.round((rowsDone / rowsTotal) * 100) : null;
-    if (measured !== null) {
-      // The todo table is the measurement; the self-report cannot raise the number above it.
-      const value = measured;
-      return { percent: clamp(value, 0, 99), source: "todos" };
-    }
-    // The model's latest statement is the number, and an open step is 0..99: 100 % on a running
-    // row is a claim the log does not support. The high-water record is deliberately not applied
-    // here, as the comment above states; applying it freezes a row at the highest number it ever
-    // reached, so later reports cannot move the bar.
+    // An open step is 0..99: 100 % on a running row is a claim the log does not support. The
+    // high-water record is deliberately not applied here — applying it freezes a row at the
+    // highest number it ever reached, so later reports could not move the bar.
     return { percent: clamp(reported.percent, 0, 99), source: "model" };
-  }
-  // The checklist's own completion ratio — a real measurement, so it sits above the time baseline.
-  // It never claims 100 % for an OPEN step: the remaining row is still in progress.
-  if (rowsTotal > 0 && rowsDone > 0) {
-    const real = Math.round((rowsDone / rowsTotal) * 100);
-    return { percent: clamp(Math.max(real, step.maxPercent), 0, 99), source: "todos" };
   }
   const baseline = medianOf(state.durations);
   if (baseline !== null && baseline > 0 && step.startedAt > 0) {
@@ -766,19 +910,39 @@ function argsDigest(args) {
  * closed state, so the panel showed an in-progress step pinned at 100 %: a bar that can never
  * move again, and a later self-report cannot lower it. A closed record's number belongs to
  * that closure, not to the row that reopens it.
+ *
+ * THE WINDOW OPENS ONCE. `windowStart` is the seq at which the table FIRST made this row
+ * `in_progress`, and it never moves: a re-planned or retried row keeps the interval it already had.
+ * A row whose window never opened (created straight as `completed`, so it never ran) gets one here
+ * the first time a table actually starts it. Without the `windowStart === null` guard a reopen would
+ * rewrite the start of the interval and silently re-attribute every node between the two.
  */
-function reopenStep(step, time) {
+function reopenStep(step, time, seq) {
   const reopened = step.status === STEP_STATUS.done || step.status === STEP_STATUS.failed;
+  const windowStart = isFiniteNumber(step.windowStart) ? step.windowStart : isFiniteNumber(seq) ? seq : null;
   const base = {
     ...step,
     status: STEP_STATUS.running,
     endedAt: null,
     startedAt: reopened || !step.startedAt ? time : step.startedAt,
+    windowStart,
+    // A REOPENED ROW'S END IS CLEARED. A single [start, end) interval cannot describe a row that ran
+    // twice: keeping the FIRST end means every later event falls outside the only interval the row
+    // has, so a retried step would own nothing and its work would all count as unattributed. Clearing
+    // it re-opens the interval from the original start, which is the honest reading of "this row is
+    // running again" — the interval then spans everything it did, first attempt included, because the
+    // fold keeps ONE node list per row rather than one per attempt.
+    //
+    // `windowStart` still never moves (see above): only the END is dropped, so a re-plan cannot
+    // silently re-attribute earlier work.
+    windowEnd: null,
   };
-  return reopened ? { ...base, percent: null, percentSource: "none", maxPercent: 0 } : base;
+  // A reopened row is EXECUTING again: it is no longer waiting for a turn (a closed row already
+  // carries false from closeStep; this keeps the invariant true for any other closure path).
+  return reopened ? { ...base, percent: null, percentSource: "none", maxPercent: 0, awaitingNextTurn: false } : base;
 }
 
-function foldTodos(state, event, time) {
+function foldTodos(state, event, time, seq) {
   const data = dataOf(event);
   const raw = data && Array.isArray(data.todos) ? data.todos : [];
   const todos = raw
@@ -835,8 +999,13 @@ function foldTodos(state, event, time) {
         created.percent = 100;
         created.percentSource = "closed";
         created.maxPercent = 100;
+        // Created already closed: it never ran, so no interval ever OPENED (windowStart stays
+        // null) and the instant it closed is this event. A null start covers no seq, which is
+        // exactly right for a row that shows up as `completed` and nothing was ever seen doing.
+        created.windowEnd = isFiniteNumber(seq) ? seq : null;
       } else if (item.status === "in_progress") {
         created.status = STEP_STATUS.running;
+        created.windowStart = isFiniteNumber(seq) ? seq : null;
       } else {
         created.status = STEP_STATUS.pending;
         created.startedAt = 0;
@@ -867,11 +1036,11 @@ function foldTodos(state, event, time) {
       next = { ...next, title: shown, prevKey: next.stepKey, stepKey: shownKey, aliasKeys };
     }
     if (item.status === "completed" && next.status !== STEP_STATUS.done) {
-      steps[at] = closeStep(next, time);
+      steps[at] = closeStep(next, time, seq);
       if (next.startedAt > 0) durations = [...durations, time - next.startedAt].filter((value) => value > 0);
     } else if (item.status === "in_progress" && next.status !== STEP_STATUS.running) {
       // A step re-opened by a re-plan or a retry: keep its ledger row, restart the clock.
-      steps[at] = reopenStep(next, time);
+      steps[at] = reopenStep(next, time, seq);
     } else if (next !== step) {
       steps[at] = next;
     }
@@ -888,9 +1057,9 @@ function foldTodos(state, event, time) {
     if (!step) continue;
     if (claim.status === "completed" && step.status !== STEP_STATUS.done) {
       if (step.startedAt > 0) durations = [...durations, time - step.startedAt].filter((value) => value > 0);
-      steps[at] = closeStep(step, time);
+      steps[at] = closeStep(step, time, seq);
     } else if (claim.status === "in_progress" && step.status !== STEP_STATUS.running) {
-      steps[at] = reopenStep(step, time);
+      steps[at] = reopenStep(step, time, seq);
     } else if (claim.status === "pending" && step.status !== STEP_STATUS.pending) {
       // Same rule for a demotion: the row is not done, so it cannot keep a done row's number.
       steps[at] = {
@@ -901,6 +1070,8 @@ function foldTodos(state, event, time) {
         percent: null,
         percentSource: "none",
         maxPercent: 0,
+        // Not executing ⇒ not waiting for a turn (see the same line in soleRunning).
+        awaitingNextTurn: false,
       };
     }
   }
@@ -1176,8 +1347,12 @@ function planIndexOf(content) {
   return match ? Number(match[1]) : null;
 }
 
-/** A title with its ordinal and decoration removed, for comparison only (never displayed). */
-function normalizeTitle(value) {
+// A title with its ordinal and decoration removed, for comparison only (never displayed).
+// EXPORTED so a checker compares titles with THIS rule instead of inventing a second one:
+// tools/check-todo-align.mjs must judge "the map's step list matches the conversation's task list",
+// and a private copy of the regex there would silently disagree with the fold the moment either
+// changes. Nothing in this file's own namespace changes — `export` adds a binding, not a behaviour.
+export function normalizeTitle(value) {
   return typeof value === "string"
     ? value.replace(/^\s*\d+\s*[.、．)]\s*/, "").replace(/[（(][^）)]*[）)]\s*$/, "").replace(/\s+/g, "").trim()
     : "";
@@ -1301,7 +1476,7 @@ function openPlanStep(state, time, seq, planIndex, title, blockText) {
     const closing = steps[runningAt];
     // The synthetic planning step (created for a pre-plan node) is closed but keeps its row:
     // it is where the research that PRODUCED the plan lives.
-    steps[runningAt] = closeStep(closing, time);
+    steps[runningAt] = closeStep(closing, time, seq);
     durations = [...durations, time - closing.startedAt].filter((value) => value > 0);
   }
 
@@ -1352,7 +1527,7 @@ function foldPaeReport(state, time, seq, report, blockText) {
     const step = steps[at];
     const wasRunning = step.status === STEP_STATUS.running;
     steps[at] = {
-      ...(wasRunning ? closeStep(step, time) : step),
+      ...(wasRunning ? closeStep(step, time, seq) : step),
       reportSummary: text(blockText, TITLE_LIMIT),
       outcome: /状态：\s*成功/.test(blockText) ? "success" : /状态：\s*失败/.test(blockText) ? "failed" : step.outcome ?? "",
     };
@@ -1368,14 +1543,26 @@ function foldPaeReport(state, time, seq, report, blockText) {
 
 
 /**
- * Close a step at `time`.
+ * Close a step at `time`, and stamp the end of its event interval at `seq`.
  *
  * A finished step is 100% — that is what "done" MEANS — so the bar fills and stays filled.
  * Keeping the last baseline guess here would show a completed step at 83% forever, which is
  * the one thing a workflow map must not do. The model's own last report is preserved on the
  * step as `maxPercent`, so a UI that wants "the last self-report" can still show it.
+ *
+ * THE WINDOW CLOSES ONCE. `windowEnd` is the seq of the FIRST closure and never moves afterwards:
+ * a step's interval is the stretch of log it ran in, so a retry that fails again must not stretch it
+ * over the rows that ran in between. A row that is closed, reopened and closed again therefore keeps
+ * [first start, first close); the work done after the retry falls outside it and is counted as
+ * unattributed instead of being guessed back onto whichever step looks closest.
+ *
+ * `seq` is absent on the paths that close WITHOUT an event (a reconcile pass that applies a status
+ * the checkpoint already implied). Those leave the interval exactly as it was - there is no seq to
+ * record, and inventing one would be worse than a null.
  */
-function closeStep(step, time) {
+function closeStep(step, time, seq) {
+  const prior = isFiniteNumber(step.windowEnd) ? step.windowEnd : null;
+  const windowEnd = prior !== null ? prior : isFiniteNumber(seq) ? seq : null;
   return {
     ...step,
     status: STEP_STATUS.done,
@@ -1383,34 +1570,99 @@ function closeStep(step, time) {
     percent: 100,
     percentSource: step.percentSource === "model" ? "model" : "closed",
     maxPercent: Math.max(step.maxPercent, 100),
+    windowEnd,
+    // A closed step is finished work: it is no longer waiting for anything.
+    awaitingNextTurn: false,
   };
 }
 
+/**
+ * A turn opened. The step rows are NOT closed (PAE re-sends the todo table each turn), but the
+ * "waiting for the next turn" flag they may carry is cleared, and `view.running` goes true.
+ */
 function foldTurnStart(state, _event, time) {
   // A new turn does not close the current step (PAE re-sends the todo table each turn),
   // but it does clear the "current node" highlight: the next node opens it again.
   // and it opens the turn, which is what `view.running` reports.
-  return withActive({ ...state, asOf: time, turnActive: true }, null, time);
+  //
+  // It also ENDS THE WAIT: a step that `turn/end` left awaiting the next turn is executing again,
+  // so `awaitingNextTurn` goes false here and `percentFor` may publish a number for it once more.
+  const resumed = state.steps.some((step) => step.awaitingNextTurn === true)
+    ? {
+        ...state,
+        steps: state.steps.map((step) => (step.awaitingNextTurn === true ? { ...step, awaitingNextTurn: false } : step)),
+      }
+    : state;
+  return withActive({ ...resumed, asOf: time, turnActive: true }, null, time);
 }
 
-function foldTurnEnd(state, _event, time) {
-  const next = { ...state, asOf: time, turnActive: false };
-  // The turn is over, so the step it was running is over too. Leaving it `running` kept a live,
-  // forever-partial bar on the last step of every finished session.
-  // The one exception is a step the todo table still names as its `in_progress` row: that step
-  // really does continue into the next turn, and closing it here would make the next turn reopen
-  // a step that never stopped.
-  const running = runningStep(next);
-  if (!running) return next;
+function foldTurnEnd(state, event, time, seq) {
+  const data = dataOf(event);
+  const reason = data && isRecord(data.reason) ? data.reason : null;
+  // The MEASURED shape (167 local logs, 1067 turn/end events, 2026-11-01):
+  //   data = { turn, reason: { kind: "completed" | "error" | "aborted" | "interrupted" |
+  //                           "max-tokens", … } }
+  // `reason.kind` is absent on some synthetic logs. A MISSING kind is not evidence of an
+  // interruption, so it takes the non-terminal route (below).
+  const kind = reason && typeof reason.kind === "string" ? reason.kind.trim().toLowerCase() : "";
+  const terminal = TERMINAL_TURN_REASONS.has(kind);
+  let next = { ...state, asOf: time, turnActive: false };
+
+  // A reason this build has never been taught takes the NON-terminal route (mark the wait) and is
+  // recorded, because the alternative — silently closing a step that PAE will continue — is the
+  // worse guess. Bounded + deduplicated: the list is persisted in the state.
+  if (!terminal && !CONTINUING_TURN_REASONS.has(kind)) {
+    const known = Array.isArray(state.unknownTurnReasons) ? state.unknownTurnReasons : [];
+    if (!known.includes(kind)) {
+      next = { ...next, unknownTurnReasons: [...known, kind].slice(-UNKNOWN_TURN_REASONS_LIMIT) };
+    }
+  }
+
+  let hasRunning = false;
+  for (const step of next.steps) if (step.status === STEP_STATUS.running) hasRunning = true;
+  if (!hasRunning) return next;
+
+  if (terminal) {
+    // A turn that ended in aborted/error/failed/interrupted leaves NOTHING to continue: there is no
+    // "resume from where it stopped" for the same step. Closing it is what removes the frozen,
+    // forever-partial bar the panel used to keep on the last step of an interrupted session — the
+    // exemption below must never apply here, whatever the todo table still says.
+    let durations = next.durations;
+    const steps = next.steps.map((step) => {
+      if (step.status !== STEP_STATUS.running) return step;
+      if (step.startedAt > 0) durations = [...durations, time - step.startedAt].filter((value) => value > 0);
+      return closeStep(step, time, seq);
+    });
+    return withPercents({ ...next, steps, durations }, time);
+  }
+
+  // Non-terminal: the step the todo table still names as its `in_progress` row really does continue
+  // into the next turn, and closing it here would make the next turn reopen a step that never
+  // stopped. It keeps `running` and gains `awaitingNextTurn` — the panel then draws "waiting" and
+  // `percentFor` publishes no number for it until the next `turn/start`.
   const inProgress = inProgressStepIndex(next);
-  if (isFiniteNumber(inProgress) && inProgress === running.index) return next;
-  const durations =
-    running.startedAt > 0 ? [...next.durations, time - running.startedAt].filter((value) => value > 0) : next.durations;
-  const steps = next.steps.map((step) => (step.index === running.index ? closeStep(step, time) : step));
+  const continues =
+    isFiniteNumber(inProgress) && next.steps[inProgress] && next.steps[inProgress].status === STEP_STATUS.running;
+  if (continues) {
+    const steps = next.steps.map((step) =>
+      step.status === STEP_STATUS.running ? { ...step, awaitingNextTurn: true } : step,
+    );
+    return withPercents({ ...next, steps }, time);
+  }
+
+  // No row claims this work any more (the table moved on or dropped it): the turn's end closes it.
+  let durations = next.durations;
+  const steps = next.steps.map((step) => {
+    if (step.status !== STEP_STATUS.running) return step;
+    if (step.startedAt > 0) durations = [...durations, time - step.startedAt].filter((value) => value > 0);
+    // The turn ended and no row claims this work: the interval closes at the turn/end event,
+    // which is the last instant this step is known to have been the live one.
+    return closeStep(step, time, seq);
+  });
   return withPercents({ ...next, steps, durations }, time);
 }
 
-function foldReport(state, event, time) {
+function foldReport(state, event, time, seq) {
   const data = dataOf(event);
   const raw = data ? data.percent : undefined;
   if (!isFiniteNumber(raw)) return state;
@@ -1436,7 +1688,15 @@ function foldReport(state, event, time) {
     row.index === step.index ? { ...row, lastEstimateAt: time } : row,
   );
   const next = withPercents({ ...state, asOf: time, steps: stamped, reports }, time);
-  return appendNode(next, newNode("report", "", `进度自报 ${value}%`, time, { detail: text(note), stepIndex: step.index }), time);
+  // The self-report node carries the report event's OWN seq: it is a node like any other and
+  // attribution reads `node.seq`. Without it the node has no seq at all, so no step's interval can
+  // cover it and every report would land in `unassigned` — a regression this change would otherwise
+  // introduce while fixing attribution.
+  return appendNode(
+    next,
+    newNode("report", "", `进度自报 ${value}%`, time, { seq, detail: text(note), stepIndex: step.index }),
+    time,
+  );
 }
 
 /**
@@ -1451,12 +1711,23 @@ function foldReport(state, event, time) {
 /** A workflow phase heading inside a lane (a section, not a tool call). */
 const BRANCH_ROW_PHASE = "phase";
 
-/** The step a branch belongs to: the running one, else the last one (never invented). */
-function branchStepIndex(state) {
-  const running = runningStep(state);
-  if (running) return running.index;
-  const last = state.steps[state.steps.length - 1];
-  return last ? last.index : null;
+/**
+ * The step a branch lane belongs to: the step whose EVENT INTERVAL contains the seq at which the
+ * lane opened.
+ *
+ * Same rule as a node (see `windowStep`), for the same reason: "which step is running right now"
+ * is not the question — the lane was started by a specific call at a specific seq, and the interval
+ * says which step that instant belonged to. Hanging every lane off the LAST step was the heuristic
+ * that made finished work look like it belonged to whatever row the fold happened to end on.
+ *
+ * A lane whose seq is unknown (`null`) gets `null`, NOT the last step: the caller (`pushBranch`)
+ * keeps such a lane with `stepIndex: null`, and the browser half already draws an unattached lane
+ * on the first step (see `store.js`: `branchStep === null && selected !== 0 continue`). An honest
+ * null beats a guessed index.
+ */
+function branchStepIndex(state, seq) {
+  const step = windowStep(state, seq);
+  return step ? step.index : null;
 }
 
 /** Tool name -> branch kind. `workflow` is a tool too: calling it launches a workflow run. */
@@ -1475,7 +1746,9 @@ function pushBranch(state, spec, time) {
     status: STEP_STATUS.running,
     startedAt: isFiniteNumber(spec.startedAt) && spec.startedAt > 0 ? spec.startedAt : time,
     endedAt: null,
-    stepIndex: isFiniteNumber(spec.stepIndex) ? spec.stepIndex : branchStepIndex(state),
+    stepIndex: isFiniteNumber(spec.stepIndex)
+      ? spec.stepIndex
+      : branchStepIndex(state, spec.seq === undefined ? null : spec.seq),
     seq: spec.seq === undefined ? null : spec.seq,
     callId: spec.callId || "",
     runId: spec.runId || "",
@@ -1779,7 +2052,7 @@ function foldJob(state, event, time, seq, settled) {
       kind: typeof data.kind === "string" ? text(data.kind, 40) : "",
       startedAt: isFiniteNumber(data.startedAt) && data.startedAt > 0 ? data.startedAt : time,
       callId,
-      stepIndex: branchStepIndex(state),
+      stepIndex: branchStepIndex(state, seq),
     });
     return { ...state, asOf: time, pendingJobs };
   }
@@ -2121,9 +2394,22 @@ function settleConfirmNode(state, callId, body, time) {
 
 /**
  * Append one node, enforcing both caps and attributing it to a plan step.
- * Attribution (step file §3): the PAE anchor range wins; otherwise the in_progress todo
- * row's step; otherwise the running step. A node that predates every anchor of an anchored
- * plan belongs to no step — it is dropped rather than guessed into one.
+ *
+ * Attribution: the PAE anchor range wins; otherwise the step whose EVENT INTERVAL contains the
+ * node's seq (see `windowStep`). There is no "else the running step" fallback — that pointer was
+ * the defect.
+ *
+ * A node no interval covers is NOT dropped silently any more. It is COUNTED in
+ * `state.unassigned` (first failing seq kept in `sinceSeq`) and the state is returned otherwise
+ * unchanged. The old code returned the same state without touching any counter, so a session could
+ * lose half its flow and every published number stayed plausible — a `done` step read "0 tools"
+ * while the calls it made were simply nowhere. A count makes the leak visible and testable; it does
+ * not pretend the node found a home.
+ *
+ * The one exception is kept: while the conversation shows no task list of its own (`state.todos` is
+ * empty) there is no history to contradict, and the nodes really are worth showing — so they open
+ * the synthetic "任务执行中" row. As soon as a todo table arrives, that row is replaced by the table's
+ * own rows (`syncToTodos`) and this branch stops firing.
  */
 function appendNode(state, node, time) {
   const step = stepForNode(state, node.seq ?? null, inProgressStepIndex(state));
@@ -2131,11 +2417,21 @@ function appendNode(state, node, time) {
     if (state.steps.length === 0) {
       // No plan yet (the planning phase of an ordinary session): the nodes are still worth
       // showing, so they open one synthetic step. It is NOT a plan step and says so.
+      // The row must OPEN its interval at this event, or it can never hold the nodes it exists for:
+      // a null `windowStart` covers no seq, so the very node that created the row would be counted
+      // as unattributed again and the row would stay empty forever. Measured on session 284d74eb:
+      // one planning row, 256 unattributed nodes, 0 owned — the row was created and instantly useless.
       const only = newStep(0, PLANNING_TITLE, time, "todo");
+      only.windowStart = isFiniteNumber(node.seq) ? node.seq : null;
       return appendNode({ ...state, steps: [only] }, node, time);
     }
-    // An anchored plan exists and this event precedes its first anchor: no step owns it.
-    return { ...state, asOf: time };
+    // No step's interval covers this event. Record it instead of losing it.
+    const previous = isRecord(state.unassigned) ? state.unassigned : { nodes: 0, sinceSeq: null };
+    const nodes = Number.isInteger(previous.nodes) && previous.nodes >= 0 ? previous.nodes : 0;
+    const sinceSeq = previous.sinceSeq === null || previous.sinceSeq === undefined
+      ? (isFiniteNumber(node.seq) ? node.seq : null)
+      : previous.sinceSeq;
+    return { ...state, asOf: time, unassigned: { nodes: nodes + 1, sinceSeq } };
   }
 
   const nodes = [...state.nodes];
@@ -2293,14 +2589,14 @@ export function foldEvent(state, event) {
   // Order matters: the todo-sync runs FIRST (it decides which rows exist and how many nodes each
   // owns), then the single-running convergence. Both are idempotent, so an event that changes
   // neither returns the previous reference and the idempotence contract is untouched.
-  const next = soleRunning(syncToTodos(folded), time);
+  const next = soleRunning(syncToTodos(folded, seq), time, seq);
   return next === base ? base : { ...next, seq: seq === null ? next.seq : seq };
 }
 
 function foldOne(state, type, event, time, seq) {
   switch (type) {
     case TYPE_TODOS:
-      return withPercents(foldTodos(state, event, time), time);
+      return withPercents(foldTodos(state, event, time, seq), time);
     case TYPE_TOOL_CALL:
       return foldToolCall(state, event, time, seq);
     case TYPE_TOOL_RESULT:
@@ -2316,9 +2612,9 @@ function foldOne(state, type, event, time, seq) {
     case TYPE_TURN_START:
       return foldTurnStart(state, event, time);
     case TYPE_TURN_END:
-      return foldTurnEnd(state, event, time);
+      return foldTurnEnd(state, event, time, seq);
     case TYPE_REPORT:
-      return foldReport(state, event, time);
+      return foldReport(state, event, time, seq);
     case TYPE_SUBAGENT_START:
       return foldSubagent(state, event, time, seq, "start");
     case TYPE_SUBAGENT_END:
@@ -2392,6 +2688,10 @@ function stepView(step, state, now) {
     outcome: step.outcome ?? "",
     startedAt: step.startedAt,
     endedAt: step.endedAt,
+    // true = this step is waiting for the next turn. `view.running` answers a DIFFERENT question
+    // (is the session running a turn right now); the panel needs this one to render "waiting"
+    // instead of a number, so both are published and neither is derived from the other.
+    awaitingNextTurn: step.awaitingNextTurn === true,
     lastActivityAt: step.lastActivityAt ?? 0,
     modelStep: step.modelStep ?? null,
     anchorSeq: step.anchorSeq ?? null,
@@ -2475,7 +2775,7 @@ function branchView(branch) {
  * Nodes of a dropped row go with it (a step nobody lists cannot own work), and `active` is
  * re-pointed at the surviving running row so no highlight ever dangles.
  */
-function syncToTodos(state) {
+function syncToTodos(state, seq) {
   if (state.todos.length === 0) return state;
   // The todo table's OWN order is the order the conversation shows. Build the target list from
   // it, then pull each step record out of the fold's history by title. A row the fold has never
@@ -2503,8 +2803,20 @@ function syncToTodos(state) {
   // bound it to. Without this pass a row the model has not started kept the `done` of an old record
   // (a card at 100 % next to an empty todo), while an `in_progress` row showed as `pending` because
   // the record it landed on was still pending — both seen in one session on 2026-10-30.
+  // THE WINDOW IS MAINTAINED HERE TOO, and that is not redundancy — it is the only place the
+  // interval can be opened at all. This pass runs AFTER `foldTodos` on every event and rewrites
+  // each matched row's status from the table, so by the time the NEXT `todo/write` arrives the row
+  // already reads `running` and `foldTodos`'s "status changed → reopen" branch never fires. Opening
+  // the window only there therefore lost EVERY start: measured on session d87d69d9, every step
+  // kept `windowStart: null` with a non-null `windowEnd`, and 195 of 267 calls were unattributed.
+  //
+  // A null `seq` means this pass is a PROJECTION (buildView re-derives the step list from an
+  // already-folded state). Then the interval is read, never written: re-opening it there would
+  // overwrite a window the log already measured.
   const rowStatus = (step, row) => {
-    if (row.status === "completed") return step.status === STEP_STATUS.done ? step : closeStep(step, state.asOf || 0);
+    if (row.status === "completed") {
+      return step.status === STEP_STATUS.done ? step : closeStep(step, state.asOf || 0, seq);
+    }
     // A closed record cannot speak for an open row. When the table takes a row back to
     // in_progress/pending, the record it is bound to may be a step this table already closed,
     // or an older row a reworded title landed on. Keeping that percent and high-water renders
@@ -2520,9 +2832,20 @@ function syncToTodos(state) {
         status: STEP_STATUS.running,
         endedAt: null,
         startedAt: reopened || !step.startedAt ? state.asOf || 0 : step.startedAt,
+        windowStart: isFiniteNumber(step.windowStart) ? step.windowStart : isFiniteNumber(seq) ? seq : null,
       };
     }
-    return { ...step, ...carried, status: STEP_STATUS.pending, endedAt: null, startedAt: 0, percent: null, percentSource: "none" };
+    // A pending row is not executing, so it cannot be "waiting for the next turn" either.
+    return {
+      ...step,
+      ...carried,
+      status: STEP_STATUS.pending,
+      endedAt: null,
+      startedAt: 0,
+      percent: null,
+      percentSource: "none",
+      awaitingNextTurn: false,
+    };
   };
 
   const byKey = new Map();
@@ -2811,6 +3134,16 @@ export function buildView(state, nowMs) {
     // answer it (PAE leaves them 'running' after the turn ends).
     running: live.turnActive === true,
     truncated: { ...live.truncated },
+    // Nodes the fold could NOT attribute to any step, and the first seq that failed to land.
+    // Published so the panel (and a checker) can see the leak instead of reading a node total that
+    // silently shrank: `counts.nodes` is still "nodes OWNED by the steps shown", which is why the
+    // two numbers are separate and must not be merged. A reader that wants the session's whole
+    // recorded activity has to add them.
+    unassigned: {
+      nodes: isRecord(live.unassigned) && Number.isInteger(live.unassigned.nodes) ? live.unassigned.nodes : 0,
+      sinceSeq:
+        isRecord(live.unassigned) && isFiniteNumber(live.unassigned.sinceSeq) ? live.unassigned.sinceSeq : null,
+    },
     // the hot-inject history: what THIS plugin's /steer channel put into the session, and
     // whether the session has admitted each one. The browser half renders it under the composer.
     injects: source.injects.map((row) => ({ ...row })),

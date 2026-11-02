@@ -190,7 +190,11 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
   var row = unit && typeof unit === "object" ? unit : {};
   var index = wfFinite(row.index) === null ? position : Math.round(row.index);
   var status = typeof row.status === "string" ? row.status : "pending";
- // Two different facts, deliberately kept apart:
+  // Waiting for the next turn: still `running`, but not advancing. Every animated piece on this
+  // card (the "● working ..." marker, the flowing frame, the breathing ring) reads this one local,
+  // so the two states cannot drift apart.
+  var awaiting = row.awaitingNextTurn === true;
+// Two different facts, deliberately kept apart:
  // selected the step the panel remembers (the last one opened) — the chain's highlight
  // open the step whose page is on the right right now — the card's aria-pressed
   var selected = context.selectedStep === index;
@@ -216,6 +220,10 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
       "data-plan-index": row.planIndex === null ? undefined : row.planIndex,
       "data-status": status,
       "data-status-source": row.statusSource,
+      // "this step is waiting for the next turn": still `running` (the work is not finished), yet
+      // nothing is advancing. The stylesheet freezes the frame/ring on it and the test reads it
+      // here, so the two states are distinguishable from the DOM alone.
+      "data-awaiting": awaiting ? "true" : "false",
       "data-selected": selected ? "true" : "false",
       "data-active": row.active ? "true" : "false",
       "aria-pressed": open ? "true" : "false",
@@ -233,7 +241,14 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
       h(
         "span",
         { className: "wf-unit-meta", key: "meta" },
-        h("span", { className: "wf-badge", key: "badge" }, say(row.statusKey || "panel.status.pending")),
+        // The badge names the state the CARD is in. A waiting row is still `running` on the wire, so
+        // the plain status word would advertise activity that is not happening — the same defect the
+        // number had. `panel.status.awaiting` exists for exactly that one substitution.
+        h(
+          "span",
+          { className: "wf-badge", key: "badge" },
+          say(awaiting ? "panel.status.awaiting" : row.statusKey || "panel.status.pending")
+        ),
         metaBits.map(function (bit, at) {
           return h("span", { key: "bit-" + at }, bit);
         }),
@@ -253,7 +268,11 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
             )
           : null
       ),
-      status === "running" ? wfRenderLive(h, say, "step") : null
+      // "● working ..." is the marker for an ADVANCE in progress. A waiting step is still running,
+      // but it is not advancing — printing the blinking marker there would be the same lie the
+      // number was: something is happening, when the session is in fact waiting for the user.
+      // (Waiting has its own static sentence, on the rail: 「等待下一回合」.)
+      status === "running" && !awaiting ? wfRenderLive(h, say, "step") : null
     )
   );
 
@@ -275,8 +294,11 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
       "data-step-index": index,
       "data-status": status,
       "data-selected": selected ? "true" : "false",
- // "needs confirm" on the row itself, so the card's left edge and the ring can be styled
- // without the badge row having to be in view.
+      // The waiting state lives on the ROW as well as on the card: the ring, the badge and the
+      // flowing frame are all styled from `.wf-unit[data-*]`, and FlowEffects queries the row.
+      "data-awaiting": awaiting ? "true" : "false",
+      // "needs confirm" on the row itself, so the card's left edge and the ring can be styled
+      // without the badge row having to be in view.
       "data-confirm": wfConfirmRows(row).length > 0 || row.requiresConfirmation === true ? "true" : "false",
     },
     wfRenderSatSide(h, row.left, "left", say, actions, unitContext),
@@ -299,9 +321,10 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
           key: "link",
           "aria-hidden": "true",
           "data-done": status === "done" ? "true" : "false",
- // Only the one connector that points directly at the single running step carries the flowing gradient.
- // row.live is derived by the store from the host's runningIndex, so at most one row qualifies.
-          "data-live": row.live === true ? "true" : "false",
+// Only the one connector that points directly at the single running step carries the flowing gradient.
+// row.live is derived by the store from the host's runningIndex, so at most one row qualifies —
+// and a WAITING row is excluded even then: the connector animates an approach that is not happening.
+          "data-live": row.live === true && !awaiting ? "true" : "false",
         })
       : null
   );
