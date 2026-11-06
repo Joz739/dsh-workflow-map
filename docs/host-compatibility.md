@@ -1,6 +1,6 @@
-# 宿主兼容性核验（DSH `0.2.1-rc.1` – `0.2.1-rc.5`）
+# 宿主兼容性核验（DSH `0.2.1-rc.1` – `0.2.2-rc.1`）
 
-要回答的问题：本插件声明的宿主范围，在 `0.2.1` 全系列（`rc.1` 至 `rc.5`）里是否真的有依据。
+要回答的问题：本插件声明的宿主范围，在 `0.2.1` 全系列（`rc.1` 至 `rc.5`）以及升级后的 `0.2.2-rc.1` 上是否真的有依据。
 
 结论以 `package.json` 的 `engines.dsh` 为唯一声明口径。下文记录该口径的判据、核验方法与逐条证据，供使用者自行复核。
 
@@ -11,15 +11,18 @@
 ```json
 "engines": {
   "node": ">=20",
-  "dsh": ">=0.2.1-rc.1 <0.3.0-0"
+  "dsh": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0"
 }
 ```
 
 区间含义：
 
-- 起点 `>=0.2.1-rc.1`：`0.2.1` 元组上的第一个预发布版本，带显式预发布标签。
-- 上界 `<0.3.0-0`：排除 `0.3.0` 及其预发布（`0.3.0-0` 是 `0.3.0` 预发布的最小值），即不声称兼容下一 minor。
+区间含义（两段并集，2026-11-06 修订）：
 
+- 第一段 `>=0.2.1-rc.1 <0.3.0-0`：覆盖 `0.2.1` 元组上的预发布与正式版。显式预发布标签使 npm / pnpm 默认判据能匹配 `0.2.1-rc.x`。
+- 第二段 `>=0.2.2-rc.1 <0.3.0-0`：显式覆盖 `0.2.2` 元组的预发布链。DSH 自身闸门带 `includePrerelease`，旧的单段区间本已覆盖 `0.2.2-rc.1`；但 npm / pnpm 默认 engines 检查对跨元组预发布判为不匹配，故补这一段使两套判据都通过。
+- 上界 `<0.3.0-0`：排除 `0.3.0` 及其预发布（`0.3.0-0` 是 `0.3.0` 预发布的最小值），即不声称兼容下一 minor。
+- 已知边界：`0.2.3-rc.x` 及更高 `0.2.x` 元组的预发布，在 npm / pnpm 默认判据下仍不匹配（默认 semver 只允许与区间内比较符同元组的预发布参与匹配）；DSH 闸门不受影响。将来升到这些版本需再增一段并集。
 本插件不使用 `dsh.host` 之类的自定义元数据字段：宿主包由 `peerDependencies` 声明（均为可选 peer），版本闸门由 `engines.dsh` 单独决定。
 
 ---
@@ -64,27 +67,27 @@ function unmetRequirements(fields, runtimeVersion) {
 
 npm 与 pnpm 用不带 `includePrerelease` 的默认 semver 语义检查 `engines`。
 
-### 2.3 两者对同一区间的判定（semver 7.8.5 实测）
+### 2.3 两者对各候选区间的判定（内核自带 semver，2026-11-06 实测）
+| 运行时版本 | 旧单段 `>=0.2.1-rc.1 <0.3.0-0`（npm 默认） | 旧单段（DSH 闸门） | **现行并集**（npm 默认） | **现行并集**（DSH 闸门） |
+|---|---|---|---|---|
+| `0.2.1-rc.1` | 通过 | 通过 | 通过 | 通过 |
+| `0.2.1-rc.5` | 通过 | 通过 | 通过 | 通过 |
+| `0.2.1` | 通过 | 通过 | 通过 | 通过 |
+| `0.2.2-rc.1` | **不通过** | 通过 | **通过** | 通过 |
+| `0.2.2-rc.2` | **不通过** | 通过 | **通过** | 通过 |
+| `0.2.2` | 通过 | 通过 | 通过 | 通过 |
+| `0.2.3-rc.1` | 不通过 | 通过 | 不通过 | 通过 |
+| `0.3.0-0` | 不通过 | 不通过 | 不通过 | 不通过 |
+| `0.3.0` | 不通过 | 不通过 | 不通过 | 不通过 |
 
-| 运行时版本 | `>=0.2.1-rc.1 <0.3.0-0`（npm 默认） | 同区间（DSH 闸门，`includePrerelease`） | `>=0.1.0-rc.1 <0.3.0-0`（npm 默认） |
-|---|---|---|---|
-| `0.2.1-alpha.5` | 不通过 | 不通过 | 不通过 |
-| `0.2.1-rc.1` | 通过 | 通过 | **不通过** |
-| `0.2.1-rc.2` | 通过 | 通过 | **不通过** |
-| `0.2.1-rc.3` | 通过 | 通过 | **不通过** |
-| `0.2.1-rc.4` | 通过 | 通过 | **不通过** |
-| `0.2.1-rc.5` | 通过 | 通过 | **不通过** |
-| `0.2.1` | 通过 | 通过 | 通过 |
-| `0.2.2-rc.1` | 不通过 | 通过 | 不通过 |
-| `0.3.0-0` | 不通过 | 不通过 | 不通过 |
-| `0.3.0` | 不通过 | 不通过 | 不通过 |
+现行并集 = `>=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0`。
 
 由此得到两个写法上的硬要求：
 
-1. **起点必须落在 `0.2.1` 元组上。** 默认 semver 只允许「与区间内某个比较符同元组」的预发布版本参与匹配；写成 `>=0.1.0-rc.1`（元组 `0.1.0`）时，`0.2.1-rc.x` 全部被判为不匹配。所以在 npm/pnpm 的默认判据下，`>=0.1.0-rc.1 <0.3.0-0` 会静默排除全部 `0.2.1` 预发布版本。
+1. **每一段起点必须落在目标元组上。** 默认 semver 只允许「与区间内某个比较符同元组」的预发布版本参与匹配；单段 `>=0.2.1-rc.1 <0.3.0-0` 的 npm 默认判据因此静默排除 `0.2.2-rc.x`。写成 `>=0.1.0-rc.1` 同理会排除全部 `0.2.1` 预发布。补第二段 `>=0.2.2-rc.1` 即修好 `0.2.2` 线。
 2. **上界取 `<0.3.0-0`。** 写成 `<0.3.0` 会在 DSH 闸门（`includePrerelease`）下把 `0.3.0-rc.x` 也算作通过，与「不声称兼容下一 minor」冲突。
 
-DSH 闸门带 `includePrerelease`，因此 `0.2.2-rc.x` 这类后续 `0.2.x` 预发布也会通过。这是有意接受的结果：声明覆盖整个 `0.2.x` 预发布链，而不是逐版本列举。
+DSH 闸门带 `includePrerelease`，因此 `0.2.x` 后续元组的预发布也会通过；并集里各段是为了兼顾 **npm / pnpm 默认 engines 判据**。上界始终 `<0.3.0-0`，整条 `0.3` 线不在声明内。
 
 ---
 
@@ -97,8 +100,9 @@ DSH 闸门带 `includePrerelease`，因此 `0.2.2-rc.x` 这类后续 `0.2.x` 预
 | `0.2.1-rc.3` | 同上 + 隔离实机运行（插件加载、面板注入、视图路由） | 基线版本 |
 | `0.2.1-rc.4` | npm 闭包元数据 + 5 个变动包逐文件 SHA + 契约锚点窗口 | 契约面无变化 |
 | `0.2.1-rc.5` | npm 闭包元数据 + 逐文件比对 + **隔离 `DSH_HOME` 实机运行**（`--dump-config` 解析、web 宿主启动、`/dsh-workflow/*` 三种端点实测，见 §3.1） | 契约面无变化，且宿主半在 `rc.5` 上实机应答 |
+| `0.2.2-rc.1` | **升级后本机内核实机核验**：启用态 / 豁免表、宿主半 ESM 链接、九个契约点、活体 `workflowView` 投影写入（见 §3.2） | 适配；加载期无硬失败，无需改源码 |
 
-`rc.4` 的结论来自与 `rc.3` 的逐文件比对，不是实机运行结论（见 §8）。`rc.5` 已补做隔离实机运行，记录见下节。
+`rc.4` 的结论来自与 `rc.3` 的逐文件比对，不是实机运行结论（见 §8）。`rc.5` 已补做隔离实机运行，`0.2.2-rc.1` 已补做升级后活体核验，记录见下两节。
 
 ### 3.1 `rc.5` 隔离实机运行记录（2026-10-30）
 
@@ -144,6 +148,65 @@ node "$run\node_modules\@deepseek-ai\dsh\lib\bin.js" --profile wfmap5 --port <po
 Invoke-WebRequest 'http://127.0.0.1:<port>/dsh-workflow/state?sessionId=none' -SkipHttpErrorCheck -NoProxy
 # 期望：404 + {"ok":false,"error":"unknown session"}
 ```
+
+### 3.2 `0.2.2-rc.1` 升级后活体核验记录（2026-11-06）
+
+背景：DSH 于 2026-11-04 17:30 更新安装目录，asar 内 331 个 `@deepseek-ai/*` 包全部为
+`0.2.2-rc.1`（`@deepseek-ai/dsh-desktop-runtime@0.2.2-rc.1`、`cordis@4.1.0`）。本轮不改既有环境，
+直接在**正在运行的本机内核**上做只读探针 + 活体状态检查，不动 `~/.dsh` 以外的任何配置。
+
+**A 级：声明闸门**
+
+- `dsh-app-boot/lib/index.js` 内 `satisfies()` 仍是
+  `semver.satisfies(runtimeVersion, range, { includePrerelease: true })`；`evaluatePluginCompatibility()`
+  读 `engines.dsh` 的路径未变。
+- 用内核自带 `semver` 实测：旧单段区间对 `0.2.2-rc.1` 为 npm 默认 `false` / DSH 闸门 `true`；
+  现行并集为 `true` / `true`。`0.3.0-0`、`0.3.0` 在两套判据下均被排除。
+- `plugin_manager list_version_exemptions` 返回 `runtimeVersion: "0.2.2-rc.1"`, `exemptions: {}`；
+  `list_bundles` 中 `dsh-workflow-map@1.0.0` 为 `enabled: true, installed: true`，
+  row `workflow-map` 在位 —— 无 `incompatible-version` 拦截、无需豁免。
+
+**B 级：加载链**
+
+宿主半 `lib/index.js` 顶层只 import `../src/fold.mjs`、`../src/orchestrator.mjs`、
+`../src/route.js` 与 `node:crypto`，**不静态 import 任何 `@deepseek-ai/*` 包**（宿主服务靠 cordis
+`inject` 字符串在运行时解析）。照抄该加载链用 `ELECTRON_RUN_AS_NODE` 对内核实件做 ESM 链接：
+
+```text
+LINK host-half OK  exports=PROJECTION_KEY,apply,default,inject,makeSteerSource,makeUnsteerSource,name,packageName,routeInfo,selfCheck
+  name=workflow-map  packageName=dsh-workflow-map  inject=["sessionProjections","sessions","webServer","agents"]
+LINK peer dsh-agent-loop OK / LINK peer dsh-llm OK / LINK control dsh-tools OK
+```
+
+⇒ 无 `SyntaxError: does not provide an export named …`；与 `dsh-mall` 那种「加载链静态 import
+被移除的导出」的硬不兼容不是同一性质。
+
+**C 级：九个契约点**
+
+新内核实件逐项扫描（命中数即出现次数）：
+
+| 契约点 | 提供方 | 命中 |
+|---|---|---|
+| `sidebar.panellist` 槽 | `dsh-client-ui-sidebar/lib/client.js` | 9 |
+| `conversation.view` 槽 | `dsh-client-ui-conversation/lib/client.js` | 4 |
+| `data-composer-seat` / `data-conversation-content` / `data-conversation-scroll` | 同上 | 1 / 1 / 3 |
+| `DefaultConversationViews` | 同上 | 3 |
+| `sessionProjections` / `sessions` / `webServer` / `agents` | 宿主半四个服务包 | 9 / 8 / 2 / 23 |
+
+`list_bundles` 里 `session-projection`、`session`、`agent-loop`、`webserver`、`tools` 等
+均为 `enabled: true, fiberPhase: active`。
+
+**D 级：活体投影**
+
+当前会话（`session-3ca619ce-…`，即本轮请求）的投影缓存
+`~/.dsh/storages/session_projcache/sessions/<id>.json` 内 `workflowView` 段落
+`ver: 6, seq: 17, stateVersion: 6`，`task` 文本就是本轮请求正文 ⇒ 宿主半正在新内核上
+持续折叠本会话事件并发布 wire view，不是「能加载但功能已哑」。
+
+**结论**：**适配**。本次只做声明层同步（`engines.dsh` / `peerDependencies` / `keywords` 与文档），
+不改源码、不发 npm 新版本、不推送远端、不打 tag / Release。
+
+**未覆盖**：未跑「完整回合的端到端画布渲染」，也未做 `0.2.2` 正式版与 `0.3.x` 的核验。
 
 ---
 
@@ -234,14 +297,14 @@ div[data-conversation-content]
 | 环节 | 证据 |
 |---|---|
 | 判定实现 | `dsh-app-boot` 的 `evaluatePluginCompatibility()` → `unmetRequirements()`（§2.1 引文） |
-| 判定实现版本一致 | `dsh-app-boot` `rc.1` 与 `rc.5` 除 `package.json` 外逐文件 SHA-256 相同（`lib/index.js` = `5135179ac810e4f6…`） |
+| 判定实现版本一致 | `dsh-app-boot` `0.2.1-rc.1` 与 `0.2.1-rc.5` 除 `package.json` 外逐文件 SHA-256 相同（`lib/index.js` = `5135179ac810e4f6…`）；`0.2.2-rc.1` 上 `satisfies()` 仍为 `semver.satisfies(runtimeVersion, range, {includePrerelease: true})`（2026-11-06 读 asar 内实件确认） |
 | 安装期调用 | `dsh-plugin-manager` 三处调用（§2.1 表），未满足抛 `incompatible-version`，并在 `requirements` 里给出 `engines.dsh` 键 |
 | 调用方版本一致 | `dsh-plugin-manager` `rc.3` 与 `rc.5` 除 `package.json` 外逐文件 SHA-256 相同 |
 
 由此可推出两条可验证的后果：
 
-1. 在 `0.2.1-rc.1`–`0.2.1-rc.5` 任一内核上安装或启用，本插件的 `engines.dsh` 判定通过，不会有 `incompatible-version`。
-2. 在 `0.3.0` 及以后的内核上，`engines.dsh` 判定不通过（§2.3），安装或启用会被上述任一调用点拦下并给出明确的 `engines.dsh: ">=0.2.1-rc.1 <0.3.0-0"` 说明。这属于预期行为：不兼容时应显式失败，而不是勉强加载。
+1. 在 `0.2.1-rc.1`–`0.2.1-rc.5` 以及 `0.2.2-rc.1` 内核上安装或启用，本插件的现行 `engines.dsh` 判定通过，不会有 `incompatible-version`；`0.2.2-rc.1` 已实测 `enabled:true`、`exemptions:{}`。
+2. 在 `0.3.0` 及以后的内核上，`engines.dsh` 判定不通过（§2.3），安装或启用会被上述任一调用点拦下并给出明确的 `engines.dsh: ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0"` 说明。这属于预期行为：不兼容时应显式失败，而不是勉强加载。
 
 ---
 
@@ -284,27 +347,36 @@ tar -xzf deepseek-ai-dsh-session-projection-0.2.1-rc.5.tgz -C rc5
 diff -r rc1/package rc5/package   # 期望：仅 package.json 不同
 ```
 
-**3) 区间判定矩阵**
+**3) 区间判定矩阵（含现行并集）**
 
 ```bash
 node -e '
 const semver = require("semver");
-const ranges = [">=0.2.1-rc.1 <0.3.0-0", ">=0.1.0-rc.1 <0.3.0-0"];
-const versions = ["0.2.1-alpha.5","0.2.1-rc.1","0.2.1-rc.5","0.2.1","0.2.2-rc.1","0.3.0-0","0.3.0"];
-for (const r of ranges) console.log(r, versions.map((v) => [v, semver.satisfies(v, r), semver.satisfies(v, r, { includePrerelease: true })]));
+const ranges = [
+  ">=0.2.1-rc.1 <0.3.0-0",                                    // 旧单段
+  ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0"     // 现行并集
+];
+const versions = ["0.2.1-rc.1","0.2.1-rc.5","0.2.1","0.2.2-rc.1","0.2.2-rc.2","0.2.2","0.2.3-rc.1","0.3.0-0","0.3.0"];
+for (const r of ranges) {
+  console.log("== " + r + " ==");
+  for (const v of versions) console.log("  " + v.padEnd(14) + " npmDefault=" + semver.satisfies(v, r) + "  dshGate=" + semver.satisfies(v, r, { includePrerelease: true }));
+}
 '
 ```
+
+复跑要点：`0.2.2-rc.1` 在旧单段下 `npmDefault=false / dshGate=true`，在现行并集下两者皆 `true`；`0.3.0-0` 与 `0.3.0` 在两套判据下皆为 `false`。
 
 ---
 
 ## 八、限制声明
 
-- **动态核验范围**：截至 2026-10-30，`0.2.1-rc.3` 是实机运行过的版本；`0.2.1-rc.5` 已在隔离 `DSH_HOME` 的临时区实机启动并实测路由应答（§3.1），但不覆盖「真实会话内的投影内容」：`rc.5` 上没有跑过带会话的完整回合，`/state` 只验到「按契约返回 `unknown session`」。`rc.4` 仍只做了静态比对（闭包元数据、逐文件 SHA-256、契约锚点窗口），未实机启动。
+- **动态核验范围**：截至 2026-11-06，`0.2.1-rc.3` 是实机运行过的版本；`0.2.1-rc.5` 已在隔离 `DSH_HOME` 的临时区实机启动并实测路由应答（§3.1），但不覆盖「真实会话内的投影内容」；`0.2.2-rc.1` 在升级后的本机内核上做了活体核验（§3.2），含当前会话的 `workflowView` 投影写入，但**未跑完整回合的端到端画布渲染**。`0.2.1-rc.4` 仍只做了静态比对，未实机启动。
 - **比对对象**：只比对 npm 上已发布的产物，不覆盖未发布的仓库提交。
 - **闭包口径**：206 个包名按 `dsh-base` 与 `dsh-web-app` 的依赖并集确定；更换清单会改变闭包边界。
 - **第三方依赖**：闭包内含 `cordis`、`schemastery`、`zod` 等第三方包，它们不随 DSH 的 `rc` 编号发布，这里不对其版本承诺做任何声明。
 - **上界外版本**：`0.3.0` 及以后未做任何核验，声明上也不覆盖。
-- **判定语义**：§2.3 的矩阵来自 semver 7.8.5；换用其他实现时 `includePrerelease` 的细节可能不同。
+- **npm / pnpm 默认判据的残余边界**：`0.2.3-rc.x` 及以上 `0.2.x` 元组预发布在默认判据下仍不匹配；DSH 闸门通过。若将来升级到这些版本，需再增并集段。
+- **本次为声明层改动**：只改 `engines.dsh` / `peerDependencies` / `keywords` 与文档，未改源码、未发 npm 新版本、未推送远端、未打 tag / Release。
 
 ---
 
@@ -312,9 +384,9 @@ for (const r of ranges) console.log(r, versions.map((v) => [v, semver.satisfies(
 
 | 项 | 取值 |
 |---|---|
-| 复核日期 | 2026-10-30 |
+| 复核日期 | 2026-10-30（`0.2.1` 线）＋ 2026-11-06（`0.2.2-rc.1` 实机核验与声明修订） |
 | 数据来源 | `registry.npmjs.org` 发布产物 |
-| semver 实现 | 7.8.5（`satisfies`，分别带与不带 `includePrerelease`） |
+| semver 实现 | 7.8.5（`0.2.1` 线矩阵）；`0.2.2-rc.1` 矩阵用升级后内核自带 `semver`（`satisfies`，分别带与不带 `includePrerelease`） |
 | 闭包规模 | 206 个包名，24 个存在版本间差异 |
 | 逐文件比对包 | `dsh-app-boot`、`dsh-session`、`dsh-session-projection`、`dsh-host-webserver`、`dsh-agent-loop`、`dsh-session-persistence-jsonl`、`dsh-plugin-manager`、`dsh-client-ui-layout`、`dsh-client-ui-sidebar`、`dsh-client-ui-conversation`、`dsh-client-ui-chat`、`dsh-cordis-client-runner`、`dsh-llm-deepseek-account`、`dsh-mcp-resources` |
-| 实机运行内核 | `0.2.1-rc.3`（基线运行内核）；`0.2.1-rc.5`（隔离 `DSH_HOME` 临时区，仅路由与 loader 层） |
+| 实机运行内核 | `0.2.1-rc.3`（基线运行内核）；`0.2.1-rc.5`（隔离 `DSH_HOME` 临时区，仅路由与 loader 层）；`0.2.2-rc.1`（升级后本机内核，活体：启用态 / ESM 链接 / 契约点 / 投影写入） |

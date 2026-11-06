@@ -1,6 +1,6 @@
 {
   "name": "dsh-workflow-map",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "DeepSeek Harness（DSH）插件：把会话折叠成分步工作流地图，逐步显示状态、工具与文件类型；进度百分比标注来源（模型自报/时间基线/计划步序），而不是只报一个数；支持把提示词排入下一步队列，被取用前可撤回。",
   "private": false,
   "type": "module",
@@ -10,7 +10,7 @@
     "deepseek-harness",
     "deepseek-harness-plugin",
     "dsh",
-    "dsh-0.2.1",
+    "dsh-0.2.x",
     "cordis",
     "plugin",
     "bundle",
@@ -28,11 +28,11 @@
   },
   "engines": {
     "node": ">=20",
-    "dsh": ">=0.2.1-rc.1 <0.3.0-0"
+    "dsh": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-agent-loop": ">=0.2.1-rc.1 <0.3.0-0",
-    "@deepseek-ai/dsh-llm": ">=0.2.1-rc.1 <0.3.0-0"
+    "@deepseek-ai/dsh-agent-loop": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0",
+    "@deepseek-ai/dsh-llm": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-agent-loop": {

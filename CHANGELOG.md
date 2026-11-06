@@ -3,6 +3,38 @@
 `dsh-workflow-map` 的所有重要变更记录在此。
 格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本号遵循 [SemVer](https://semver.org/)。
 
+## [1.0.1] - 2026-11-06
+
+> 宿主侧声明同步：新增对 DSH 内核 `0.2.2-rc.1` 的显式兼容声明。
+> 本版**仅改声明与文档，未改任何源码**（`lib/`、`src/`、`client.js` 逐字节未动）。
+
+### Changed
+
+- **`engines.dsh` 与两个可选 `peerDependencies` 改为两段并集**：
+  `>=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0`。
+  原因：DSH 于 2026-11-04 升级到内核 `0.2.2-rc.1`；旧的单段区间在 DSH 自身闸门
+  （`includePrerelease`）下已覆盖该版本，但在 **npm / pnpm 默认 engines 判据**下判为不匹配。
+  第二段把 `0.2.2` 元组显式纳入，使两套判据都通过；第一段保留 `0.2.1` 全系列兼容。
+  上界 `<0.3.0-0` 不变，继续排除整条 `0.3` 线。
+- `keywords` 中 `dsh-0.2.1` → `dsh-0.2.x`。
+- 中英 README 与 `docs/host-compatibility.md` 补上 `0.2.2-rc.1` 的实机核验记录与并集写法说明。
+
+### 适配核验结论（2026-11-06）
+
+结论：**适配**，无需改源码。判据链：① 新内核 `dsh-app-boot.evaluatePluginCompatibility()`
+仍以 `semver.satisfies(..., {includePrerelease:true})` 判定，并集区间对 `0.2.2-rc.1` 为真；
+② 宿主半 `lib/index.js` 不静态 import 任何 `@deepseek-ai/*` 包，照抄加载链做 ESM 链接无
+`SyntaxError`（10 个导出齐全）；③ 九个契约点在新内核里均在位、相关宿主服务 `fiberPhase=active`；
+④ 活体 `workflowView` 投影正由本插件写入当前会话；⑤ 豁免表为空、bundle `enabled:true`，
+无 `incompatible-version`。
+
+### 限制
+
+- `0.2.3-rc.x` 及更高 `0.2.x` 元组的预发布，在 npm / pnpm 默认 engines 判据下仍不匹配
+  （默认 semver 只允许与区间内比较符同元组的预发布参与匹配）；DSH 自身闸门不受影响。
+  若将来升级到这些版本，需再增一段并集或改判据说明。
+- 未做 `0.3.0` 及以后任何核验，声明上也不覆盖。
+
 ## [1.0.0] - 2026-11-02
 
 ### Fixed

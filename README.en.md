@@ -6,10 +6,10 @@ A DeepSeek Harness plugin that renders the current session as an interactive ste
 
 > **Host requirement**
 >
-> - **DSH kernel**: `engines.dsh` = `>=0.2.1-rc.1 <0.3.0-0`, covering the whole `0.2.1` series (`0.2.1-rc.1` through `0.2.1-rc.5`) and the `0.2.1` release.
+> - **DSH kernel**: `engines.dsh` = `>=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0`, covering the whole `0.2.1` series (`0.2.1-rc.1` through `0.2.1-rc.5`) and the `0.2.1` release, plus the `0.2.2` prerelease line (verified on this machine at `0.2.2-rc.1`).
 > - **Node.js**: `>=20` (`engines.node`).
 > - Host packages are declared as `peerDependencies` (all optional peers, same range as `engines.dsh`); the host is not bundled. Hosts below `0.2.1-rc.1`, or at `0.3.0` and above, are outside the declared range.
-> - Range note: `>=0.2.1-rc.1 <0.3.0-0` carries an explicit prerelease tag on the `0.2.1` tuple, which is what makes it match `0.2.1-rc.x`; a start of `>=0.1.0-rc.1` silently excludes every `0.2.1` prerelease. The upper bound `<0.3.0-0` sorts below every prerelease of `0.3.0`, so the whole `0.3` line (including `0.3.0-rc.1`) stays outside the range.
+> - Range note: a two-clause union. `>=0.2.1-rc.1 <0.3.0-0` carries an explicit prerelease tag on the `0.2.1` tuple, which matches `0.2.1-rc.x`; `>=0.2.2-rc.1 <0.3.0-0` makes npm/pnpm's **default** engines check accept `0.2.2-rc.x` too (the single clause silently excludes prereleases of other tuples under the default check; DSH's own gate uses `includePrerelease` and is unaffected). The upper bound `<0.3.0-0` sorts below every prerelease of `0.3.0`, so the whole `0.3` line (including `0.3.0-rc.1`) stays outside the range.
 
 Per-version method and result:
 
@@ -17,8 +17,9 @@ Per-version method and result:
 |---|---|---|
 | `0.2.1-rc.3` | Run on a real host: plugin load, panel injection, view routes | Baseline |
 | `0.2.1-rc.1` / `0.2.1-rc.2` / `0.2.1-rc.4` / `0.2.1-rc.5` | Cross-version contract check: closure metadata, per-file SHA-256, contract anchor windows | All nine contract points unchanged |
+| `0.2.2-rc.1` | Live check on the upgraded kernel: plugin enabled, host-half ESM link, nine contract points, live `workflowView` projection write | Compatible; no load-time failure |
 
-A contract check is not a real-host run: the last four versions were compared against published artifacts and contract anchors only, and never booted. Method and evidence: [`docs/host-compatibility.md`](docs/host-compatibility.md).
+A contract check is not a real-host run: the four `0.2.1` versions were compared against published artifacts and contract anchors only, and never booted. `0.2.2-rc.1` was checked live on the upgraded local kernel on 2026-11-06 (three layers: declared range, load chain, live projection). Method and evidence: [`docs/host-compatibility.md`](docs/host-compatibility.md).
 
 Three entry points share one data source and one set of components: the sidebar panel item
 (`sidebar.panellist`), the main content area (`main`), and the session tab bar (`conversation.view`).
@@ -341,7 +342,7 @@ steps, their status, the percentage source, the node list and the report artifac
 
 ## 8. Compatibility and constraints
 
-- **DeepSeek Harness**: the `engines.dsh` range `>=0.2.1-rc.1 <0.3.0-0` (relies on session projections and `webServer` route registration); `0.3.0` and newer are not supported.
+- **DeepSeek Harness**: the `engines.dsh` range `>=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0` (relies on session projections and `webServer` route registration); `0.3.0` and newer are not supported. `0.2.2-rc.1` was verified live on this machine; see [`docs/host-compatibility.md`](docs/host-compatibility.md).
 - **Node.js**: `>=20`.
 - The three endpoints mount on the host's existing port; **no new listener** is opened.
 - The composer is rendered by the host and is not part of this plugin. The plugin neither replaces nor
