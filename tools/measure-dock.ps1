@@ -9,7 +9,7 @@
 # shell that has exactly the shipped [rail | main] track, has the page measure itself with
 # getBoundingClientRect(), dumps the DOM with headless Chrome, and asserts the numbers.
 #
-# On this machine headless Chrome must be started with Start-Process (a direct
+# In this environment headless Chrome must be started with Start-Process (a direct
 # `& chrome ...` invocation returns immediately and silently writes nothing).
 param(
   [string]$Chrome = '',
@@ -131,7 +131,7 @@ try {
   )
   # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
   # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
-  $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+  $nodeExe = if ($env:NODE_EXE) { $env:NODE_EXE } elseif (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { throw 'node not found; add it to PATH or set NODE_EXE' }
   $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
   $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
   $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }

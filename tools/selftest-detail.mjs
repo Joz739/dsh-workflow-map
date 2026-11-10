@@ -130,6 +130,7 @@ const nodes = [
     at: T0 + 1000,
     durationMs: 42,
     seq: 101,
+    callId: 'call-e1',
  // A body that must never be printed: store.js copies node fields explicitly.
     content: SECRET,
     old_str: SECRET,
@@ -285,7 +286,7 @@ check(
 );
 
 const model1 = T.buildModel(view, { ...prefs, selectedStep: 1 }, T0 + 100000);
-check('model.detail.truncatedHonest', model1.detail.nodes === 3 && model1.detail.truncated === 1, JSON.stringify({ n: model1.detail.nodes, t: model1.detail.truncated }));
+check('model.detail.truncatedReported', model1.detail.nodes === 3 && model1.detail.truncated === 1, JSON.stringify({ n: model1.detail.nodes, t: model1.detail.truncated }));
 check('model.detail.runningEnd', model1.detail.endedAt === null && model1.detail.startedAt === T0 + 95000, JSON.stringify({ s: model1.detail.startedAt, e: model1.detail.endedAt }));
 check('model.detail.failedReport', model1.detail.report.status === 'failed' && model1.detail.report.exitCode === 1, JSON.stringify(model1.detail.report));
 
@@ -444,6 +445,28 @@ check('render.nodeDetail.args', detailText.includes('参数') && detailText.incl
 check('render.nodeDetail.meta', detailText.includes('耗时 42ms') && detailText.includes('seq 101') && detailText.includes('开始'), detailText.slice(-120));
 check('render.nodeDetail.result', detailText.includes('edited 2 blocks'), 'result head');
 check('render.nodeDetail.privacy', detailText.indexOf(SECRET) === -1 && textOf(tree0).indexOf(SECRET) === -1, 'a `content` body never reaches the tree');
+
+// Jump to trajectory: only with a host handler and an opaque call id.
+let inspected = '';
+const jumpActions = { ...actions, canInspect: true, onInspectCall: (id) => { inspected = id; } };
+const jumpDetail = T.renderNodeDetail(createElement, model0.flow.nodes.find((one) => one.id === 'e1'), say, jumpActions, { detail: 'summary' });
+const jumpButton = byData(jumpDetail, 'jump-call')[0];
+check('render.jump.present', jumpButton !== undefined, 'the jump control exists');
+check('render.jump.callId', jumpButton && jumpButton.props['data-call-id'] === 'call-e1', jumpButton && jumpButton.props['data-call-id']);
+if (jumpButton) jumpButton.props.onClick();
+check('render.jump.callsOnce', inspected === 'call-e1', inspected);
+check('render.jump.hiddenWithoutHandler', byData(nodeDetail[0], 'jump-call').length === 0, byData(nodeDetail[0], 'jump-call').length);
+
+// Open file: a sibling control, never nested in the copy button.
+let opened = '';
+const openActions = { ...actions, canOpenFile: true, onOpenFile: (path) => { opened = path; } };
+const openDetail = T.renderNodeDetail(createElement, model0.flow.nodes.find((one) => one.id === 'e1'), say, openActions, { detail: 'summary' });
+const openButtons = byData(openDetail, 'open-file');
+check('render.open.present', openButtons.length === 2, openButtons.length);
+if (openButtons[0]) openButtons[0].props.onClick();
+check('render.open.path', opened === 'D:\\proj\\src\\client\\NodeDetail.js', opened);
+check('render.open.keepsCopy', findAll(openDetail, (el) => el.props && el.props['data-wf-copy']).length >= 2, 'copy controls remain');
+check('render.open.hiddenWithoutHandler', byData(nodeDetail[0], 'open-file').length === 0, byData(nodeDetail[0], 'open-file').length);
 
 // The command node: default preview + the whole stored command behind <details>.
 const flowPwsh = T.flowUiFor({ stepIndex: 0, selectedNode: 'p1' }, 0);

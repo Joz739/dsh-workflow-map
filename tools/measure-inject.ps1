@@ -12,10 +12,10 @@
 #   * no layout overflow anywhere.
 # The arithmetic and the state machine live in tools/selftest-panel.mjs.
 #
-# HONEST NOTE (registered as DEV-01 in evidence/step04b-inject-prominence.md): the unit cards DO
+# NOTE: the unit cards DO
 # shift horizontally when the right page opens, because `.wf-units` is a centred max-width 560 px
 # list inside the shrinking flow column. That is pre-existing behaviour of the single-page layout
-# (会话4), not something this step introduced — but widening the column 380 → 460 px increases the
+# (the single-page layout), not something this step introduced — but widening the column 380 → 460 px increases the
 # shift by exactly (460−380)/2 = 40 px, so it is measured and reported rather than hidden: the
 # check `cards.shiftEqualsHalfRightWidth` pins the measured number to the arithmetic.
 #
@@ -23,7 +23,7 @@
 # real CSS and a host div the page re-mounts the renderer's own tree into, so every number below
 # comes from a live layout engine and no wall clock is involved.
 #
-# On this machine headless Chrome must be started with Start-Process (a direct call returns
+# In this environment headless Chrome must be started with Start-Process (a direct call returns
 # immediately and silently writes nothing). Chrome is NOT installed here — only Edge (Chromium) —
 # so -Chrome defaults to an auto-detected Chromium binary.
 param(
@@ -67,7 +67,7 @@ try {
   )
   # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
   # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
-  $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+  $nodeExe = if ($env:NODE_EXE) { $env:NODE_EXE } elseif (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { throw 'node not found; add it to PATH or set NODE_EXE' }
   $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
   $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
   $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }
@@ -117,7 +117,7 @@ try {
     @{ id = 'right.opensByShrinking'; pass = ([math]::Abs(([double]$open.page.w + [double]$open.right.w) - [double]$closed.page.w) -lt 1.5); detail = "$($open.page.w) + $($open.right.w) = $($closed.page.w) (closed)" },
     @{ id = 'flow.notMoved'; pass = ([math]::Abs([double]$open.page.left - [double]$closed.page.left) -lt 0.6 -and [math]::Abs([double]$open.page.top - [double]$closed.page.top) -lt 0.6); detail = "page left/top $($open.page.left)/$($open.page.top) vs $($closed.page.left)/$($closed.page.top)" },
     @{ id = 'cards.notMovedVertically'; pass = (@($open.cards | Where-Object { [math]::Abs([double]$_.top - [double]$_.topClosed) -gt 0.6 }).Count -eq 0); detail = "$(@($open.cards | Where-Object { [math]::Abs([double]$_.top - [double]$_.topClosed) -gt 0.6 }).Count) card(s) moved vertically" },
-    @{ id = 'cards.shiftEqualsHalfRightWidth'; pass = (@($open.cards | Where-Object { [math]::Abs([math]::Abs([double]$_.left - [double]$_.leftClosed) - [double]$open.right.w / 2) -gt 0.6 }).Count -eq 0); detail = "the centred 560 px unit list re-centres by exactly rightW/2 = $([double]$open.right.w / 2)px (DEV-01, pre-existing; 会话4 layout)" },
+    @{ id = 'cards.shiftEqualsHalfRightWidth'; pass = (@($open.cards | Where-Object { [math]::Abs([math]::Abs([double]$_.left - [double]$_.leftClosed) - [double]$open.right.w / 2) -gt 0.6 }).Count -eq 0); detail = "the centred 560 px unit list re-centres by exactly rightW/2 = $([double]$open.right.w / 2)px (DEV-01, pre-existing; the single-page layout layout)" },
 
     # (4) The dock: at the FOOT of the right page, full width, below the scroll, gated and labelled.
     @{ id = 'dock.present'; pass = ([int]$open.dockCount -eq 1); detail = "$($open.dockCount) dock(s)" },

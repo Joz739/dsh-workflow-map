@@ -42,6 +42,12 @@ var DICT_ZH = {
   "panel.flow": "分步流程",
   "panel.flow.empty": "这一步还没有动作",
   "panel.nodes": "{count} 个节点",
+  "panel.unassigned": "{count} 未归属",
+  "panel.unassigned.hint": "这些节点未落入任何步骤区间；首个未归属 seq：{seq}",
+  "panel.star.open": "在 GitHub 上 Star 本项目",
+  "panel.star.hint": "打开 GitHub 仓库",
+  "panel.call.jump": "在轨迹中定位",
+  "panel.call.jump.hint": "在宿主轨迹中定位这次调用",
   "panel.step.nodes": "{count} 节点",
   "panel.files": "{count} 文件",
   "panel.node.error": "失败",
@@ -130,6 +136,7 @@ var DICT_ZH = {
   "panel.detail.copy": "复制",
   "panel.detail.copyargs": "复制参数",
   "panel.detail.copypath": "复制路径",
+  "panel.detail.openfile": "在侧栏打开",
   "panel.detail.copied": "已复制",
   "panel.detail.copyfailed": "复制失败",
   "panel.detail.files": "文件",
@@ -165,6 +172,11 @@ var DICT_ZH = {
   "panel.step.unknowntime": "无时间记录",
   "panel.settings.endpoint": "数据源",
   "panel.settings.counts": "{steps} 步 / {nodes} 节点",
+  "panel.settings.unassigned": "未归属 {count} 节点",
+  "panel.settings.progressTool": "自报工具",
+  "panel.settings.progressTool.builtin": "内置",
+  "panel.settings.progressTool.external": "外置",
+  "panel.settings.progressTool.unavailable": "不可用",
   "panel.settings.rev": "版本 {rev}",
   "panel.settings.reset": "恢复默认",
   "panel.settings.reset.hint": "恢复配色、动效、详情深度与节点上限",
@@ -259,6 +271,12 @@ var DICT_EN = {
   "panel.flow": "Step flow",
   "panel.flow.empty": "No actions in this step yet",
   "panel.nodes": "{count} nodes",
+  "panel.unassigned": "{count} unattributed",
+  "panel.unassigned.hint": "These nodes did not fall into any step interval; first unattributed seq: {seq}",
+  "panel.star.open": "Star this project on GitHub",
+  "panel.star.hint": "Open the GitHub repository",
+  "panel.call.jump": "Locate in trajectory",
+  "panel.call.jump.hint": "Locate this call in the host trajectory",
   "panel.step.nodes": "{count} nodes",
   "panel.files": "{count} files",
   "panel.node.error": "failed",
@@ -382,6 +400,7 @@ var DICT_EN = {
   "panel.detail.copy": "Copy",
   "panel.detail.copyargs": "Copy arguments",
   "panel.detail.copypath": "Copy path",
+  "panel.detail.openfile": "Open in sidebar",
   "panel.detail.copied": "Copied",
   "panel.detail.copyfailed": "Copy failed",
   "panel.detail.files": "Files",
@@ -417,6 +436,11 @@ var DICT_EN = {
   "panel.step.unknowntime": "No time recorded",
   "panel.settings.endpoint": "Endpoint",
   "panel.settings.counts": "{steps} steps / {nodes} nodes",
+  "panel.settings.unassigned": "{count} unattributed nodes",
+  "panel.settings.progressTool": "Progress tool",
+  "panel.settings.progressTool.builtin": "Built in",
+  "panel.settings.progressTool.external": "External",
+  "panel.settings.progressTool.unavailable": "Unavailable",
   "panel.settings.rev": "rev {rev}",
   "panel.settings.reset": "Restore defaults",
   "panel.settings.reset.hint": "Restore palette, motion, detail depth and node limit",
@@ -773,7 +797,7 @@ function wfSendInject(text, sessionId, setInject) {
       open: true,
       state: outcome.kind === "sent" ? "sent" : "failed",
       text: trimmed,
- // A failure carries the HOST's own reason verbatim (the honesty rule).
+ // A failure carries the HOST's own reason verbatim (the explicity rule).
       reason: outcome.kind === "sent" ? "" : outcome.text,
     };
     setInject(next);
@@ -822,7 +846,7 @@ function wfRevokeInject(messageId, sessionId, setRevoke) {
     setRevoke({
       id: messageId,
       state: outcome.kind === "revoked" ? "revoked" : "failed",
- // A failure carries the HOST's own reason verbatim (the same honesty rule as the send).
+ // A failure carries the HOST's own reason verbatim (the same accuratey rule as the send).
       reason: outcome.kind === "revoked" ? "" : outcome.text,
     });
   });
@@ -977,7 +1001,7 @@ function wfRightPageSpec(model, prefs) {
  * Bring the RUNNING unit to the middle of the chain — once per step, and only if the user has not
  * scrolled since.
  *
- * Two rules make this honest rather than helpful-looking:
+ * Two rules make this accurate rather than helpful-looking:
  * 1. it runs once per running step (`centeredStep`), so a poll cannot keep re-centring a reader;
  * 2. any manual scroll in the page defeats it — `userScrolled` is set by the FIRST wheel / touch /
  * keydown on the scroller, and after that this hook does nothing for that step.
@@ -1041,7 +1065,7 @@ function wfCenterRunning(doc, runningIndex) {
   );
   if (offset === null) return { applied: false, reason: "bad-geometry" };
   scroller.scrollTop = offset;
- // Re-read after the write: the honest error is what the user now sees, not what the arithmetic
+ // Re-read after the write: the explicit error is what the user now sees, not what the arithmetic
  // predicted (a smooth-scroll or a sub-pixel layout shift would otherwise be papered over).
   var after = unit.getBoundingClientRect();
   return {
@@ -1125,8 +1149,8 @@ function WorkflowMapPanel(props) {
   wfUseSessionReset(sessionId, updatePrefs);
 
   var say = wfMakeSay(props && props.t);
- // `Date.now` is passed in (the store stays clock-free) because needs one honest
- // judgement the event log alone cannot make: is this session still working right now?
+ // `Date.now` is passed in (the store stays clock-free) because needs one accurate
+ // judgement the event log alone cannot make: is the current session still working right now?
   var model = wfBuildModel(snap.view, prefs, Date.now());
   var systemMotion = wfUseMotion();
   var motionPref = wfSettingsOf(prefs).motion;
@@ -1230,6 +1254,27 @@ function WorkflowMapPanel(props) {
       setOpenCall(function (prev) {
         return prev === nodeId ? null : nodeId;
       });
+    },
+ // The host's trajectory seat owns this call. It is only offered by the conversation.view
+ // occupant; the other seats leave the action undefined and the button is not rendered.
+    canInspect: typeof props.inspectCall === "function",
+    onInspectCall: function (callId) {
+      if (typeof props.inspectCall === "function" && typeof callId === "string" && callId !== "") {
+        props.inspectCall(callId);
+      }
+    },
+ // Files open through the host's right sidebar. The address is built from the current
+ // session id and the host-provided path; there is no filesystem access in the panel.
+    canOpenFile:
+      typeof sessionId === "string" &&
+      sessionId !== "" &&
+      !!props.host &&
+      typeof props.host.openResource === "function",
+    onOpenFile: function (path) {
+      var address = wfSessionFileAddress(sessionId, path);
+      if (address !== "" && props.host && typeof props.host.openResource === "function") {
+        props.host.openResource(address);
+      }
     },
     onClosePage: function () {
       setOpenCall(null);
@@ -1410,6 +1455,20 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
               { className: "wf-raw", key: "nodes" },
               say("panel.nodes", { count: model.flow.total })
             ),
+            model.unassigned && model.unassigned.nodes > 0
+              ? h(
+                  "span",
+                  {
+                    className: "wf-unassigned",
+                    key: "unassigned",
+                    "data-dsh-workflow-map": "unassigned",
+                    title: say("panel.unassigned.hint", {
+                      seq: model.unassigned.sinceSeq === null ? "—" : model.unassigned.sinceSeq,
+                    }),
+                  },
+                  say("panel.unassigned", { count: model.unassigned.nodes })
+                )
+              : null,
             extras.status === "stale"
               ? h(
                   "span",
@@ -1454,7 +1513,7 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
         },
         "‒"
       ),
- // the hot-inject entry is now a NAMED, prominent button (the user asked for it to be
+ // the hot-inject entry is now a NAMED, prominent button (it is
  // prominent and in Chinese), not a ⇄ glyph: the glyph said "split the column", which no longer exists
  // what happens — the composer takes over the right-hand page.
       h(
@@ -1486,6 +1545,21 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
           : null
       ),
       h(
+        "a",
+        {
+          key: "star",
+          className: "wf-btn wf-btn-star",
+          "data-dsh-workflow-map": "star",
+          href: "https://github.com/Joz739/dsh-workflow-map",
+          target: "_blank",
+          rel: "noopener noreferrer",
+          title: say("panel.star.hint"),
+          "aria-label": say("panel.star.open"),
+        },
+        h("span", { key: "glyph", className: "wf-star-glyph", "aria-hidden": "true" }, "★"),
+        h("span", { key: "text", className: "wf-star-text" }, "star")
+      ),
+      h(
         "button",
         {
           type: "button",
@@ -1509,6 +1583,8 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
           endpoint: extras.endpoint,
           steps: model.progress.total,
           nodes: wfFinite(extras.nodeTotal) === null ? model.flow.total : extras.nodeTotal,
+          unassigned: model.unassigned ? model.unassigned.nodes : 0,
+          progressTool: model.capabilities ? model.capabilities.progressTool : null,
           rev: extras.rev,
         })
       : null;
@@ -1736,6 +1812,29 @@ function apply(ctx) {
   ctx.effect(function () {
     return ctx.locale.register(NS, { zh: DICT_ZH, en: DICT_EN });
   });
+ // The host's right sidebar is optional: resolve it per call (never in inject) so a host
+ // without it still mounts the panel. The panel only passes host-owned file addresses here.
+  var hostBridge = {
+    openResource: function (address) {
+      if (typeof address !== "string" || address === "") return false;
+      try {
+        var sidebar =
+          typeof ctx.get === "function" ? ctx.get("sidebarRight") : ctx.sidebarRight;
+        if (sidebar && typeof sidebar.openResource === "function") {
+          sidebar.openResource(address);
+          return true;
+        }
+      } catch (error) {
+        return false;
+      }
+      return false;
+    },
+  };
+  var withHost = function (component) {
+    return function (props) {
+      return component(Object.assign({}, props, { host: hostBridge }));
+    };
+  };
   ctx.slots.inject("sidebar.panellist", function () {
     return ctx.slots.register(
       {
@@ -1757,7 +1856,7 @@ function apply(ctx) {
         key: PANEL_ID,
         locale: NS,
       },
-      WorkflowMapPanel
+      withHost(WorkflowMapPanel)
     );
   });
  // The shortcut in the session tab bar. `conversation.view` is the slot for the tab row above the conversation area
@@ -1776,7 +1875,7 @@ function apply(ctx) {
           return DICT_ZH["panel.title"];
         },
       },
-      WorkflowMapViewSeat
+      withHost(WorkflowMapViewSeat)
     );
   });
 }
@@ -1787,6 +1886,9 @@ function apply(ctx) {
  */
 var __test = {
   buildModel: wfBuildModel,
+  unassigned: wfUnassigned,
+  capabilities: wfCapabilities,
+  sessionFileAddress: wfSessionFileAddress,
  // the single page, its satellites, the right page and the type buckets they are built
  // from. Exported so the self-tests drive the EXACT trees the frame mounts.
   renderMainFlow: wfRenderMainFlow,

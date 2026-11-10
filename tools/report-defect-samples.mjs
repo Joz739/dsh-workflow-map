@@ -22,7 +22,7 @@
 //      `steps.filter(status === "running").length === 0` and `counts.running === 0`.
 //   ③  the "0 nodes although it really executed" pattern: a step with `nodeCount === 0` WHILE
 //      another single step owns 100% of the session's nodes. Both halves are required — an empty
-//      step alone is not a defect (a window that genuinely covered no tool call is honest).
+//      step alone is not a defect (a window that genuinely covered no tool call is accurate).
 //
 // WHY IT TAKES `--module`. The before/after comparison in the step's acceptance rule must run THE
 // SAME JUDGE on the OLD source, or the pair proves nothing: a checker that only ever sees the new
@@ -180,7 +180,7 @@ const abortedLastEnd = sessions.filter(
 );
 // A session whose log stops WHILE a turn is open has not finished: its last `turn/start` has no
 // `turn/end` after it. The criterion ② question is about FINISHED sessions (the step file says
-// "已结束"), and a still-open turn legitimately owns a running step. Those are MEASURED separately
+// "已结束"), and a still-open turn legitimately owns a running step. Those are counted separately
 // rather than silently dropped, so a reader can see how many were set aside and why.
 const abortedOpen = abortedLastEnd.filter((row) => row.turnActive);
 const abortedAll = abortedLastEnd.filter((row) => !row.turnActive);
@@ -225,7 +225,7 @@ let sessionsWithEmptyStepWhileSomeStepOwnsEverything = 0;
  *   never-opened  the step's `windowStart` is null. The row arrived already closed (the table said
  *                 `completed` when the fold first saw it) or never got marked `in_progress` at all,
  *                 so NO interval was ever opened for it. There is no stretch of the log it could
- *                 have covered, and owning nothing is the honest result, not a leak.
+ *                 have covered, and owning nothing is the explicit result, not a leak.
  *   opened        `windowStart` was set (the row really was the live one), so the window DID claim
  *                 a stretch of seqs. If that stretch contained `tool/call` events and the step still
  *                 owns 0 nodes, attribution is leaking — this is the defect.
@@ -372,7 +372,7 @@ const report = {
     unexplainedEmptySteps,
     ranked: sessions.map((row) => ({ sessionId: row.sessionId.slice(0, 21), nodes: row.view.counts.nodes, events: row.events })).slice(0, 5),
     samples: item3Rows,
-    // Where each empty step's window sits. `never-opened` rows own nothing HONESTLY: their interval
+    // Where each empty step's window sits. `never-opened` rows own nothing by definition: their interval
     // began and ended at the same instant (created already closed by the table), so there was no
     // stretch of the log they could have covered. `opened` rows are the ones that look like a leak.
     emptyKindTotals,

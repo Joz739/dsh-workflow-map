@@ -353,7 +353,11 @@ const live = exchange(routeHandler, { url: `${STATE_PATH}?sessionId=session-live
 equal("(4) the wired route answers 200", live.status, 200);
 const wiredBody = JSON.parse(live.body);
 equal("(4) rev is the projection's asOfSeq", wiredBody.rev, 7);
-equal("(4) the view came from the projection snapshot", JSON.stringify(wiredBody.view), JSON.stringify(servedView));
+const wiredView = { ...wiredBody.view };
+const wiredCapabilities = wiredView.capabilities;
+delete wiredView.capabilities;
+equal("(4) the view came from the projection snapshot", JSON.stringify(wiredView), JSON.stringify(servedView));
+equal("(4) the route publishes the tool capability", wiredCapabilities, { progressTool: "unavailable" });
 
 const unknownSession = exchange(routeHandler, { url: `${STATE_PATH}?sessionId=session-x` });
 equal("(4) an unknown session through the wired route answers 404", unknownSession.status, 404);

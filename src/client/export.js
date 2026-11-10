@@ -160,6 +160,10 @@ function wfBuildSnapshot(model, view, sessionId, nowMs, say) {
       total: model.progress.total,
       percent: model.progress.percent,
     } : { done: 0, total: 0, percent: 0 },
+    unassigned: {
+      nodes: wfFinite(model && model.unassigned && model.unassigned.nodes) === null ? 0 : Math.round(model.unassigned.nodes),
+      sinceSeq: wfFinite(model && model.unassigned && model.unassigned.sinceSeq),
+    },
     steps: steps,
   };
 }
@@ -181,6 +185,13 @@ function wfSnapshotMarkdown(model, view, sessionId, nowMs, say) {
   lines.push(
     "- 进度：" + snapshot.progress.done + "/" + snapshot.progress.total + " 步 · " + snapshot.progress.percent + "%"
   );
+  if (snapshot.unassigned.nodes > 0) {
+    lines.push(
+      "- 未归属节点：" +
+        snapshot.unassigned.nodes +
+        (snapshot.unassigned.sinceSeq === null ? "" : "（自 seq " + snapshot.unassigned.sinceSeq + "）")
+    );
+  }
   lines.push("");
   lines.push("## 分步");
   for (var i = 0; i < snapshot.steps.length; i += 1) {

@@ -1,7 +1,7 @@
 /**
  * MainFlow.js — the single page: ONE serial main flow, satellites on both sides.
  *
- * The layout the user asked for, in one sentence: the steps run serially down the middle, each
+ * The layout the requested for, in one sentence: the steps run serially down the middle, each
  * step's core unit carries a few parallel "interfaces" off its left and right edges, every
  * interface ends in a round icon naming the TOOL FILE TYPE it stands for, and every connector is
  * a STRAIGHT line. The main chain only ever runs one way — down.

@@ -651,7 +651,7 @@ function foldAll(events) {
   const lane = buildView(state, state.asOf).branches[0];
   equal("(k) a lane counts every row it saw", lane.count, 46);
   equal("(k) at most BRANCH_NODES rows are kept", lane.nodes.length, BRANCH_NODES);
-  equal("(k) the dropped head is reported honestly", lane.truncated, 46 - BRANCH_NODES);
+  equal("(k) the dropped head is reported accurately", lane.truncated, 46 - BRANCH_NODES);
 
  // No subagent / workflow / job anywhere: the view has no branch list content at all.
   equal("(k) an empty session has no branches", buildView(createInitialState(), 0).branches, []);
@@ -718,7 +718,7 @@ function foldAll(events) {
 {
   resetSeq();
  // A step that has only started has no progress number yet, so it has no estimate stamp:
- // the honest answer is 0, which the browser renders as NO segment (never "0 seconds ago").
+ // the correct answer is 0, which the browser renders as NO segment (never "0 seconds ago").
   const started = foldAll([
     userMessage("开工"),
     todos([["甲", "in_progress"]]),
@@ -962,7 +962,7 @@ function foldAll(events) {
       ]),
       T0 + 100000,
     );
-    equal("(h) another plugin's message is not in our history", foreign.injects.length, 0);
+    equal("(h) another plugin's message is not in this history", foreign.injects.length, 0);
 
  // Revocable only before pickup: the row becomes "revoked" only when the host emits `agent/inbox/discarded`; otherwise it never does.
     const discarded = buildView(
@@ -1014,7 +1014,7 @@ function foldAll(events) {
       foldAll([...insertedBoth, ev("agent/inbox/spliced", { target: "next-step", start: 1, removedCount: 1, inserted: [], outcome: "canceled" })]),
       T0 + 100000,
     );
-    equal("(h) a positional cancel resolves to our own row", revokedByLedger.injects.length, 1);
+    equal("(h) a positional cancel resolves to the plugin's row", revokedByLedger.injects.length, 1);
     equal("(h) the row it resolved to is marked revoked", revokedByLedger.injects[0].canceled, true);
     equal("(h) it is still not 'taken'", revokedByLedger.injects[0].pickedUp, false);
 
@@ -1023,7 +1023,7 @@ function foldAll(events) {
       foldAll([...insertedBoth, ev("agent/inbox/spliced", { target: "next-step", start: 0, removedCount: 1, inserted: [], outcome: "canceled" })]),
       T0 + 100000,
     );
-    equal("(h) cancelling someone else's message leaves our row pending", foreignRevoked.injects[0].canceled, undefined);
+    equal("(h) cancelling someone else's message leaves this row pending", foreignRevoked.injects[0].canceled, undefined);
     equal("(h) and the ledger dropped exactly that id", foldAll([
       ...insertedBoth,
       ev("agent/inbox/spliced", { target: "next-step", start: 0, removedCount: 1, inserted: [], outcome: "canceled" }),
@@ -1043,7 +1043,7 @@ function foldAll(events) {
     equal("(h) an unknown target never invents a list", Object.keys(outOfRange.inboxIds).sort(), ["next-step", "next-turn"]);
     equal("(h) the clamp keeps an over-long cancel from eating the ledger", buildView(outOfRange, T0 + 100000).injects[0].canceled, undefined);
 
- // A REPEATED event is the honest worry: a replayed log, or a host that announces the same
+ // A REPEATED event is the explicit worry: a replayed log, or a host that announces the same
  // removal twice. Both cancellation shapes must be idempotent — same row, no throw.
     const repeatDiscard = [
       ...fresh,
@@ -1332,7 +1332,7 @@ function foldAll(events) {
 // ---------------------------------------------------------------------------
 // (o) a NUMBERED todo table after an unnumbered one — the ordinal must survive
 // ---------------------------------------------------------------------------
-// Measured 2026-10-29 on session 164e339f ("n8n download and localisation tutorial"): the
+// Measured 2026-10-29 on a reference session ("n8n download and localisation tutorial"): the
 // model wrote a 7-row UNNUMBERED table, then replaced it with a 14-row table whose rows carry
 // an explicit "1. " .. "14. " prefix. Two defects showed up together and both are asserted here:
 //
@@ -1445,7 +1445,7 @@ function foldAll(events) {
 // (q) a plan row's own step FILE annotation must not become part of the title
 // ---------------------------------------------------------------------------
 // PAE renders each plan row as "1. title（qualifier）（step-01-x.md）": the file is an annotation,
-// not title text. Measured 2026-10-30 on session 1bb4baa0: the plan summary rewrote step 1's title
+// not title text. Measured 2026-10-30 on a reference session: the plan summary rewrote step 1's title
 // to the annotated form while the ledger's `stepKey` already held the table's wording, the very next
 // todo/write therefore judged the row unchanged, and the annotated title survived into the view —
 // one step the todo table does not list (audit-real constraint ①). No step instruction follows here
@@ -1641,7 +1641,7 @@ function foldAll(events) {
 // (s) turn/end is a LAYERED ending: an interrupted turn closes, a normal one waits
 // ---------------------------------------------------------------------------
 // The defect this section pins down: a session whose turn had ended kept a step 'running' at a
-// half-filled bar forever. The fix splits `turn/end` by `data.reason.kind` (measured on 167 local
+// half-filled bar forever. The fix splits `turn/end` by `data.reason.kind` (measured on 167
 // logs: completed 739 · error 171 · aborted 136 · interrupted 17 · max-tokens 4), so each case
 // below states its reason EXPLICITLY and the expected outcome is written out by hand:
 //   • terminal   (aborted / error / failed / interrupted) → every running row closes at 100 %;
@@ -1670,10 +1670,23 @@ function foldAll(events) {
   const aborted = foldAll(closedByTurn("aborted"));
   const abortedView = buildView(aborted, aborted.asOf);
   equal("(s1) an aborted turn closes the step it was running", abortedView.steps[0].status, "done");
-  equal("(s1) the closed step is pinned at 100 %", [abortedView.steps[0].percent, abortedView.steps[0].percentSource], [100, "model"]);
+  equal("(s1) the closed step is pinned at 100 %", [abortedView.steps[0].percent, abortedView.steps[0].percentSource], [100, "closed"]);
   equal("(s1) and NOTHING is left running", abortedView.counts.running, 0);
   equal("(s1) the turn itself is closed", abortedView.running, false);
   equal("(s1) a closed step is not waiting for any turn", abortedView.steps[0].awaitingNextTurn, false);
+
+  // The done/failed split is a DATA rule, tested here without a todo table rewriting statuses.
+  const withStep = (patch) => ({
+    ...aborted,
+    todos: [],
+    steps: [{ ...aborted.steps[0], ...patch }],
+  });
+  const doneModel = buildView(withStep({ status: "done", percent: 5, percentSource: "model" }), aborted.asOf);
+  equal("(s1) a done row is 100/closed even when it carries a stale report", [doneModel.steps[0].percent, doneModel.steps[0].percentSource], [100, "closed"]);
+  const failedModel = buildView(withStep({ status: "failed", percent: 40, percentSource: "model" }), aborted.asOf);
+  equal("(s1) a failed row keeps its last report", [failedModel.steps[0].percent, failedModel.steps[0].percentSource], [40, "model"]);
+  const failedEmpty = buildView(withStep({ status: "failed", percent: null, percentSource: "none" }), aborted.asOf);
+  equal("(s1) a failed row with no number carries none", [failedEmpty.steps[0].percent, failedEmpty.steps[0].percentSource], [null, "none"]);
 
   // --- (s2) a failed turn and a killed turn behave exactly like an aborted one -----------------
   for (const kind of ["error", "interrupted", "failed"]) {
@@ -1819,7 +1832,7 @@ function foldAll(events) {
 //   • a batch of calls arriving after the table had moved on all landed on whichever row was last
 //     touched, and
 //   • work whose row no longer existed was dropped outright, leaving `done` steps reading "0 tools".
-// Both were measured on 167 local logs (2026-11-01): 193 of 504 `done` steps owned no node (38.3%),
+// Both were measured on 167 session logs (2026-11-01): 193 of 504 `done` steps owned no node (38.3%),
 // and 36 sessions had one step holding every node in the session.
 //
 // A rewrite that merely stops filling the last step — "drop them instead" — would make the first
@@ -1873,7 +1886,7 @@ function foldAll(events) {
   // proves is the positive direction: interval containment really names the step.
   // (t2) Each NODE lands on the step whose interval contains its seq. Only tool/CALLS produce
   // nodes — a `tool/result` patches the node its call already created, it does not append a second
-  // one — so this session has exactly two nodes: callA inside 甲's interval, callB inside 乙's.
+  // one — so a reference session has exactly two nodes: callA inside 甲's interval, callB inside 乙's.
   equal(
     "(t2) each node lands on the step whose interval contains its seq",
     tView.nodes.map((node) => node.stepIndex),

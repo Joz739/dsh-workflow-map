@@ -359,7 +359,7 @@ try {
   equal("(7) a throwing source answers 500, not a broken socket", revokeBoom.status, 500);
   check("(7) and carries the reason", String(revokeBoom.body.error).includes("unsteer source exploded"), JSON.stringify(revokeBoom.body));
 
- // The honest end-to-end: /steer hands back an id, /unsteer takes exactly that id back out of the
+ // The end-to-end check: /steer hands back an id, /unsteer takes exactly that id back out of the
  // SAME agent double. This is the round trip the panel's "Revoke" button makes.
   const roundTripAgents = fakeAgents({ agents: [["s-rt", liveAgent([], "running", fakeInbox([], []))]] });
   const steerSource = makeSteerSource({ agents: roundTripAgents });
@@ -553,7 +553,7 @@ equal("(5b) a throwing inbox.remove answers 500", thrownRemove.status, 500);
 check("(5b) and carries the reason", String(thrownRemove.error).includes("inbox is closed"), JSON.stringify(thrownRemove));
 
 const noIdSource = makeUnsteerSource({ agents: fakeAgents({ agents: [["s6", liveAgent([], "running", fakeInbox([], []))]] }) });
-equal("(5b) a missing message is still the honest 409", noIdSource("s6", "").status, 409);
+equal("(5b) a missing message is still the explicit 409", noIdSource("s6", "").status, 409);
 
 // ---------------------------------------------------------------------------
 // report

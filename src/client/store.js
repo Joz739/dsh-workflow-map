@@ -28,6 +28,44 @@ function wfRound(value) {
   return n === null ? null : Math.round(n);
 }
 
+/** The host's unattributed-node count, separated from the step-owned count. */
+function wfUnassigned(view) {
+  var raw = view && view.unassigned;
+  var nodes = wfFinite(raw && raw.nodes);
+  var since = wfFinite(raw && raw.sinceSeq);
+  return {
+    nodes: nodes === null || nodes < 0 ? 0 : Math.round(nodes),
+    sinceSeq: since === null || since < 0 ? null : Math.round(since),
+  };
+}
+
+/** The optional tool-capability block. Unknown modes are ignored rather than rendered. */
+function wfCapabilities(view) {
+  var raw = view && view.capabilities;
+  var mode = raw && typeof raw.progressTool === "string" ? raw.progressTool : "";
+  if (mode !== "builtin" && mode !== "external" && mode !== "unavailable") return null;
+  return { progressTool: mode };
+}
+
+/**
+ * The host's file-resource address: one segment per path component, with a drive-letter colon
+ * left readable. Mirrors the address builder in the host UI.
+ */
+function wfEncodeFileSegment(value) {
+  return encodeURIComponent(String(value)).replace(/%3A/gi, ":");
+}
+
+function wfSessionFileAddress(sessionId, path) {
+  if (typeof sessionId !== "string" || sessionId === "" || typeof path !== "string" || path === "") return "";
+  var normalized = path.replace(/\\/g, "/").replace(/^(?:\.\/)+/, "");
+  return (
+    "dsh-resource://file/session/" +
+    wfEncodeFileSegment(sessionId) +
+    "/" +
+    normalized.split("/").map(wfEncodeFileSegment).join("/")
+  );
+}
+
 /* ------------------------------------------------------------------------- */
 /* preferences — keeps ONLY what the panel still owns */
 /* ------------------------------------------------------------------------- */
@@ -110,7 +148,7 @@ function wfLoadPrefs(storage) {
     return wfParsePrefs(store.getItem(WF_PREFS_KEY));
   } catch (error) {
  // A disabled / quota-exhausted / partitioned localStorage is NOT an error the
- // panel may die on: it just means "no memory this session".
+ // panel may die on: it just means "no memory of this session".
     return wfDefaultPrefs();
   }
 }
@@ -345,7 +383,7 @@ function wfEffectivePercent(row) {
 /**
  * The plan section reduced to what the cards need. Every field is optional on
  * the wire (a plan written by an older PAE has no `skipped`), so each one has an
- * honest fallback instead of a dereference.
+ * safe fallback instead of a dereference.
  */
 function wfPlanSummary(plan) {
   if (!plan || typeof plan !== "object") return null;
@@ -405,7 +443,7 @@ function wfStepReport(plan, planIndex) {
 }
 
 /**
- * The selected step's detail: its report (PAE) and honest statistics from the nodes the
+ * The selected step's detail: its report (PAE) and accurate statistics from the nodes the
  * host actually sent. `truncated` is the difference to the step's OWN nodeCount, so a
  * 300-node cap is stated rather than silently under-counted.
  */
@@ -520,7 +558,7 @@ var WF_INJECT_HISTORY = 40;
 /**
  * The wire's `view.injects` → what the composer page renders.
  *
- * Each row keeps the three facts the user asked for: WHAT was injected (the text), WHEN
+ * Each row keeps the three facts the requested for: WHAT was injected (the text), WHEN
  * (`at`, the splice's own event time — never a browser clock), and its STATUS, which is one
  * of two words with different meanings:
  * `pending` — the message is in the session's inbox; the turn has not picked it up yet.
@@ -672,7 +710,7 @@ function wfTypeBuckets(nodes, activeNodeId) {
  * Ordering is by count (the type that matters most sits closest to the unit), ties broken by
  * label so two renders of the same data never swap places. Each side keeps WF_SIDE_SLOTS
  * circles; `dropped` states how many types did not fit — the card prints that number, so a
- * crowded step is honest rather than silently trimmed.
+ * crowded step is accurate rather than silently trimmed.
  */
 function wfTypeSides(nodes, activeNodeId) {
   var byKey = wfTypeBuckets(nodes, activeNodeId);
@@ -761,6 +799,8 @@ function wfBuildModel(view, prefs, nowMs) {
  // shape is present so the renderer never has to branch on "does page exist".
       page: { units: [], runningIndex: null, toolTypes: [] },
       counts: view.counts && typeof view.counts === "object" ? view.counts : null,
+      unassigned: wfUnassigned(view),
+      capabilities: wfCapabilities(view),
       plan: wfPlanSummary(plan),
  // the hot-inject history travels with the model, so the composer page can list
  // what was sent and whether the session admitted it (see wfInjectRows).
@@ -896,11 +936,12 @@ function wfBuildModel(view, prefs, nowMs) {
         : [],
  // The args digest / result head / error text are bounded by the host (200 chars).
  // They are copied verbatim — never flattened — because the detail renders them in a
- // pre-wrap block and a command's newlines are part of what the user asked to see.
+ // pre-wrap block and a command's newlines are part of what the rendered text.
       argsText: typeof found.argsText === "string" ? found.argsText.slice(0, 200) : "",
       resultLine: typeof found.resultHead === "string" ? found.resultHead.slice(0, 200) : "",
       errorText: typeof found.error === "string" ? found.error.slice(0, 200) : "",
       seq: wfFinite(found.seq),
+      callId: typeof found.callId === "string" && found.callId !== "" ? found.callId : null,
       error: typeof found.error === "string" && found.error !== "",
       // The host's result boolean is the settled fact: a call that returned with an EMPTY body is
       // settled. Falling back to resultHead alone marked such a call unsettled, so the panel kept
@@ -1085,7 +1126,7 @@ function wfBuildModel(view, prefs, nowMs) {
       total: flowNodes.length,
  // "omitted" count must cover EVERY missing node, not only the per-step cap: the
  // global 1200-node cap also prunes a step's id list while leaving
- // step.truncatedNodes at 0. The honest gap is nodeCount − drawn.
+ // step.truncatedNodes at 0. The accurate gap is nodeCount − drawn.
       truncated: Math.max(
         wfFinite(step.truncatedNodes) === null ? 0 : step.truncatedNodes,
         (wfFinite(step.nodeCount) === null ? flowNodes.length : step.nodeCount) - flowNodes.length
@@ -1106,6 +1147,8 @@ function wfBuildModel(view, prefs, nowMs) {
       toolTypes: WF_TYPE_COMPOUND.slice(),
     },
     counts: view.counts && typeof view.counts === "object" ? view.counts : null,
+    unassigned: wfUnassigned(view),
+    capabilities: wfCapabilities(view),
     plan: planSummary,
  // the selected step's report + statistics, or null for the planning card.
     detail: detail,

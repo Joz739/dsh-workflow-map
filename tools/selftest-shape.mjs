@@ -43,7 +43,7 @@ const whitelist = new Set(pkg.files);
 // A top-level DIRECTORY is covered either by a bare entry (`docs`), by a glob (`locale/*.json`),
 // or by naming EVERY file inside it (`docs/OPEN-SOURCE-GUIDE.md`). The last form is what the
 // 2026-10-27 hotfix uses: `docs/` used to be shipped wholesale, which swept a personal
-// publish-checklist and a hand-holding tutorial (both carrying this machine's absolute paths)
+// publish-checklist and a hand-holding tutorial (both carrying the host's absolute paths)
 // into the tarball. Naming the file is STRICTER than naming the directory, so it must pass.
 function coveredBy(f) {
   if (whitelist.has(f)) return true;
@@ -85,8 +85,8 @@ check('host.name', /export const name = "workflow-map";/.test(hostImpl), 'export
 check('host.packageName', hostImpl.includes('packageName = "dsh-workflow-map"'), 'export const packageName');
 check(
   'host.inject.services',
-  /export const inject = \["sessionProjections", "sessions", "webServer", "agents"\];/.test(hostImpl),
-  'inject: [sessionProjections, sessions, webServer, agents]',
+  /export const inject = \["sessionProjections", "sessions", "webServer", "agents", "tools"\];/.test(hostImpl),
+  'inject: [sessionProjections, sessions, webServer, agents, tools]',
 );
 check('host.apply.takesCtx', /export function apply\(ctx\)/.test(hostImpl), 'export function apply(ctx)');
 check('host.registers', /const registry = ctx\.sessionProjections;/.test(hostImpl) && /registry\.register\(\{/.test(hostImpl), 'registry.register({');
@@ -99,7 +99,7 @@ check('host.projectionKey', /export const PROJECTION_KEY = "workflowView";/.test
 const hostImportSpecs = [...hostImpl.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]);
 check(
   'host.imports.ownModulesOnly',
-  JSON.stringify(hostImportSpecs) === JSON.stringify(['../src/fold.mjs', '../src/orchestrator.mjs', '../src/route.js', 'node:crypto']),
+  JSON.stringify(hostImportSpecs) === JSON.stringify(['../src/fold.mjs', '../src/orchestrator.mjs', '../src/progress-tool.mjs', '../src/route.js', 'node:crypto']),
   JSON.stringify(hostImportSpecs)
 );
 check('host.no.clock', !/Date\.now\(/.test(hostImpl), 'no wall-clock read on this path');
@@ -134,7 +134,7 @@ check('route.prefixSeat', /kind: "prefix"/.test(routeSrc), 'registered as a pref
 check('route.ifNoneMatch', routeSrc.includes('if-none-match'), 'If-None-Match / 304');
 check('route.noStore', routeSrc.includes('no-store'), 'cache-control: no-store');
 check('route.composeView', /export function composeView\(/.test(routeSrc), 'composeView is exported');
-check('host.route.attached', /attachViewRoute\(ctx, registry\)/.test(hostImpl), 'apply() attaches the route');
+check('host.route.attached', /attachViewRoute\(ctx, registry, capabilities\)/.test(hostImpl), 'apply() attaches the route');
 check('host.route.snapshot', /registry\.snapshot\(session, \[PROJECTION_KEY\]\)/.test(hostImpl), 'the route reads the projection snapshot');
 // --- the steer channel ---------------------------------
 check('route.steerEndpoint', routeSrc.includes('export const STEER_ENDPOINT = "/steer"'), 'steer endpoint');

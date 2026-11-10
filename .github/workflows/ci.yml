@@ -1,0 +1,34 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22, 24]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Syntax check
+        shell: bash
+        run: |
+          git ls-files -z '*.js' '*.mjs' | while IFS= read -r -d '' file; do
+            node --check "$file"
+          done
+      - name: Build browser bundle
+        run: node tools/build-client.mjs
+      - name: Generated bundle is committed
+        run: git diff --exit-code -- client.js
+      - name: Test
+        run: npm test
+      - name: Package contents
+        run: npm pack --dry-run

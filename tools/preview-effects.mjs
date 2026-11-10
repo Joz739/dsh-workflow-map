@@ -2,7 +2,7 @@
 //
 // Run: node tools/preview-effects.mjs (then pwsh -File tools\measure-effects.ps1)
 //
-// rewrote the layout into ONE page; session7 (2026-10-27) rewrote this preview to
+// rewrote the layout into ONE page; the single-page revision (2026-10-27) rewrote this preview to
 // match it. The old page measured the step↔node curve of the two-column layout, which
 // no longer exists. What still moves on today's page, and what this preview proves IN A
 // REAL BROWSER (a tree assertion cannot — the animation has to actually run):

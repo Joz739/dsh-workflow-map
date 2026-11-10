@@ -2,15 +2,15 @@
 #
 # Run: pwsh -File tools\measure-flow.ps1
 #
-# session7 (2026-10-27) rewrote both halves to the 会话4 single-page layout. The old script measured
+# the single-page revision (2026-10-27) rewrote both halves to the the single-page layout single-page layout. The old script measured
 # the retired two-column flow column (a 60-node window, fold rows, a 展开全部 strip) and scored
 # 7/27 — every one of those elements is gone from the mount tree. What a step's "flow" IS today:
-# the right page's per-type call list. This script measures that, and the four honesty rules around
+# the right page's per-type call list. This script measures that, and the four accuratey rules around
 # it, none of which a tree assertion can prove:
 #
 #   · the selected step's type page lists exactly the calls of that bucket, in wire order, each row
 #     a button with the node id, a status dot, a verb · target label and aria-expanded;
-#   · THE CAP, HONESTLY STATED: the bucket counts FILE occurrences while its node list counts calls
+#   · THE CAP: the bucket counts FILE occurrences while its node list counts calls
 #     — three .md files on one call render ONE row plus 「另有 2 处调用未随视图发送」, never two
 #     invented rows (the successor of the old fold/banner claims);
 #   · the session-scope page merges every step's bucket but can dereference no calls, so it says
@@ -20,12 +20,12 @@
 #   · clicking a call mounts wfRenderNodeDetail under it (aria-expanded flips both ways) and Escape
 #     runs the panel's own binding.
 #
-# NOTE (OPEN-2, recorded in evidence/session7-rerun.md): the page's subtitle still prints the raw
+# NOTE (OPEN-2, recorded in evidence/the single-page revision-rerun.md): the page's subtitle still prints the raw
 # `{count}` placeholder — RightPage.js passes only `{step}` to `panel.page.typeSub`, whose zh string
 # also contains `{count}`. The scope half IS asserted below; the leak is documented rather than
 # asserted as correct, and the fix is a one-line dictionary/parameter change.
 #
-# The browser is auto-detected (this machine has no Chrome; Edge is the Chromium), and headless
+# The browser is auto-detected (Chrome is unavailable; Edge is Chromium), and headless
 # Chromium must be started with Start-Process (a direct call returns immediately and writes nothing).
 param(
   [string]$Chrome = '',
@@ -77,7 +77,7 @@ try {
     )
     # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
     # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
-    $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+    $nodeExe = if ($env:NODE_EXE) { $env:NODE_EXE } elseif (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { throw 'node not found; add it to PATH or set NODE_EXE' }
     $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
     $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
     $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }
@@ -119,7 +119,7 @@ try {
   Add-Check 'flow.calls.rowAttrs' ($row.id -eq 'a1' -and $row.status -eq 'done' -and $row.open -eq 'false' -and $row.expanded -eq 'false') "id=$($row.id) status=$($row.status) open=$($row.open) expanded=$($row.expanded)"
   Add-Check 'flow.calls.label' ((HasText $row.text '读') -and (HasText $row.text 'n1.md')) "label=$($row.text)"
 
-  # --- 2. the cap, honestly stated ------------------------------------------------------
+  # --- 2. the cap, stated explicitly ------------------------------------------------------
   Add-Check 'flow.cap.oneRowPerCall' ([int]$expect.bucketCount -eq 3 -and [int]$expect.listedCalls -eq 1) "bucket=$($expect.bucketCount) rows=$($expect.listedCalls)"
   Add-Check 'flow.cap.note' ($live.truncNote -eq [string]$expect.truncatedText) "note=$($live.truncNote)"
   Add-Check 'flow.cap.noInventedRows' ((@($live.calls).Count -eq [int]$expect.listedCalls) -and -not (HasText $live.truncNote 'undefined')) "rows=$(@($live.calls).Count)"
@@ -139,7 +139,7 @@ try {
   $session = Step $page 'sessionScope'
   Add-Check 'flow.session.open' ($session.rightOpen -eq $true -and $session.kind -eq 'type') "open=$($session.rightOpen) kind=$($session.kind)"
   Add-Check 'flow.session.scope' ((HasText $session.title '全会话') -and (HasText $session.sub '全会话')) "title=$($session.title)"
-  Add-Check 'flow.session.honest' ((@($session.calls).Count -eq 0) -and ($session.emptyText -eq [string]$expect.typeEmptyText)) "calls=$(@($session.calls).Count) empty=$($session.emptyText)"
+  Add-Check 'flow.session.accurate' ((@($session.calls).Count -eq 0) -and ($session.emptyText -eq [string]$expect.typeEmptyText)) "calls=$(@($session.calls).Count) empty=$($session.emptyText)"
 
   # --- 6. a stale key closes the page instead of inventing a record -----------------------
   $stale = Step $page 'staleKey'

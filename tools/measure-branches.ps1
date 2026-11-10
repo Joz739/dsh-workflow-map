@@ -2,7 +2,7 @@
 #
 # Run: pwsh -File tools\measure-branches.ps1
 #
-# session7 (2026-10-27) rewrote both halves to the 会话4 single-page layout. The old script measured
+# the single-page revision (2026-10-27) rewrote both halves to the the single-page layout single-page layout. The old script measured
 # the subagent/background-job LANES of Branches.js (a 6 px coloured link per lane, lane hues, lane
 # breathing dots) — that component is no longer mounted anywhere. What carries a step's parallel
 # work today: the unit's round SATELLITES, one per tool/file-type bucket, each a real <button> that
@@ -10,7 +10,7 @@
 #
 #   · the per-side slot cap (WF_SIDE_SLOTS = 2) really bites — a step with six buckets draws at most
 #     two per side, and the card prints 「另有 N 类未画在两侧」 instead of silently trimming (the
-#     honest successor of the old 4-lane cap);
+#     accurate successor of the old 4-lane cap);
 #   · every drawn satellite is a <button> carrying type / side / tone / count and an accessible name
 #     that states the count, with a real box on screen;
 #   · the RUNNING bucket's satellite and its row carry data-live='true' — the one animated lane;
@@ -18,7 +18,7 @@
 #     satellite flips data-open / aria-pressed;
 #   · a step whose buckets fit shows NO dropped note at all.
 #
-# The browser is auto-detected (this machine has no Chrome; Edge is the Chromium), and headless
+# The browser is auto-detected (Chrome is unavailable; Edge is Chromium), and headless
 # Chromium must be started with Start-Process (a direct call returns immediately and writes nothing).
 param(
   [string]$Chrome = '',
@@ -70,7 +70,7 @@ try {
     )
     # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
     # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
-    $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+    $nodeExe = if ($env:NODE_EXE) { $env:NODE_EXE } elseif (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { throw 'node not found; add it to PATH or set NODE_EXE' }
     $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
     $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
     $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }

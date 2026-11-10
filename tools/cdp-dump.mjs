@@ -1,6 +1,6 @@
 // Dump the rendered DOM of one page through the Chrome DevTools Protocol.
 //
-// Why this exists: `msedge --dump-dom` stopped producing anything on this machine
+// Why this exists: `msedge --dump-dom` stopped producing anything in this environment
 // after Edge 156.0.4314.50 — the launcher process exits 0 within milliseconds
 // while the real browser process starts detached, so the DOM goes to a stdout
 // nobody holds. Edge itself is healthy (it creates the profile, CDP answers), so

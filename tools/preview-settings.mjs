@@ -89,7 +89,7 @@ for (let i = 0; i < 72; i += 1) {
 const view = {
   asOf: T0 + 2000,
  // The session is NOT working right now (view.running=false) while one step is still marked
- // running - the honest case the three motion options differ on: "while running" freezes it,
+ // running - the case the three motion options differ on: "while running" freezes it,
  // "always" keeps it moving.
   running: false,
  task: '为示例 CLI 增加配置文件支持',

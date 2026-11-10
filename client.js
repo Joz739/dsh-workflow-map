@@ -205,8 +205,10 @@ window.__ModuleLoader__.load({
       // `data-ds-dark-theme` on <body>, so the light values are the defaults and the dark block below
       // only wins when that attribute is present.
         "--wf-lift:rgba(15,23,42,.045);--wf-lift-2:rgba(15,23,42,.085);" +
+        "--wf-star:#3f8fd4;--wf-star-border:#8ac8ff;" +
         "font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:12px;line-height:1.5}",
-      "body[data-ds-dark-theme] .wf-root{--wf-lift:rgba(255,255,255,.035);--wf-lift-2:rgba(255,255,255,.07)}",
+      "body[data-ds-dark-theme] .wf-root{--wf-lift:rgba(255,255,255,.035);--wf-lift-2:rgba(255,255,255,.07);" +
+        "--wf-star:#8ecbff;--wf-star-border:#8ecbff}",
 
      /* card: fills the main area; the header and the settings card keep their own height,
          the two-column body takes the rest. No drag grips: the column has no free edges.
@@ -225,7 +227,8 @@ window.__ModuleLoader__.load({
       ".wf-pct{color:var(--dsw-alias-brand-primary,#5b8cff);font-variant-numeric:tabular-nums;font-weight:600}",
       ".wf-sep{opacity:.5}",
       ".wf-status-bad{color:var(--dsw-alias-state-warn-primary,#e0a13a)}",
-      ".wf-btns{display:flex;gap:3px;flex:0 0 auto}",
+      ".wf-unassigned{color:var(--dsw-alias-state-warn-primary,#e0a13a);white-space:nowrap}",
+      ".wf-btns{display:flex;align-items:center;gap:3px;flex:0 0 auto}",
       ".wf-btn{width:23px;height:23px;padding:0;border-radius:6px;border:1px solid transparent;background:transparent;" +
         "color:var(--dsw-alias-label-secondary,#9aa3b2);font:inherit;font-size:13px;line-height:1;cursor:pointer;" +
         "display:inline-flex;align-items:center;justify-content:center}",
@@ -254,11 +257,23 @@ window.__ModuleLoader__.load({
         "border-radius:9px;background:var(--dsw-alias-state-error-primary,#e85a5a);color:#fff;" +
         "font-size:9.5px;font-weight:700;line-height:16px;text-align:center;font-variant-numeric:tabular-nums;" +
         "box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-1,#232733);pointer-events:none}",
+     // A link styled as a header button. It keeps the hot-inject chip's 30 px height and never
+     // exceeds its width; the blue outline encloses the star and its name as one control.
+      ".wf-btn-star{width:auto;max-width:96px;height:30px;padding:0 9px;gap:4px;box-sizing:border-box;" +
+        "display:inline-flex;align-items:center;justify-content:center;text-decoration:none;" +
+        "font-size:12px;font-weight:600;line-height:1;letter-spacing:.01em;" +
+        "color:var(--wf-star,#8ecbff);border:1px solid var(--wf-star-border,#8ecbff);" +
+        "border-radius:6px;background:transparent}",
+      ".wf-btn-star:hover{color:var(--wf-star,#8ecbff);border-color:var(--wf-star-border,#8ecbff);" +
+        "background:color-mix(in srgb,var(--wf-star,#8ecbff) 12%,transparent)}",
+      ".wf-star-glyph{font-size:14px;line-height:1;color:inherit}",
+      ".wf-star-text{color:inherit;line-height:1}",
 
      /* settings strip (skeleton: endpoint / counts / reset) */
       ".wf-settings{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:7px 12px;font-size:11px;" +
         "color:var(--dsw-alias-label-secondary,#9aa3b2);border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.1))}",
       ".wf-kv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}",
+      ".wf-kv-warn{color:var(--dsw-alias-state-warn-primary,#e0a13a)}",
       ".wf-link{padding:2px 8px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.2));" +
         "background:transparent;color:inherit;font:inherit;cursor:pointer}",
       ".wf-link:hover{border-color:var(--dsw-alias-brand-primary,#5b8cff);color:var(--dsw-alias-label-primary,#e9ecf3)}",
@@ -680,10 +695,10 @@ window.__ModuleLoader__.load({
       ".wf-copy-status{flex:0 0 auto;margin-left:auto;color:inherit;white-space:nowrap}",
       ".wf-copy-status:empty{display:none}",
       ".wf-detail-copy[data-copy-state='copied'] .wf-copy-label,.wf-detail-copy[data-copy-state='failed'] .wf-copy-label{display:none}",
-      ".wf-detail-copy:focus-visible,.wf-detail-file:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:1px}",
-      ".wf-detail-copy[data-copy-state='copied'],.wf-detail-file[data-copy-state='copied']{" +
+      ".wf-detail-copy:focus-visible,.wf-detail-file-copy:focus-visible,.wf-file-open:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:1px}",
+      ".wf-detail-copy[data-copy-state='copied'],.wf-detail-file-copy[data-copy-state='copied']{" +
         "color:var(--dsw-alias-state-success-primary,#45c07a);border-color:currentColor}",
-      ".wf-detail-copy[data-copy-state='failed'],.wf-detail-file[data-copy-state='failed']{" +
+      ".wf-detail-copy[data-copy-state='failed'],.wf-detail-file-copy[data-copy-state='failed']{" +
         "color:var(--dsw-alias-state-error-primary,#e85a5a);border-color:currentColor}",
       ".wf-detail-preview{margin:0;font-family:ui-monospace,SFMono-Regular,Consolas,'Microsoft YaHei',monospace;" +
         "font-size:10px;line-height:1.4;white-space:pre-wrap;word-break:break-all;" +
@@ -706,10 +721,15 @@ window.__ModuleLoader__.load({
         "color:var(--dsw-alias-label-tertiary,#7d8798)}",
       ".wf-detail-glyph{font-size:10px;line-height:1}",
       ".wf-detail-rows{display:flex;flex-direction:column;gap:1px;min-width:0}",
-      ".wf-detail-file{display:flex;align-items:baseline;gap:6px;width:100%;min-width:0;padding:1px 4px;" +
+      ".wf-detail-file{display:flex;align-items:center;gap:2px;width:100%;min-width:0}",
+      ".wf-detail-file-copy{display:flex;align-items:baseline;gap:6px;flex:1 1 auto;min-width:0;padding:1px 4px;" +
         "border-radius:5px;border:1px solid transparent;background:transparent;color:inherit;font:inherit;" +
         "font-size:10px;line-height:1.5;text-align:left;cursor:pointer}",
-      ".wf-detail-file:hover{background:var(--dsw-alias-bg-layer-2,#2c3140)}",
+      ".wf-detail-file-copy:hover{background:var(--dsw-alias-bg-layer-2,#2c3140)}",
+      ".wf-file-open{flex:0 0 auto;width:18px;height:18px;padding:0;border-radius:4px;border:1px solid transparent;" +
+        "background:transparent;color:var(--dsw-alias-label-tertiary,#7d8798);font:inherit;font-size:11px;" +
+        "line-height:1;cursor:pointer}",
+      ".wf-file-open:hover{background:var(--dsw-alias-bg-layer-2,#2c3140);color:var(--dsw-alias-label-primary,#e9ecf3)}",
       ".wf-detail-base{flex:0 0 auto;color:var(--dsw-alias-label-primary,#e9ecf3);" +
         "font-family:ui-monospace,SFMono-Regular,Consolas,'Microsoft YaHei',monospace}",
       ".wf-detail-dir{flex:1 1 auto;min-width:0;font-size:9.5px;color:var(--dsw-alias-label-tertiary,#7d8798);" +
@@ -1155,6 +1175,12 @@ window.__ModuleLoader__.load({
       ".wf-calls{display:flex;flex-direction:column;gap:6px;min-width:0}",
       ".wf-call-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;min-width:0}",
       ".wf-call{min-width:0;display:flex;flex-direction:column;gap:5px}",
+      ".wf-call-top{display:flex;align-items:stretch;gap:3px;min-width:0}",
+      ".wf-call-top .wf-call-head{flex:1 1 auto;width:auto;min-width:0}",
+      ".wf-call-jump{flex:0 0 auto;width:24px;padding:0;border-radius:7px;border:1px solid transparent;" +
+        "background:transparent;color:var(--dsw-alias-label-tertiary,#7d8798);font:inherit;font-size:12px;" +
+        "line-height:1;cursor:pointer}",
+      ".wf-call-jump:hover{background:var(--dsw-alias-bg-layer-2,#2c3140);color:var(--dsw-alias-label-primary,#e9ecf3)}",
       ".wf-call-head{display:flex;align-items:center;gap:6px;width:100%;padding:5px 7px;border-radius:7px;" +
         "border:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.1));background:var(--dsw-alias-bg-base,#161920);" +
         "color:inherit;font:inherit;font-size:11px;cursor:pointer;text-align:left;box-sizing:border-box}",
@@ -1277,6 +1303,44 @@ window.__ModuleLoader__.load({
       return n === null ? null : Math.round(n);
     }
 
+    /** The host's unattributed-node count, separated from the step-owned count. */
+    function wfUnassigned(view) {
+      var raw = view && view.unassigned;
+      var nodes = wfFinite(raw && raw.nodes);
+      var since = wfFinite(raw && raw.sinceSeq);
+      return {
+        nodes: nodes === null || nodes < 0 ? 0 : Math.round(nodes),
+        sinceSeq: since === null || since < 0 ? null : Math.round(since),
+      };
+    }
+
+    /** The optional tool-capability block. Unknown modes are ignored rather than rendered. */
+    function wfCapabilities(view) {
+      var raw = view && view.capabilities;
+      var mode = raw && typeof raw.progressTool === "string" ? raw.progressTool : "";
+      if (mode !== "builtin" && mode !== "external" && mode !== "unavailable") return null;
+      return { progressTool: mode };
+    }
+
+    /**
+     * The host's file-resource address: one segment per path component, with a drive-letter colon
+     * left readable. Mirrors the address builder in the host UI.
+     */
+    function wfEncodeFileSegment(value) {
+      return encodeURIComponent(String(value)).replace(/%3A/gi, ":");
+    }
+
+    function wfSessionFileAddress(sessionId, path) {
+      if (typeof sessionId !== "string" || sessionId === "" || typeof path !== "string" || path === "") return "";
+      var normalized = path.replace(/\\/g, "/").replace(/^(?:\.\/)+/, "");
+      return (
+        "dsh-resource://file/session/" +
+        wfEncodeFileSegment(sessionId) +
+        "/" +
+        normalized.split("/").map(wfEncodeFileSegment).join("/")
+      );
+    }
+
     /* ------------------------------------------------------------------------- */
     /* preferences — keeps ONLY what the panel still owns */
     /* ------------------------------------------------------------------------- */
@@ -1359,7 +1423,7 @@ window.__ModuleLoader__.load({
         return wfParsePrefs(store.getItem(WF_PREFS_KEY));
       } catch (error) {
      // A disabled / quota-exhausted / partitioned localStorage is NOT an error the
-     // panel may die on: it just means "no memory this session".
+     // panel may die on: it just means "no memory of this session".
         return wfDefaultPrefs();
       }
     }
@@ -1594,7 +1658,7 @@ window.__ModuleLoader__.load({
     /**
      * The plan section reduced to what the cards need. Every field is optional on
      * the wire (a plan written by an older PAE has no `skipped`), so each one has an
-     * honest fallback instead of a dereference.
+     * safe fallback instead of a dereference.
      */
     function wfPlanSummary(plan) {
       if (!plan || typeof plan !== "object") return null;
@@ -1654,7 +1718,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * The selected step's detail: its report (PAE) and honest statistics from the nodes the
+     * The selected step's detail: its report (PAE) and accurate statistics from the nodes the
      * host actually sent. `truncated` is the difference to the step's OWN nodeCount, so a
      * 300-node cap is stated rather than silently under-counted.
      */
@@ -1769,7 +1833,7 @@ window.__ModuleLoader__.load({
     /**
      * The wire's `view.injects` → what the composer page renders.
      *
-     * Each row keeps the three facts the user asked for: WHAT was injected (the text), WHEN
+     * Each row keeps the three facts the requested for: WHAT was injected (the text), WHEN
      * (`at`, the splice's own event time — never a browser clock), and its STATUS, which is one
      * of two words with different meanings:
      * `pending` — the message is in the session's inbox; the turn has not picked it up yet.
@@ -1921,7 +1985,7 @@ window.__ModuleLoader__.load({
      * Ordering is by count (the type that matters most sits closest to the unit), ties broken by
      * label so two renders of the same data never swap places. Each side keeps WF_SIDE_SLOTS
      * circles; `dropped` states how many types did not fit — the card prints that number, so a
-     * crowded step is honest rather than silently trimmed.
+     * crowded step is accurate rather than silently trimmed.
      */
     function wfTypeSides(nodes, activeNodeId) {
       var byKey = wfTypeBuckets(nodes, activeNodeId);
@@ -2010,6 +2074,8 @@ window.__ModuleLoader__.load({
      // shape is present so the renderer never has to branch on "does page exist".
           page: { units: [], runningIndex: null, toolTypes: [] },
           counts: view.counts && typeof view.counts === "object" ? view.counts : null,
+          unassigned: wfUnassigned(view),
+          capabilities: wfCapabilities(view),
           plan: wfPlanSummary(plan),
      // the hot-inject history travels with the model, so the composer page can list
      // what was sent and whether the session admitted it (see wfInjectRows).
@@ -2145,11 +2211,12 @@ window.__ModuleLoader__.load({
             : [],
      // The args digest / result head / error text are bounded by the host (200 chars).
      // They are copied verbatim — never flattened — because the detail renders them in a
-     // pre-wrap block and a command's newlines are part of what the user asked to see.
+     // pre-wrap block and a command's newlines are part of what the rendered text.
           argsText: typeof found.argsText === "string" ? found.argsText.slice(0, 200) : "",
           resultLine: typeof found.resultHead === "string" ? found.resultHead.slice(0, 200) : "",
           errorText: typeof found.error === "string" ? found.error.slice(0, 200) : "",
           seq: wfFinite(found.seq),
+          callId: typeof found.callId === "string" && found.callId !== "" ? found.callId : null,
           error: typeof found.error === "string" && found.error !== "",
           // The host's result boolean is the settled fact: a call that returned with an EMPTY body is
           // settled. Falling back to resultHead alone marked such a call unsettled, so the panel kept
@@ -2334,7 +2401,7 @@ window.__ModuleLoader__.load({
           total: flowNodes.length,
      // "omitted" count must cover EVERY missing node, not only the per-step cap: the
      // global 1200-node cap also prunes a step's id list while leaving
-     // step.truncatedNodes at 0. The honest gap is nodeCount − drawn.
+     // step.truncatedNodes at 0. The accurate gap is nodeCount − drawn.
           truncated: Math.max(
             wfFinite(step.truncatedNodes) === null ? 0 : step.truncatedNodes,
             (wfFinite(step.nodeCount) === null ? flowNodes.length : step.nodeCount) - flowNodes.length
@@ -2355,6 +2422,8 @@ window.__ModuleLoader__.load({
           toolTypes: WF_TYPE_COMPOUND.slice(),
         },
         counts: view.counts && typeof view.counts === "object" ? view.counts : null,
+        unassigned: wfUnassigned(view),
+        capabilities: wfCapabilities(view),
         plan: planSummary,
      // the selected step's report + statistics, or null for the planning card.
         detail: detail,
@@ -2535,6 +2604,12 @@ window.__ModuleLoader__.load({
       var fire = actions || {};
       var settings = wfSanitizeSettings(prefs, wfDefaultSettings());
       var ui = extras || {};
+      var unassigned = wfFinite(ui.unassigned);
+      var toolMode = ui.progressTool;
+      var toolKey =
+        toolMode === "builtin" || toolMode === "external" || toolMode === "unavailable"
+          ? "panel.settings.progressTool." + toolMode
+          : null;
       return h(
         "div",
         { className: "wf-settings", key: "settings", "data-dsh-workflow-map": "settings" },
@@ -2563,6 +2638,16 @@ window.__ModuleLoader__.load({
             steps: ui.steps === undefined ? 0 : ui.steps,
             nodes: ui.nodes === undefined ? 0 : ui.nodes,
           })),
+          unassigned === null || unassigned <= 0
+            ? null
+            : h("span", { className: "wf-kv wf-kv-warn", key: "unassigned" }, say("panel.settings.unassigned", { count: Math.round(unassigned) })),
+          toolKey === null
+            ? null
+            : h(
+                "span",
+                { className: "wf-kv", key: "progress-tool" },
+                say("panel.settings.progressTool") + " · " + say(toolKey)
+              ),
           wfFinite(ui.rev) === null ? null : h("span", { className: "wf-kv", key: "rev" }, say("panel.settings.rev", { rev: ui.rev }))
         ),
         h(
@@ -2781,7 +2866,7 @@ window.__ModuleLoader__.load({
      *
      * Accepts the ROW or the bare boolean, because the two entry points hold different things:
      * `wfRenderProgressDock` has the row, while `wfProgressLabel` takes scalars and is handed the flag.
-     * A missing/absent/undefined field is false — the same honest default the host repairs to.
+     * A missing/absent/undefined field is false — the same safe default the host repairs to.
      */
     function wfAwaitingNextTurn(value) {
       if (value === true) return true;
@@ -2797,6 +2882,9 @@ window.__ModuleLoader__.load({
       // waiting branch too): a pending row that carries a stale flag must never print
       // 「等待下一回合」either — it is not waiting, it simply has not begun.
       if (status === "pending" || status === "skipped") return null;
+      // A completed step is 100 % by definition. Checking status before the source keeps an older
+      // host row (or a plan-promoted row) from printing "100% self-reported" after the fact.
+      if (status === "done") return { kind: "closed", percent: 100, text: "100%" };
       // WAITING FOR THE NEXT TURN. Deliberately placed BEFORE the number check: the host ships no
       // number for a waiting step (`percentFor` returns null), yet the rail still has to SAY why —
       // an empty rail would read as "no information", which is a different claim. A stale number in
@@ -2816,7 +2904,7 @@ window.__ModuleLoader__.load({
       if (source === "model") {
         return { kind: "self", percent: rounded, text: say("panel.percent.self", { percent: rounded }) };
       }
-      // a MEASURED number (the todo table's own completion ratio). It must read differently
+      // an observed number (the todo table's own completion ratio). It must read differently
       // from both "self-reported" and "estimated", or the user cannot tell a fact from a guess.
       if (source === "todos") {
         return { kind: "real", percent: rounded, text: say("panel.percent.real", { percent: rounded }) };
@@ -2836,6 +2924,7 @@ window.__ModuleLoader__.load({
     function wfProgressFillWidth(row) {
       var status = row && typeof row.status === "string" ? row.status : "pending";
       if (status === "pending" || status === "skipped") return 0;
+      if (status === "done") return 100;
       if (wfAwaitingNextTurn(row)) return 0;
       var value = wfFinite(row.percent);
       if (value === null) return status === "running" ? 30 : 0;
@@ -3446,7 +3535,7 @@ window.__ModuleLoader__.load({
         }
       }
 
-     // 4. The host's event-derived status, then the honest floor.
+     // 4. The host's event-derived status, then the explicit floor.
       var fromHost = wfCanonicalStatus(row && row.status);
       if (fromHost !== null) return { status: fromHost, source: "host" };
       return { status: "pending", source: "none" };
@@ -3726,7 +3815,7 @@ window.__ModuleLoader__.load({
                 open: detail !== null && !(model.settings && model.settings.detail === "title") && wfStepDetailOpen(ui, model.selected),
                 compact: !!(model.settings && model.settings.detail === "title"),
      // the shared "now" for every rail's age arithmetic. `view.asOf` is the
-     // host's own stamp (the ONE honest clock in the plugin); `model.now` is the render
+     // host's own stamp (the ONE accurate clock in the plugin); `model.now` is the render
      // moment the panel passed in and is only a fallback for a view that carries none.
                 asOf: model.asOf === null || model.asOf === undefined ? model.now : model.asOf,
               });
@@ -3936,28 +4025,51 @@ window.__ModuleLoader__.load({
           "div",
           { className: "wf-detail-rows", key: "rows" },
           group.files.map(function (file, position) {
-     // The whole row is the copy button: basename in the foreground, directory grey.
+            var fire = actions || {};
+     // The row carries two controls: the copy button (the whole foreground) and, when the host
+     // exposes the right sidebar, an open button. They must be siblings, not nested buttons.
             return h(
-              "button",
-              {
-                type: "button",
-                className: "wf-detail-file",
-                key: "file-" + group.action + "-" + position,
-                "data-wf-copy": file.path,
-                "data-wf-copy-label": file.base,
-                "data-copy-state": "idle",
-                title: say("panel.detail.copypath") + " — " + file.path,
-                "aria-label": say("panel.detail.copypath") + " " + file.path,
-                onClick: function (event) {
-                  var fire = actions || {};
-                  if (typeof fire.onCopy === "function") {
-                    fire.onCopy(file.path, event && event.currentTarget ? event.currentTarget : null);
-                  }
+              "div",
+              { className: "wf-detail-file", key: "file-" + group.action + "-" + position },
+              h(
+                "button",
+                {
+                  type: "button",
+                  className: "wf-detail-file-copy",
+                  key: "copy",
+                  "data-wf-copy": file.path,
+                  "data-wf-copy-label": file.base,
+                  "data-copy-state": "idle",
+                  title: say("panel.detail.copypath") + " — " + file.path,
+                  "aria-label": say("panel.detail.copypath") + " " + file.path,
+                  onClick: function (event) {
+                    if (typeof fire.onCopy === "function") {
+                      fire.onCopy(file.path, event && event.currentTarget ? event.currentTarget : null);
+                    }
+                  },
                 },
-              },
-              h("span", { className: "wf-detail-base", key: "base" }, file.base),
-              file.dir === "" ? null : h("span", { className: "wf-detail-dir", key: "dir", title: file.dir }, file.dir),
-              h("span", { className: "wf-copy-status", key: "status", "aria-live": "polite" }, "")
+                h("span", { className: "wf-detail-base", key: "base" }, file.base),
+                file.dir === "" ? null : h("span", { className: "wf-detail-dir", key: "dir", title: file.dir }, file.dir),
+                h("span", { className: "wf-copy-status", key: "status", "aria-live": "polite" }, "")
+              ),
+              fire.canOpenFile === true
+                ? h(
+                    "button",
+                    {
+                      type: "button",
+                      className: "wf-file-open",
+                      key: "open",
+                      "data-dsh-workflow-map": "open-file",
+                      "data-file-path": file.path,
+                      title: say("panel.detail.openfile") + " — " + file.path,
+                      "aria-label": say("panel.detail.openfile") + " " + file.path,
+                      onClick: function () {
+                        if (typeof fire.onOpenFile === "function") fire.onOpenFile(file.path);
+                      },
+                    },
+                    "↗"
+                  )
+                : null
             );
           })
         )
@@ -3980,9 +4092,11 @@ window.__ModuleLoader__.load({
       var resultLine = typeof node.resultLine === "string" && node.resultLine !== "" ? node.resultLine : "";
       var errorText = typeof node.errorText === "string" && node.errorText !== "" ? node.errorText : "";
       var seq = wfFinite(node.seq);
+      var callId = typeof node.callId === "string" && node.callId !== "" ? node.callId : "";
       var clock = wfFormatClock(node.at);
       var duration = wfFinite(node.durationMs);
       var argsTitleKey = category === "command" ? "panel.detail.showcommand" : "panel.detail.showargs";
+      var fire = actions || {};
 
       var head = h(
         "div",
@@ -4008,7 +4122,25 @@ window.__ModuleLoader__.load({
                 ? "panel.status.done"
                 : "panel.node.pending"
           )
-        )
+        ),
+        fire.canInspect === true && callId !== ""
+          ? h(
+              "button",
+              {
+                type: "button",
+                className: "wf-call-jump",
+                key: "jump",
+                "data-dsh-workflow-map": "jump-call",
+                "data-call-id": callId,
+                title: say("panel.call.jump.hint"),
+                "aria-label": say("panel.call.jump"),
+                onClick: function () {
+                  if (typeof fire.onInspectCall === "function") fire.onInspectCall(callId);
+                },
+              },
+              "↗"
+            )
+          : null
       );
 
      // The expansion is a native <details>: keyboard-operable, no React state, and the opened
@@ -5017,6 +5149,10 @@ window.__ModuleLoader__.load({
           total: model.progress.total,
           percent: model.progress.percent,
         } : { done: 0, total: 0, percent: 0 },
+        unassigned: {
+          nodes: wfFinite(model && model.unassigned && model.unassigned.nodes) === null ? 0 : Math.round(model.unassigned.nodes),
+          sinceSeq: wfFinite(model && model.unassigned && model.unassigned.sinceSeq),
+        },
         steps: steps,
       };
     }
@@ -5038,6 +5174,13 @@ window.__ModuleLoader__.load({
       lines.push(
         "- 进度：" + snapshot.progress.done + "/" + snapshot.progress.total + " 步 · " + snapshot.progress.percent + "%"
       );
+      if (snapshot.unassigned.nodes > 0) {
+        lines.push(
+          "- 未归属节点：" +
+            snapshot.unassigned.nodes +
+            (snapshot.unassigned.sinceSeq === null ? "" : "（自 seq " + snapshot.unassigned.sinceSeq + "）")
+        );
+      }
       lines.push("");
       lines.push("## 分步");
       for (var i = 0; i < snapshot.steps.length; i += 1) {
@@ -5976,7 +6119,7 @@ window.__ModuleLoader__.load({
      *
      * Endpoint rule: the curve is drawn only when BOTH cards are fully inside their own scroll viewport; otherwise hidden (data-visible=false).
      * Clamping endpoints to the viewport edge would stop them hugging the card edge, making the 2 px tolerance meaningless,
-     * so drawing nothing is the honest option.
+     * so drawing nothing is the explicit option.
      *
      * Pure, no import/export: inlined into client.js by tools/build-client.mjs (single-file browser half).
      */
@@ -6164,7 +6307,7 @@ window.__ModuleLoader__.load({
       var toY = b.top - box.top;
       var dy = toY - fromY;
       // Two cards that touch (or overlap) have no gap to draw in. Drawing a zero-length curve would
-      // put a stray mark on a card's edge, so the link is simply absent — an honest hole, not a lie.
+      // put a stray mark on a card's edge, so the link is simply absent — an explicit hole, not a lie.
       if (!(dy > 0)) return { visible: false, reason: "too-close", d: null };
 
       // The sideways bow ("horizontal bulge"): a share of the horizontal offset plus a fixed 10 px, clamped so
@@ -6248,7 +6391,7 @@ window.__ModuleLoader__.load({
         if (!row) continue;
         // The CONNECTOR is drawn between the CARDS, not between the list rows: a node row's card is
         // its direct <button>, a group's card is the dashed head. Falling back to the row keeps the
-        // link honest for any future row shape instead of silently dropping it.
+        // link accurate for any future row shape instead of silently dropping it.
         var card = null;
         if (typeof row.querySelector === "function") card = row.querySelector(":scope > .wf-node, :scope > .wf-group-row > .wf-group-head");
         if (!card) card = row;
@@ -6288,7 +6431,7 @@ window.__ModuleLoader__.load({
       }
 
       // The layer is rendered with a FIXED number of paths (WF_CHAIN_LINK_SLOTS): an SVG child list
-      // cannot be resized from here, so extra paths are blanked and missing ones reported honestly
+      // cannot be resized from here, so extra paths are blanked and missing ones reported accurately
       // rather than quietly drawing fewer links than there are cards.
       var drawn = 0;
       for (var p = 0; p < count; p += 1) {
@@ -6636,7 +6779,7 @@ window.__ModuleLoader__.load({
     /**
      * MainFlow.js — the single page: ONE serial main flow, satellites on both sides.
      *
-     * The layout the user asked for, in one sentence: the steps run serially down the middle, each
+     * The layout the requested for, in one sentence: the steps run serially down the middle, each
      * step's core unit carries a few parallel "interfaces" off its left and right edges, every
      * interface ends in a round icon naming the TOOL FILE TYPE it stands for, and every connector is
      * a STRAIGHT line. The main chain only ever runs one way — down.
@@ -7091,44 +7234,69 @@ window.__ModuleLoader__.load({
       if (parts.verb !== "") label.push(parts.verb, " · ");
       label.push(parts.target);
 
+      var callId = typeof item.callId === "string" && item.callId !== "" ? item.callId : "";
+      var canJump = fire.canInspect === true && callId !== "";
+
       return h(
         "li",
         { className: "wf-call", key: "call-" + id, "data-status": status, "data-node-id": id },
         h(
-          "button",
-          {
-            type: "button",
-            className: "wf-call-head",
-            key: "head",
-            "data-dsh-workflow-map": "call",
-            "data-node-id": id,
-            "data-open": open ? "true" : "false",
-            "aria-expanded": open ? "true" : "false",
-            title: parts.verb !== "" ? parts.verb + " · " + parts.target : parts.target,
-            onClick: function () {
-              if (typeof fire.onSelectCall === "function") fire.onSelectCall(id);
-            },
-          },
-          h("span", { className: "wf-call-main", key: "main" }, label),
+          "div",
+          { className: "wf-call-top", key: "top" },
           h(
-            "span",
-            { className: "wf-call-meta", key: "meta" },
-            wfFormatClock(item.at) === "" ? "" : wfFormatClock(item.at),
-            wfFormatDuration(item.durationMs) === "" ? "" : " · " + wfFormatDuration(item.durationMs)
+            "button",
+            {
+              type: "button",
+              className: "wf-call-head",
+              key: "head",
+              "data-dsh-workflow-map": "call",
+              "data-node-id": id,
+              "data-open": open ? "true" : "false",
+              "aria-expanded": open ? "true" : "false",
+              title: parts.verb !== "" ? parts.verb + " · " + parts.target : parts.target,
+              onClick: function () {
+                if (typeof fire.onSelectCall === "function") fire.onSelectCall(id);
+              },
+            },
+            h("span", { className: "wf-call-main", key: "main" }, label),
+            h(
+              "span",
+              { className: "wf-call-meta", key: "meta" },
+              wfFormatClock(item.at) === "" ? "" : wfFormatClock(item.at),
+              wfFormatDuration(item.durationMs) === "" ? "" : " · " + wfFormatDuration(item.durationMs)
+            ),
+            h("span", {
+              className: "wf-flow-status",
+              key: "status",
+              "data-status": status,
+              "aria-hidden": "true",
+            })
           ),
-          h("span", {
-            className: "wf-flow-status",
-            key: "status",
-            "data-status": status,
-            "aria-hidden": "true",
-          })
+          canJump
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  className: "wf-call-jump",
+                  key: "jump",
+                  "data-dsh-workflow-map": "jump-call",
+                  "data-call-id": callId,
+                  title: say("panel.call.jump.hint"),
+                  "aria-label": say("panel.call.jump"),
+                  onClick: function () {
+                    if (typeof fire.onInspectCall === "function") fire.onInspectCall(callId);
+                  },
+                },
+                "↗"
+              )
+            : null
         ),
         open ? wfRenderNodeDetail(h, item, say, fire, { detail: "summary" }) : null
       );
     }
 
     /**
-     * The type page's body: the calls of one bucket, in wire order, plus the honest note when the
+     * The type page's body: the calls of one bucket, in wire order, plus the explicit note when the
      * host never sent some of them (the bucket carries the host's count, the list only what arrived).
      */
     function wfRenderTypeBody(h, bucket, nodes, say, actions, ctx) {
@@ -7336,10 +7504,10 @@ window.__ModuleLoader__.load({
      * `agent/inbox/spliced { outcome: 'canceled' }`. Until then the button reads "revoking..." and is disabled,
      * which is what stops a second click from becoming a second post.
      *
-     * HONESTY RULES (each one has an assertion):
+     * CONSISTENCY RULES (each one has an assertion):
      * 1. Sending is refused while `state === "sending"` — no double post, ever.
      * 2. Empty text is refused before any request leaves (the host would answer 400 anyway, but a
-     * round trip for something the browser already knows is not honest either).
+     * round trip for something the browser already knows is not accurate either).
      * 3. A success is claimed ONLY on `{ok:true}` from the host. On anything else the panel shows
      * the host's OWN reason verbatim - never an invented "injection failed".
      * 4. A 409 carries the host's text ("session is not running, hot injection unavailable"), and it is rendered as a
@@ -7433,7 +7601,7 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * Turn the host's answer to `/unsteer` into the UI's outcome. The SAME honesty rule as the send:
+     * Turn the host's answer to `/unsteer` into the UI's outcome. The SAME accuratey rule as the send:
      * only `{ok:true}` is a revocation, and every failure prints the host's own reason verbatim — the
      * one text this function may supply is the "the host gave no reason" fallback.
      */
@@ -7614,7 +7782,7 @@ window.__ModuleLoader__.load({
 
      // the HISTORY rows (newest last in the model, drawn newest first so the latest send is
      // the one the user sees without scrolling). Purely derived from the fold: nothing here talks
-     // to the host, and an empty list renders the honest "none yet" line instead of a blank block.
+     // to the host, and an empty list renders the explicit "none yet" line instead of a blank block.
       var history = [];
       if (Array.isArray(ui.history)) history = ui.history.slice().reverse();
 
@@ -7720,7 +7888,7 @@ window.__ModuleLoader__.load({
               note
             ),
      // the history block. It sits UNDER the acknowledgement so the composer's shape does
-     // not change; the newest row is first, and each row states the one thing the user asked to
+     // not change; the newest row is first, and each row states the one thing the requested to
      // know: was this one taken by the running turn, or is it still waiting.
         h(
           "div",
@@ -7978,6 +8146,12 @@ window.__ModuleLoader__.load({
       "panel.flow": "分步流程",
       "panel.flow.empty": "这一步还没有动作",
       "panel.nodes": "{count} 个节点",
+      "panel.unassigned": "{count} 未归属",
+      "panel.unassigned.hint": "这些节点未落入任何步骤区间；首个未归属 seq：{seq}",
+      "panel.star.open": "在 GitHub 上 Star 本项目",
+      "panel.star.hint": "打开 GitHub 仓库",
+      "panel.call.jump": "在轨迹中定位",
+      "panel.call.jump.hint": "在宿主轨迹中定位这次调用",
       "panel.step.nodes": "{count} 节点",
       "panel.files": "{count} 文件",
       "panel.node.error": "失败",
@@ -8066,6 +8240,7 @@ window.__ModuleLoader__.load({
       "panel.detail.copy": "复制",
       "panel.detail.copyargs": "复制参数",
       "panel.detail.copypath": "复制路径",
+      "panel.detail.openfile": "在侧栏打开",
       "panel.detail.copied": "已复制",
       "panel.detail.copyfailed": "复制失败",
       "panel.detail.files": "文件",
@@ -8101,6 +8276,11 @@ window.__ModuleLoader__.load({
       "panel.step.unknowntime": "无时间记录",
       "panel.settings.endpoint": "数据源",
       "panel.settings.counts": "{steps} 步 / {nodes} 节点",
+      "panel.settings.unassigned": "未归属 {count} 节点",
+      "panel.settings.progressTool": "自报工具",
+      "panel.settings.progressTool.builtin": "内置",
+      "panel.settings.progressTool.external": "外置",
+      "panel.settings.progressTool.unavailable": "不可用",
       "panel.settings.rev": "版本 {rev}",
       "panel.settings.reset": "恢复默认",
       "panel.settings.reset.hint": "恢复配色、动效、详情深度与节点上限",
@@ -8195,6 +8375,12 @@ window.__ModuleLoader__.load({
       "panel.flow": "Step flow",
       "panel.flow.empty": "No actions in this step yet",
       "panel.nodes": "{count} nodes",
+      "panel.unassigned": "{count} unattributed",
+      "panel.unassigned.hint": "These nodes did not fall into any step interval; first unattributed seq: {seq}",
+      "panel.star.open": "Star this project on GitHub",
+      "panel.star.hint": "Open the GitHub repository",
+      "panel.call.jump": "Locate in trajectory",
+      "panel.call.jump.hint": "Locate this call in the host trajectory",
       "panel.step.nodes": "{count} nodes",
       "panel.files": "{count} files",
       "panel.node.error": "failed",
@@ -8318,6 +8504,7 @@ window.__ModuleLoader__.load({
       "panel.detail.copy": "Copy",
       "panel.detail.copyargs": "Copy arguments",
       "panel.detail.copypath": "Copy path",
+      "panel.detail.openfile": "Open in sidebar",
       "panel.detail.copied": "Copied",
       "panel.detail.copyfailed": "Copy failed",
       "panel.detail.files": "Files",
@@ -8353,6 +8540,11 @@ window.__ModuleLoader__.load({
       "panel.step.unknowntime": "No time recorded",
       "panel.settings.endpoint": "Endpoint",
       "panel.settings.counts": "{steps} steps / {nodes} nodes",
+      "panel.settings.unassigned": "{count} unattributed nodes",
+      "panel.settings.progressTool": "Progress tool",
+      "panel.settings.progressTool.builtin": "Built in",
+      "panel.settings.progressTool.external": "External",
+      "panel.settings.progressTool.unavailable": "Unavailable",
       "panel.settings.rev": "rev {rev}",
       "panel.settings.reset": "Restore defaults",
       "panel.settings.reset.hint": "Restore palette, motion, detail depth and node limit",
@@ -8709,7 +8901,7 @@ window.__ModuleLoader__.load({
           open: true,
           state: outcome.kind === "sent" ? "sent" : "failed",
           text: trimmed,
-     // A failure carries the HOST's own reason verbatim (the honesty rule).
+     // A failure carries the HOST's own reason verbatim (the explicity rule).
           reason: outcome.kind === "sent" ? "" : outcome.text,
         };
         setInject(next);
@@ -8758,7 +8950,7 @@ window.__ModuleLoader__.load({
         setRevoke({
           id: messageId,
           state: outcome.kind === "revoked" ? "revoked" : "failed",
-     // A failure carries the HOST's own reason verbatim (the same honesty rule as the send).
+     // A failure carries the HOST's own reason verbatim (the same accuratey rule as the send).
           reason: outcome.kind === "revoked" ? "" : outcome.text,
         });
       });
@@ -8913,7 +9105,7 @@ window.__ModuleLoader__.load({
      * Bring the RUNNING unit to the middle of the chain — once per step, and only if the user has not
      * scrolled since.
      *
-     * Two rules make this honest rather than helpful-looking:
+     * Two rules make this accurate rather than helpful-looking:
      * 1. it runs once per running step (`centeredStep`), so a poll cannot keep re-centring a reader;
      * 2. any manual scroll in the page defeats it — `userScrolled` is set by the FIRST wheel / touch /
      * keydown on the scroller, and after that this hook does nothing for that step.
@@ -8977,7 +9169,7 @@ window.__ModuleLoader__.load({
       );
       if (offset === null) return { applied: false, reason: "bad-geometry" };
       scroller.scrollTop = offset;
-     // Re-read after the write: the honest error is what the user now sees, not what the arithmetic
+     // Re-read after the write: the explicit error is what the user now sees, not what the arithmetic
      // predicted (a smooth-scroll or a sub-pixel layout shift would otherwise be papered over).
       var after = unit.getBoundingClientRect();
       return {
@@ -9061,8 +9253,8 @@ window.__ModuleLoader__.load({
       wfUseSessionReset(sessionId, updatePrefs);
 
       var say = wfMakeSay(props && props.t);
-     // `Date.now` is passed in (the store stays clock-free) because needs one honest
-     // judgement the event log alone cannot make: is this session still working right now?
+     // `Date.now` is passed in (the store stays clock-free) because needs one accurate
+     // judgement the event log alone cannot make: is the current session still working right now?
       var model = wfBuildModel(snap.view, prefs, Date.now());
       var systemMotion = wfUseMotion();
       var motionPref = wfSettingsOf(prefs).motion;
@@ -9166,6 +9358,27 @@ window.__ModuleLoader__.load({
           setOpenCall(function (prev) {
             return prev === nodeId ? null : nodeId;
           });
+        },
+     // The host's trajectory seat owns this call. It is only offered by the conversation.view
+     // occupant; the other seats leave the action undefined and the button is not rendered.
+        canInspect: typeof props.inspectCall === "function",
+        onInspectCall: function (callId) {
+          if (typeof props.inspectCall === "function" && typeof callId === "string" && callId !== "") {
+            props.inspectCall(callId);
+          }
+        },
+     // Files open through the host's right sidebar. The address is built from the current
+     // session id and the host-provided path; there is no filesystem access in the panel.
+        canOpenFile:
+          typeof sessionId === "string" &&
+          sessionId !== "" &&
+          !!props.host &&
+          typeof props.host.openResource === "function",
+        onOpenFile: function (path) {
+          var address = wfSessionFileAddress(sessionId, path);
+          if (address !== "" && props.host && typeof props.host.openResource === "function") {
+            props.host.openResource(address);
+          }
         },
         onClosePage: function () {
           setOpenCall(null);
@@ -9346,6 +9559,20 @@ window.__ModuleLoader__.load({
                   { className: "wf-raw", key: "nodes" },
                   say("panel.nodes", { count: model.flow.total })
                 ),
+                model.unassigned && model.unassigned.nodes > 0
+                  ? h(
+                      "span",
+                      {
+                        className: "wf-unassigned",
+                        key: "unassigned",
+                        "data-dsh-workflow-map": "unassigned",
+                        title: say("panel.unassigned.hint", {
+                          seq: model.unassigned.sinceSeq === null ? "—" : model.unassigned.sinceSeq,
+                        }),
+                      },
+                      say("panel.unassigned", { count: model.unassigned.nodes })
+                    )
+                  : null,
                 extras.status === "stale"
                   ? h(
                       "span",
@@ -9390,7 +9617,7 @@ window.__ModuleLoader__.load({
             },
             "‒"
           ),
-     // the hot-inject entry is now a NAMED, prominent button (the user asked for it to be
+     // the hot-inject entry is now a NAMED, prominent button (it is
      // prominent and in Chinese), not a ⇄ glyph: the glyph said "split the column", which no longer exists
      // what happens — the composer takes over the right-hand page.
           h(
@@ -9422,6 +9649,21 @@ window.__ModuleLoader__.load({
               : null
           ),
           h(
+            "a",
+            {
+              key: "star",
+              className: "wf-btn wf-btn-star",
+              "data-dsh-workflow-map": "star",
+              href: "https://github.com/Joz739/dsh-workflow-map",
+              target: "_blank",
+              rel: "noopener noreferrer",
+              title: say("panel.star.hint"),
+              "aria-label": say("panel.star.open"),
+            },
+            h("span", { key: "glyph", className: "wf-star-glyph", "aria-hidden": "true" }, "★"),
+            h("span", { key: "text", className: "wf-star-text" }, "star")
+          ),
+          h(
             "button",
             {
               type: "button",
@@ -9445,6 +9687,8 @@ window.__ModuleLoader__.load({
               endpoint: extras.endpoint,
               steps: model.progress.total,
               nodes: wfFinite(extras.nodeTotal) === null ? model.flow.total : extras.nodeTotal,
+              unassigned: model.unassigned ? model.unassigned.nodes : 0,
+              progressTool: model.capabilities ? model.capabilities.progressTool : null,
               rev: extras.rev,
             })
           : null;
@@ -9672,6 +9916,29 @@ window.__ModuleLoader__.load({
       ctx.effect(function () {
         return ctx.locale.register(NS, { zh: DICT_ZH, en: DICT_EN });
       });
+     // The host's right sidebar is optional: resolve it per call (never in inject) so a host
+     // without it still mounts the panel. The panel only passes host-owned file addresses here.
+      var hostBridge = {
+        openResource: function (address) {
+          if (typeof address !== "string" || address === "") return false;
+          try {
+            var sidebar =
+              typeof ctx.get === "function" ? ctx.get("sidebarRight") : ctx.sidebarRight;
+            if (sidebar && typeof sidebar.openResource === "function") {
+              sidebar.openResource(address);
+              return true;
+            }
+          } catch (error) {
+            return false;
+          }
+          return false;
+        },
+      };
+      var withHost = function (component) {
+        return function (props) {
+          return component(Object.assign({}, props, { host: hostBridge }));
+        };
+      };
       ctx.slots.inject("sidebar.panellist", function () {
         return ctx.slots.register(
           {
@@ -9693,7 +9960,7 @@ window.__ModuleLoader__.load({
             key: PANEL_ID,
             locale: NS,
           },
-          WorkflowMapPanel
+          withHost(WorkflowMapPanel)
         );
       });
      // The shortcut in the session tab bar. `conversation.view` is the slot for the tab row above the conversation area
@@ -9712,7 +9979,7 @@ window.__ModuleLoader__.load({
               return DICT_ZH["panel.title"];
             },
           },
-          WorkflowMapViewSeat
+          withHost(WorkflowMapViewSeat)
         );
       });
     }
@@ -9723,6 +9990,9 @@ window.__ModuleLoader__.load({
      */
     var __test = {
       buildModel: wfBuildModel,
+      unassigned: wfUnassigned,
+      capabilities: wfCapabilities,
+      sessionFileAddress: wfSessionFileAddress,
      // the single page, its satellites, the right page and the type buckets they are built
      // from. Exported so the self-tests drive the EXACT trees the frame mounts.
       renderMainFlow: wfRenderMainFlow,

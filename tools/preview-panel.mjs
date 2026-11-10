@@ -740,7 +740,7 @@ window.addEventListener('load', function () {
    measures the entry button's real box (≥96×30) together with its pending badge, the 460 px right
    column, the dock pinned to the page's foot (and absent on the composer), and every unit card's
    rect in BOTH the closed and the open layout, so the horizontal re-centring of the centred unit
-   list is a MEASURED number (DEV-01) rather than an opinion. */
+   list is an observed number rather than an opinion. */
 const injectMeasureScript = `
 window.addEventListener('load', function () {
   window.setTimeout(function () {

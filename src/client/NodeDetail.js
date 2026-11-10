@@ -197,28 +197,51 @@ function wfRenderFileRows(h, group, say, actions) {
       "div",
       { className: "wf-detail-rows", key: "rows" },
       group.files.map(function (file, position) {
- // The whole row is the copy button: basename in the foreground, directory grey.
+        var fire = actions || {};
+ // The row carries two controls: the copy button (the whole foreground) and, when the host
+ // exposes the right sidebar, an open button. They must be siblings, not nested buttons.
         return h(
-          "button",
-          {
-            type: "button",
-            className: "wf-detail-file",
-            key: "file-" + group.action + "-" + position,
-            "data-wf-copy": file.path,
-            "data-wf-copy-label": file.base,
-            "data-copy-state": "idle",
-            title: say("panel.detail.copypath") + " — " + file.path,
-            "aria-label": say("panel.detail.copypath") + " " + file.path,
-            onClick: function (event) {
-              var fire = actions || {};
-              if (typeof fire.onCopy === "function") {
-                fire.onCopy(file.path, event && event.currentTarget ? event.currentTarget : null);
-              }
+          "div",
+          { className: "wf-detail-file", key: "file-" + group.action + "-" + position },
+          h(
+            "button",
+            {
+              type: "button",
+              className: "wf-detail-file-copy",
+              key: "copy",
+              "data-wf-copy": file.path,
+              "data-wf-copy-label": file.base,
+              "data-copy-state": "idle",
+              title: say("panel.detail.copypath") + " — " + file.path,
+              "aria-label": say("panel.detail.copypath") + " " + file.path,
+              onClick: function (event) {
+                if (typeof fire.onCopy === "function") {
+                  fire.onCopy(file.path, event && event.currentTarget ? event.currentTarget : null);
+                }
+              },
             },
-          },
-          h("span", { className: "wf-detail-base", key: "base" }, file.base),
-          file.dir === "" ? null : h("span", { className: "wf-detail-dir", key: "dir", title: file.dir }, file.dir),
-          h("span", { className: "wf-copy-status", key: "status", "aria-live": "polite" }, "")
+            h("span", { className: "wf-detail-base", key: "base" }, file.base),
+            file.dir === "" ? null : h("span", { className: "wf-detail-dir", key: "dir", title: file.dir }, file.dir),
+            h("span", { className: "wf-copy-status", key: "status", "aria-live": "polite" }, "")
+          ),
+          fire.canOpenFile === true
+            ? h(
+                "button",
+                {
+                  type: "button",
+                  className: "wf-file-open",
+                  key: "open",
+                  "data-dsh-workflow-map": "open-file",
+                  "data-file-path": file.path,
+                  title: say("panel.detail.openfile") + " — " + file.path,
+                  "aria-label": say("panel.detail.openfile") + " " + file.path,
+                  onClick: function () {
+                    if (typeof fire.onOpenFile === "function") fire.onOpenFile(file.path);
+                  },
+                },
+                "↗"
+              )
+            : null
         );
       })
     )
@@ -241,9 +264,11 @@ function wfRenderNodeDetail(h, node, say, actions, ctx) {
   var resultLine = typeof node.resultLine === "string" && node.resultLine !== "" ? node.resultLine : "";
   var errorText = typeof node.errorText === "string" && node.errorText !== "" ? node.errorText : "";
   var seq = wfFinite(node.seq);
+  var callId = typeof node.callId === "string" && node.callId !== "" ? node.callId : "";
   var clock = wfFormatClock(node.at);
   var duration = wfFinite(node.durationMs);
   var argsTitleKey = category === "command" ? "panel.detail.showcommand" : "panel.detail.showargs";
+  var fire = actions || {};
 
   var head = h(
     "div",
@@ -269,7 +294,25 @@ function wfRenderNodeDetail(h, node, say, actions, ctx) {
             ? "panel.status.done"
             : "panel.node.pending"
       )
-    )
+    ),
+    fire.canInspect === true && callId !== ""
+      ? h(
+          "button",
+          {
+            type: "button",
+            className: "wf-call-jump",
+            key: "jump",
+            "data-dsh-workflow-map": "jump-call",
+            "data-call-id": callId,
+            title: say("panel.call.jump.hint"),
+            "aria-label": say("panel.call.jump"),
+            onClick: function () {
+              if (typeof fire.onInspectCall === "function") fire.onInspectCall(callId);
+            },
+          },
+          "↗"
+        )
+      : null
   );
 
  // The expansion is a native <details>: keyboard-operable, no React state, and the opened

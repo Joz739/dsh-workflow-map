@@ -164,6 +164,12 @@ function wfRenderSettings(h, prefs, say, actions, extras) {
   var fire = actions || {};
   var settings = wfSanitizeSettings(prefs, wfDefaultSettings());
   var ui = extras || {};
+  var unassigned = wfFinite(ui.unassigned);
+  var toolMode = ui.progressTool;
+  var toolKey =
+    toolMode === "builtin" || toolMode === "external" || toolMode === "unavailable"
+      ? "panel.settings.progressTool." + toolMode
+      : null;
   return h(
     "div",
     { className: "wf-settings", key: "settings", "data-dsh-workflow-map": "settings" },
@@ -192,6 +198,16 @@ function wfRenderSettings(h, prefs, say, actions, extras) {
         steps: ui.steps === undefined ? 0 : ui.steps,
         nodes: ui.nodes === undefined ? 0 : ui.nodes,
       })),
+      unassigned === null || unassigned <= 0
+        ? null
+        : h("span", { className: "wf-kv wf-kv-warn", key: "unassigned" }, say("panel.settings.unassigned", { count: Math.round(unassigned) })),
+      toolKey === null
+        ? null
+        : h(
+            "span",
+            { className: "wf-kv", key: "progress-tool" },
+            say("panel.settings.progressTool") + " · " + say(toolKey)
+          ),
       wfFinite(ui.rev) === null ? null : h("span", { className: "wf-kv", key: "rev" }, say("panel.settings.rev", { rev: ui.rev }))
     ),
     h(

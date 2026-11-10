@@ -399,6 +399,59 @@ check('refresh.notPressed', refreshButton.props['aria-pressed'] === undefined, '
 check('refresh.calls', (() => { let hits = 0; const a = { ...actions, onRefresh: () => { hits += 1; } }; const t = T.renderPanel(model, defaults, say, a, ui); const b = byData(t, 'refresh')[0]; b.props.onClick(); return hits === 1; })(), 'click reaches onRefresh once');
 check('refresh.ackGlyph', (() => { const t = T.renderPanel(model, defaults, say, actions, { ...ui, refreshed: 123 }); const b = byData(t, 'refresh')[0]; return b.props['data-refreshed'] === 'true' && textOf(b) === '已刷新'; })(), 'the acknowledgement replaces the glyph');
 
+// GitHub star: one header anchor, no network, and the host opens https links externally.
+const star = byData(tree, 'star')[0];
+check('star.present', star !== undefined, 'the star anchor exists');
+check('star.anchor', star && star.type === 'a', star && star.type);
+check('star.href', star && star.props.href === 'https://github.com/Joz739/dsh-workflow-map', star && star.props.href);
+check('star.target', star && star.props.target === '_blank', star && star.props.target);
+check('star.rel', star && /noopener/.test(star.props.rel) && /noreferrer/.test(star.props.rel), star && star.props.rel);
+check('star.glyph', star && textOf(star).includes('★') && textOf(star).includes('star'), star && textOf(star));
+check('star.named', star && star.props['aria-label'].length > 0 && star.props.title.length > 0, star && JSON.stringify([star.props['aria-label'], star.props.title]));
+check('star.onlyHeader', byData(tree, 'star').length === 1, byData(tree, 'star').length);
+
+// Unassigned nodes: a header chip only when the host reports a non-zero count.
+const unassignedView = {
+  steps: [{ index: 0, planIndex: 1, title: 'one', status: 'running', percent: null, percentSource: 'none', nodeIds: [], nodeCount: 0 }],
+  nodes: [],
+  todos: [],
+  plan: null,
+  asOf: 0,
+  counts: { steps: 1, nodes: 0, running: 1, completed: 0 },
+  unassigned: { nodes: 4, sinceSeq: 12 },
+};
+const unassignedTree = T.renderPanel(T.buildModel(unassignedView, defaults), defaults, say, actions, ui);
+const unassignedChip = byData(unassignedTree, 'unassigned')[0];
+check('unassigned.chip', unassignedChip !== undefined && textOf(unassignedChip).includes('4'), unassignedChip && textOf(unassignedChip));
+check('unassigned.hint', unassignedChip && unassignedChip.props.title.includes('12'), unassignedChip && unassignedChip.props.title);
+check('unassigned.absentAtZero', byData(tree, 'unassigned').length === 0, byData(tree, 'unassigned').length);
+check('unassigned.model', JSON.stringify(T.buildModel(unassignedView, defaults).unassigned) === JSON.stringify({ nodes: 4, sinceSeq: 12 }), JSON.stringify(T.buildModel(unassignedView, defaults).unassigned));
+
+// Capability disclosure survives the wire → model → settings path.
+const capabilityView = {
+  ...unassignedView,
+  capabilities: { progressTool: 'builtin' },
+};
+check('capability.model', T.buildModel(capabilityView, defaults).capabilities.progressTool === 'builtin', JSON.stringify(T.buildModel(capabilityView, defaults).capabilities));
+const capabilitySettings = T.renderSettings(createElement, defaults, say, actions, { steps: 1, nodes: 2, unassigned: 4, progressTool: 'builtin' });
+check('capability.settings', textOf(capabilitySettings).includes('内置') && textOf(capabilitySettings).includes('未归属 4'), textOf(capabilitySettings).slice(0, 120));
+
+// File address builder mirrors the host's own encoding.
+check('files.address.absolute', T.sessionFileAddress('session-1', 'C:\\a\\b.js') === 'dsh-resource://file/session/session-1/C:/a/b.js', T.sessionFileAddress('session-1', 'C:\\a\\b.js'));
+check('files.address.relative', T.sessionFileAddress('s 1', './src/a b.js') === 'dsh-resource://file/session/s%201/src/a%20b.js', T.sessionFileAddress('s 1', './src/a b.js'));
+check('files.address.empty', T.sessionFileAddress('', 'a.js') === '', 'empty session yields no address');
+
+// A call row offers the trajectory jump only when the host handler and the call id exist.
+let rowJumped = '';
+const rowNode = { id: 'n1', kind: 'tool', tool: 'read', title: 'read a.js', detail: '', files: [], callId: 'call-1', at: 1, durationMs: null, result: true };
+const rowWithJump = T.renderCallRow(createElement, rowNode, say, { ...actions, canInspect: true, onInspectCall: (id) => { rowJumped = id; } }, {});
+const rowJump = byData(rowWithJump, 'jump-call')[0];
+check('calls.jump.present', rowJump !== undefined, 'the row jump exists');
+if (rowJump) rowJump.props.onClick();
+check('calls.jump.id', rowJumped === 'call-1', rowJumped);
+const rowWithout = T.renderCallRow(createElement, rowNode, say, actions, {});
+check('calls.jump.hidden', byData(rowWithout, 'jump-call').length === 0, byData(rowWithout, 'jump-call').length);
+
 // THE POLL LOOP MUST SURVIVE A REPLACED REQUEST. -1 is what an aborted poll resolves
 // as, and a tick aborts the request it replaces — the ordinary path on a slow link.
 check('poll.continuesOnAbort', T.pollContinues({ status: -1 }, 0) === true, 'an aborted request with nothing else in flight re-arms');
@@ -530,6 +583,17 @@ check('cards.paeOverTodo', conflictModel.steps[0].status === 'done' && conflictM
 check('cards.requiresConfirmation', conflictModel.steps[0].requiresConfirmation === true, String(conflictModel.steps[0].requiresConfirmation));
 const conflictTree = T.renderPanel(conflictModel, defaults, say, actions, ui);
 check('cards.confirmFlagRendered', textOf(byData(conflictTree, 'step')[0]).includes('需确认'), textOf(byData(conflictTree, 'step')[0]));
+const conflictRail = byData(conflictTree, 'progress')[0];
+check(
+  'cards.doneIgnoresStaleModelSource',
+  textOf(conflictRail).includes('100%') && !textOf(conflictRail).includes('自报'),
+  textOf(conflictRail)
+);
+check(
+  'cards.doneFillsRail',
+  conflictRail.children[0].children[0].children[0].props.style.width === '100%',
+  JSON.stringify(conflictRail.children[0].children[0].children[0].props.style)
+);
 
 // The todo table answers when the plan has no status for the step.
 const todoView = viewOf([{ planIndex: 1, title: 'beta' }], planOf({}), [{ content: '1. beta', status: 'in_progress' }]);
@@ -575,6 +639,7 @@ const failedView = viewOf([{ planIndex: 1, title: 'boom', status: 'failed', perc
 const failedTree = T.renderPanel(T.buildModel(failedView, defaults), defaults, say, actions, ui);
 check('cards.failedGlyph', textOf(byData(failedTree, 'step')[0]).includes('✕'), textOf(byData(failedTree, 'step')[0]).slice(0, 20));
 check('cards.failedRail', byData(failedTree, 'progress')[0].props['data-status'] === 'failed', byData(failedTree, 'progress')[0].props['data-status']);
+check('cards.failedKeepsReport', textOf(byData(failedTree, 'progress')[0]).includes('40% 自报'), textOf(byData(failedTree, 'progress')[0]));
 
 // ---- rails -----------------------------------------------------------------
 const liveDocks = byData(tree, 'progress');
@@ -615,7 +680,7 @@ check('prog.timing.durationText',
 // The projected remainder is no longer computed. `progressTiming` answers
 // ONE question now — how stale the quoted number is. The rows below used to assert WHEN a projection
 // was withheld (percent 0, a closed step, a failed step, a missing start stamp, a pending row); the
-// honest equivalent after the removal is that NONE of them can conjure an `eta` key back, and that
+// accurate equivalent after the removal is that NONE of them can conjure an `eta` key back, and that
 // the shape is exactly `{ago}`.
 const noProjectionRows = [
   { status: 'running', percent: 0, percentSource: 'baseline', startedAt: T_START, lastEstimateAt: T_ESTIMATE },
@@ -690,7 +755,7 @@ check('prog.timing.narrowKeepsPercent', textOf(byData(narrowTree, 'progress')[0]
 
 // The live view (a real recorded session). the age is the ONLY secondary fact left, so a
 // running row shows a second line exactly when it carries a stamp to measure — the recorded session
-// may well have none, and then the honest answer is NO line at all (never a placeholder). The check
+// may well have none, and then the correct answer is NO line at all (never a placeholder). The check
 // therefore follows the ROW's own data instead of hard-coding one recorded session's shape.
 const liveRow = model.steps.find((row) => row.status === 'running');
 const liveDock = liveRow ? byData(tree, 'progress')[liveRow.index] : null;
@@ -953,7 +1018,7 @@ check(
 check('model.flow.matchesStepNodeIds', model.flow.nodes.length === view.steps[model.selected].nodeIds.length, model.flow.nodes.length + ' vs ' + view.steps[5].nodeIds.length);
 
 // The GLOBAL 1200-node cap prunes a step's id list WITHOUT touching truncatedNodes;
-// "n omitted" must still be the honest gap (nodeCount - drawn), not 0.
+// "n omitted" must still be the visible gap (nodeCount - drawn), not 0.
 const prunedView = {
   steps: [{ index: 0, title: 'pruned', status: 'running', nodeIds: ['n1', 'n2'], nodeCount: 5, truncatedNodes: 0 }],
   nodes: [
@@ -963,7 +1028,7 @@ const prunedView = {
 };
 const prunedModel = T.buildModel(prunedView, defaults);
 check(
-  'model.flow.truncatedHonest',
+  'model.flow.truncatedReported',
   prunedModel.flow.truncated === 3 && prunedModel.flow.stepNodeTotal === 5,
   JSON.stringify({ truncated: prunedModel.flow.truncated, total: prunedModel.flow.stepNodeTotal })
 );
@@ -1146,7 +1211,7 @@ const branchModel = T.buildModel(branchView, defaults);
 check('branch.model.onlySelectedStep', branchModel.flow.branches.length === 2 && branchModel.flow.branches.every((b) => b.id !== 'b3'), JSON.stringify(branchModel.flow.branches.map((b) => b.id)));
 check('branch.model.nodesUntouched', branchModel.flow.nodes.length === 1 && branchModel.flow.total === 1, JSON.stringify({ nodes: branchModel.flow.nodes.length, total: branchModel.flow.total }));
 check('branch.model.labels', branchModel.flow.branches[0].kind === 'subagent' && branchModel.flow.branches[0].label === 'review the fold module' && branchModel.flow.branches[1].kind === 'workflow', JSON.stringify(branchModel.flow.branches.map((b) => b.kind)));
-check('branch.model.truncatedHonest', branchModel.flow.branches[1].truncated === 1 && branchModel.flow.branches[1].count === 3, JSON.stringify({ trunc: branchModel.flow.branches[1].truncated, count: branchModel.flow.branches[1].count }));
+check('branch.model.truncatedReported', branchModel.flow.branches[1].truncated === 1 && branchModel.flow.branches[1].count === 3, JSON.stringify({ trunc: branchModel.flow.branches[1].truncated, count: branchModel.flow.branches[1].count }));
 check('branch.model.noneByDefault', Array.isArray(model.flow.branches) && model.flow.branches.length === 0 && planningModel.flow.branches.length === 0, 'a recorded view carries no branches → no branch model');
 check('branch.hue.distinct', T.branchHue(0) !== T.branchHue(1) && T.branchHue(0) !== T.branchHue(2) && T.branchHue(null) === T.branchHue(0), JSON.stringify([T.branchHue(0), T.branchHue(1), T.branchHue(2)]));
 check('branch.status.map', T.branchStatus({ status: 'running' }) === 'running' && T.branchStatus({ status: 'done' }) === 'done' && T.branchStatus({ status: 'failed' }) === 'error' && T.branchStatus({}) === 'running', 'four-state vocabulary');
@@ -1295,7 +1360,7 @@ check('inject.canSend.atLimit', T.injectCanSend('idle', 'session-1', 'x'.repeat(
 check('inject.text.trims', T.injectText('  hi  ') === 'hi' && T.injectText('') === '' && T.injectText(null) === '', 'trimmed');
 check('inject.text.bounds', T.injectText('x'.repeat(2500)).length === 2000, 'bounded at 2000');
 
-// (d) THE HONESTY RULE: only {ok:true} is a success, and every failure carries the HOST's reason.
+// (d) THE SUCCESS RULE: only {ok:true} is a success, and every failure carries the HOST's reason.
 const sent = T.injectOutcome({ ok: true }, say);
 check('inject.outcome.ok', sent.kind === 'sent' && sent.text === '已注入', JSON.stringify(sent));
 const failed409 = T.injectOutcome({ ok: false, error: '会话未在运行，热注入不可用' }, say);
@@ -1633,6 +1698,8 @@ check('inject.dock.newestStatus', dockState.props['data-status'] === 'pending' &
 // tools/measure-inject.ps1 in a live layout engine).
 const promCss = T.css();
 check('inject.css.hotSize', promCss.includes('.wf-btn-hot{position:relative;width:auto;min-width:96px;height:30px'), 'the header entry is 96×30 by contract');
+check('star.css.bounded', promCss.includes('.wf-btn-star{width:auto;max-width:96px;height:30px') && promCss.includes('border:1px solid var(--wf-star-border') && promCss.includes('.wf-btns{display:flex;align-items:center'), 'the star chip is 30 px high, no wider than the hot-inject chip, and centred with it');
+check('star.css.sameColor', promCss.includes('--wf-star:#8ecbff') && promCss.includes('.wf-star-glyph{font-size:14px;line-height:1;color:inherit}') && promCss.includes('.wf-star-text{color:inherit'), 'the star and its label inherit one blue');
 check('inject.css.badge', promCss.includes('.wf-inject-badge{position:absolute'), 'the badge is absolutely positioned on the button');
 check('inject.css.rightWidth', promCss.includes('.wf-right{flex:0 0 460px'), 'the right page is 460 px wide');
 check('inject.css.dockFooter', promCss.includes('.wf-inject-dock{flex:0 0 auto'), 'the dock is a fixed-basis footer, not part of the scroll');

@@ -1,4 +1,4 @@
-# measure-main.ps1 — 会话4 · measure the single page IN A BROWSER.
+# measure-main.ps1 — the single-page layout · measure the single page IN A BROWSER.
 #
 # Run: pwsh -File tools\measure-main.ps1
 #
@@ -15,7 +15,7 @@
 # actions and dumps <pre id="wf-measure">; expectations come from main-expect.json, which that
 # script derives from its own model — no number here is hardcoded from the product code.
 #
-# On this machine headless Chrome must be started with Start-Process (a direct call returns
+# In this environment headless Chrome must be started with Start-Process (a direct call returns
 # immediately and silently writes nothing).
 param(
   [string]$Chrome = '',
@@ -28,7 +28,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $preview = Join-Path $root 'evidence\preview'
 $evidence = Join-Path $root 'evidence'
 
-# 2026-10-27 (session7): auto-detect the browser. This machine has no Chrome — Edge is the
+# 2026-10-27 (the single-page revision): auto-detect the browser. Chrome may be unavailable — Edge is the
 # available Chromium — and the old hardcoded Chrome path made the script throw before measuring
 # anything (the same defect the other measure scripts already fixed).
 if ([string]::IsNullOrWhiteSpace($Chrome)) {
@@ -77,7 +77,7 @@ try {
     )
     # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
     # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
-    $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+    $nodeExe = if ($env:NODE_EXE) { $env:NODE_EXE } elseif (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { throw 'node not found; add it to PATH or set NODE_EXE' }
     $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
     $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
     $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }
@@ -113,7 +113,7 @@ try {
 
   # --- the serial chain ------------------------------------------------------
   Add-Check 'main.units.count' ((Num $initial.units.count) -eq (Num $expect.steps)) "units=$(Num $initial.units.count) expected=$(Num $expect.steps)"
-  # The gap is measured CARD-to-CARD (the honest reading of 「主流程之间间距」: the rail under the
+  # The gap is measured CARD-to-CARD (the explicit reading of 「主流程之间间距」: the rail under the
   # card belongs to the card, so a unit-to-unit gap would count it twice).
   $gaps = @($initial.units.gaps | ForEach-Object { Num $_ })
   $gapMin = ($gaps | Measure-Object -Minimum).Minimum
@@ -182,7 +182,7 @@ try {
   $banner = $afterInject.header
   Add-Check 'main.inject.banner' ($null -ne $banner -and $banner.text -match '热注入') "text=$($banner.text)"
   Add-Check 'main.inject.banner.wide' ($null -ne $banner -and (Num $banner.width) -gt 60) "width=$($banner.width) height=$($banner.height)"
-  # session7: the header button is painted with a SOLID brand fill (not a gradient), so the honest
+  # the single-page revision: the header button is painted with a SOLID brand fill (not a gradient), so the explicit
   # fact is its backgroundColor; the old gradient assertion belonged to the superseded style.
   Add-Check 'main.inject.banner.filled' ($null -ne $banner -and ([string]$banner.backgroundColor -match 'rgb\(91, *140, *255\)')) "bg=$([string]$banner.backgroundColor)"
 

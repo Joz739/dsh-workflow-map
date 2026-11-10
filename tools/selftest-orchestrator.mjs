@@ -533,7 +533,20 @@ equal("(K) the view's task comes from the plan", merged.task, "总任务首行")
 equal("(K) titles come from the plan", merged.steps.map((step) => step.title), ["甲（计划）", "乙（计划）"]);
 equal("(K) a todo row adopts the plan's status", merged.steps[0].status, "done");
 equal("(K) a closed row with no report pins 100", merged.steps[0].percent, 100);
+equal("(K) a closed row's number is sourced as closed", merged.steps[0].percentSource, "closed");
 equal("(K) planIndex is bound on both rows", merged.steps.map((step) => step.planIndex), [1, 2]);
+
+const failedPlan = { ...syntheticPlan, statuses: { 1: "failed" } };
+const failedMerge = applyPlanToView(
+  { ...bare, steps: [{ ...bare.steps[0], percent: 40, percentSource: "model" }] },
+  failedPlan
+);
+equal("(K) a failed plan row keeps its last report", [failedMerge.steps[0].percent, failedMerge.steps[0].percentSource], [40, "model"]);
+const emptyFailedMerge = applyPlanToView(
+  { ...bare, steps: [{ ...bare.steps[0], percent: null, percentSource: "none" }] },
+  failedPlan
+);
+equal("(K) a failed plan row with no number does not invent 100", [emptyFailedMerge.steps[0].percent, emptyFailedMerge.steps[0].percentSource], [null, "none"]);
 equal("(K) counts are recomputed", [merged.counts.steps, merged.counts.running, merged.counts.completed], [2, 0, 1]);
 equal("(K) the input view is untouched", bare.steps.map((step) => step.title), ["甲", "乙"]);
 check("(K) the frozen plan is not mutated", syntheticPlan.statuses["1"] === "completed" && Object.isFrozen(syntheticPlan.statuses));

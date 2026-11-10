@@ -1,4 +1,4 @@
-# measure-timing.ps1 — prove IN A BROWSER that the rail's second line is honest and tidy.
+# measure-timing.ps1 — prove IN A BROWSER that the rail's second line is accurate and tidy.
 #
 # Run: pwsh -File tools\measure-timing.ps1
 #
@@ -13,8 +13,8 @@
 # CSS and a host div the page re-mounts the renderer's own tree into, with FIXED stamps — so every
 # number below is reproducible and no wall clock is involved.
 #
-# The browser is auto-detected (this machine has no Chrome; Edge is the available Chromium), and on
-# this machine headless Chromium must be started with Start-Process (a direct call returns immediately
+# The browser is auto-detected (Chrome is unavailable; Edge is the available Chromium), and on
+# this environment's headless Chromium must be started with Start-Process (a direct call returns immediately
 # and silently writes nothing).
 param(
   [string]$Chrome = '',
@@ -57,7 +57,7 @@ try {
   )
   # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
   # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
-  $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+  $nodeExe = if ($env:NODE_EXE) { $env:NODE_EXE } elseif (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { throw 'node not found; add it to PATH or set NODE_EXE' }
   $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
   $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
   $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }

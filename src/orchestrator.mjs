@@ -16,9 +16,9 @@
  * * ONE STAT PER VIEW. read stats the file and reuses the parsed value while `mtimeMs:size`
  * is unchanged, so a per-event wire build costs one statSync and no read. The parsed value
  * is deep-frozen, so the cache can be handed to every view without aliasing risk.
- * * NO CLOCK, NO AMBIENT STATE. `asOfMtime` is the file's own mtime — the only honest "as of"
+ * * NO CLOCK, NO AMBIENT STATE. `asOfMtime` is the file's own mtime — the only accurate "as of"
  * instant this source has.
- * * PATHS ARE NOT GUESSED. `<cwd>` and the session id must both be supplied. A session id
+ * * PATHS ARE REQUIRED. `<cwd>` and the session id must both be supplied. A session id
  * that is not a single path segment is refused, because it would escape `.pae`.
  *
  * WHAT IT DOES NOT DO: it never invents a step. `steps` comes from `plan.steps` verbatim (with
@@ -97,11 +97,11 @@ const PLAN_STATUS = new Map([
 ]);
 
 /**
- * Where this session's plan file is, or null when the inputs cannot name one.
+ * Where the current session's plan file is, or null when the inputs cannot name one.
  *
  * `sessionId` comes from the session header (`header.id`, already `session-<uuid>` on this
  * host — that is the name PAE itself creates under `.pae`). Both inputs are required: an
- * invented path would read somebody else's plan or nothing at all, and a null is honest.
+ * invented path would read somebody else's plan or nothing at all, and a null is accurate.
  *
  * @param {{cwd?: unknown, sessionId?: unknown}} input
  * @returns {string|null}
@@ -317,10 +317,11 @@ export function applyPlanToView(view, plan) {
       const status = planStatusOf(normalized, planStep.index);
       if (status !== null && status !== step.status) {
         patch.status = status;
- // `buildView` pins a closed step at 100 when no report gave a number; the same rule
- // applies after this late status change, or the bar would show "—" on a finished step.
-        if ((status === "done" || status === "failed") && (step.percent === null || step.percent === undefined)) {
+ // A plan can promote a row after `buildView` already computed its percent. A completed
+ // row is 100 % with the closed source; a failed row keeps whatever number it had (or none).
+        if (status === "done") {
           patch.percent = 100;
+          patch.percentSource = "closed";
         }
       }
     }

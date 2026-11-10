@@ -11,7 +11,7 @@
 // What this page measures instead, and why a tree assertion cannot:
 //
 // · the per-side slot cap (WF_SIDE_SLOTS = 2) really bites: a step with more types than slots
-// draws at most 2 per side AND the card prints "N more types are not drawn on the sides" - the honest successor
+// draws at most 2 per side AND the card prints "N more types are not drawn on the sides" - the direct successor
 // of the old 4-lane cap/banner;
 // · every drawn satellite is a button carrying type / side / tone / count and an accessible name
 // whose accessible name states the count ("... (...), 3 calls - click to see this type's calls");

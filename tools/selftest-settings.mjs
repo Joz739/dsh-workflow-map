@@ -171,6 +171,8 @@ const view = {
   },
   active: { stepIndex: 0, nodeId: 'n1' },
   counts: { steps: 2, nodes: 72, running: 1, completed: 1 },
+  unassigned: { nodes: 3, sinceSeq: 9 },
+  capabilities: { progressTool: 'builtin' },
 };
 
 const noop = () => {};
@@ -293,9 +295,18 @@ const settings = T.renderSettings(
   { ...defaults, palette: 'brand', motion: 'always', detail: 'title', nodeLimit: 0 },
   say,
   actions,
-  { endpoint: '/dsh-workflow/state?sessionId=session-abcdef12', steps: 2, nodes: 72, rev: 12 }
+  {
+    endpoint: '/dsh-workflow/state?sessionId=session-abcdef12',
+    steps: 2,
+    nodes: 72,
+    unassigned: 3,
+    progressTool: 'builtin',
+    rev: 12,
+  }
 );
 check('settings.card.present', byData(settings, 'settings').length === 1, byData(settings, 'settings').length);
+check('settings.card.unassigned', textOf(settings).includes('未归属 3 节点'), textOf(settings).slice(0, 120));
+check('settings.card.progressTool', textOf(settings).includes('自报工具 · 内置'), textOf(settings).slice(0, 120));
 check(
   'settings.card.fourRows',
   options(settings, 'palette').length === 3 &&
@@ -509,6 +520,16 @@ check(
     snapshot.steps[0].title === snapModel.steps[0].title &&
     snapshot.steps[0].status === snapModel.steps[0].status,
   'steps/title/status identical'
+);
+check(
+  'snapshot.unassigned',
+  snapshot.unassigned.nodes === 3 && snapshot.unassigned.sinceSeq === 9,
+  JSON.stringify(snapshot.unassigned)
+);
+check(
+  'snapshot.markdown.unassigned',
+  T.snapshotMarkdown(snapModel, view, sessionId, T0, say).includes('未归属节点：3（自 seq 9）'),
+  'markdown carries the unattributed count'
 );
 
 /* --- 5. download + revoke -------------------------------------------------- */

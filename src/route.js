@@ -87,13 +87,16 @@ const STEER_BODY_LIMIT = 64 * 1024;
  * @param {unknown} [plan] - a normalized plan section, or null/undefined for "none".
  * @returns {object} the composed view; the inputs are never mutated.
  */
-export function composeView(view, plan) {
+export function composeView(view, plan, capabilities) {
   if (!isRecord(view)) return view;
   const supplied = isRecord(plan) ? plan : null;
  // Fall back to the section the view already carries, so the two call sites share one entry
  // point instead of one of them having to know how the other stored it.
   const section = supplied ?? (isRecord(view.plan) ? view.plan : null);
-  return applyPlanToView(view, section);
+  const composed = applyPlanToView(view, section);
+  // The capability block is process-level, not session state. It is merged here so the stream
+  // view and the HTTP snapshot cannot disagree about it.
+  return isRecord(capabilities) ? { ...composed, capabilities } : composed;
 }
 
 // ---------------------------------------------------------------------------
@@ -375,7 +378,7 @@ function handleSteerRequest(req, res, method, steer, note) {
  * exactly that window: it locates the id in either pending list, splices it out with
  * `outcome: 'canceled'`, and emits `agent/inbox/discarded` on the agent's dispatch bus. Nothing
  * else moves — no turn is cancelled, no history is rewritten, and once the message HAS been claimed
- * (or admitted as a `user/message`) `remove` answers false: the honest reply is 409, not a pretend
+ * (or admitted as a `user/message`) `remove` answers false: the explicit reply is 409, not a pretend
  * success.
  *
  * WHY THE ROUTE ITSELF WRITES NOTHING. `inbox.remove` IS the durable write (it appends

@@ -111,11 +111,12 @@ equal("(1) the stateVersion is the fold's", projection.stateVersion, STATE_VERSI
 check("(1) a stateSchema was supplied", typeof projection.stateSchema?.parse === "function", "missing stateSchema.parse");
 check("(1) a wire block with viewSchema + view", typeof projection.wire?.viewSchema?.parse === "function" && typeof projection.wire?.view === "function", "missing wire pieces");
 equal("(1) the package identity", [name, packageName], ["workflow-map", "dsh-workflow-map"]);
-equal("(1) inject declares the registry, the session store, the web server and the agent registry", inject, [
+equal("(1) inject declares the registry, session store, web server, agent registry and tools", inject, [
   "sessionProjections",
   "sessions",
   "webServer",
   "agents",
+  "tools",
 ]);
 check("(1) selfCheck lists the registration", selfCheck.registrations.some((row) => row.endsWith(PROJECTION_KEY)), JSON.stringify(selfCheck.registrations));
 
@@ -175,7 +176,9 @@ const view = projection.wire.view(state);
 // be the fold's own output — that is what keeps "tested" and "shipped" identical.
 const planless = { ...view };
 delete planless.plan;
+delete planless.capabilities;
 equal("(4) wire.view is buildView(state, state.asOf) plus the plan section", JSON.stringify(planless), JSON.stringify(buildView(direct, direct.asOf)));
+equal("(4) a host without tools reports the capability accurately", view.capabilities, { progressTool: "unavailable" });
 equal("(4) a headerless state carries no plan", view.plan, null);
 equal("(4) the view declares the schema version", view.ver, SCHEMA_VERSION);
 check("(4) the view passes its own schema", projection.wire.viewSchema.parse(view) === view, "viewSchema rejected its own view");
@@ -219,6 +222,25 @@ rejects("counts that disagree with the arrays", (value) => {
 rejects("an unknown step status", (value) => {
   value.steps[0].status = "exploded";
 });
+rejects("an unassigned count that is not an integer", (value) => {
+  value.unassigned.nodes = 1.5;
+});
+rejects("an unassigned sinceSeq of the wrong type", (value) => {
+  value.unassigned.sinceSeq = "9";
+});
+rejects("an unknown progress-tool capability", (value) => {
+  value.capabilities.progressTool = "maybe";
+});
+rejects("a numeric call id", (value) => {
+  value.nodes[0].callId = 7;
+});
+equal("(4) a tool call carries its host call id", view.nodes[0].callId, "h1");
+equal("(4) a non-call node carries no call id", view.nodes[1].callId, null);
+const withUnassigned = JSON.parse(JSON.stringify(view));
+withUnassigned.unassigned = { nodes: 2, sinceSeq: 4 };
+check("(5) accepts a well-formed unassigned block", projection.wire.viewSchema.parse(withUnassigned) === withUnassigned, "rejected");
+withUnassigned.capabilities = { progressTool: "external" };
+check("(5) accepts a well-formed capability block", projection.wire.viewSchema.parse(withUnassigned) === withUnassigned, "rejected");
 
 let threwOnNull = false;
 try {

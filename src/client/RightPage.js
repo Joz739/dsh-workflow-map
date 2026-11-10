@@ -72,44 +72,69 @@ function wfRenderCallRow(h, node, say, actions, ctx) {
   if (parts.verb !== "") label.push(parts.verb, " · ");
   label.push(parts.target);
 
+  var callId = typeof item.callId === "string" && item.callId !== "" ? item.callId : "";
+  var canJump = fire.canInspect === true && callId !== "";
+
   return h(
     "li",
     { className: "wf-call", key: "call-" + id, "data-status": status, "data-node-id": id },
     h(
-      "button",
-      {
-        type: "button",
-        className: "wf-call-head",
-        key: "head",
-        "data-dsh-workflow-map": "call",
-        "data-node-id": id,
-        "data-open": open ? "true" : "false",
-        "aria-expanded": open ? "true" : "false",
-        title: parts.verb !== "" ? parts.verb + " · " + parts.target : parts.target,
-        onClick: function () {
-          if (typeof fire.onSelectCall === "function") fire.onSelectCall(id);
-        },
-      },
-      h("span", { className: "wf-call-main", key: "main" }, label),
+      "div",
+      { className: "wf-call-top", key: "top" },
       h(
-        "span",
-        { className: "wf-call-meta", key: "meta" },
-        wfFormatClock(item.at) === "" ? "" : wfFormatClock(item.at),
-        wfFormatDuration(item.durationMs) === "" ? "" : " · " + wfFormatDuration(item.durationMs)
+        "button",
+        {
+          type: "button",
+          className: "wf-call-head",
+          key: "head",
+          "data-dsh-workflow-map": "call",
+          "data-node-id": id,
+          "data-open": open ? "true" : "false",
+          "aria-expanded": open ? "true" : "false",
+          title: parts.verb !== "" ? parts.verb + " · " + parts.target : parts.target,
+          onClick: function () {
+            if (typeof fire.onSelectCall === "function") fire.onSelectCall(id);
+          },
+        },
+        h("span", { className: "wf-call-main", key: "main" }, label),
+        h(
+          "span",
+          { className: "wf-call-meta", key: "meta" },
+          wfFormatClock(item.at) === "" ? "" : wfFormatClock(item.at),
+          wfFormatDuration(item.durationMs) === "" ? "" : " · " + wfFormatDuration(item.durationMs)
+        ),
+        h("span", {
+          className: "wf-flow-status",
+          key: "status",
+          "data-status": status,
+          "aria-hidden": "true",
+        })
       ),
-      h("span", {
-        className: "wf-flow-status",
-        key: "status",
-        "data-status": status,
-        "aria-hidden": "true",
-      })
+      canJump
+        ? h(
+            "button",
+            {
+              type: "button",
+              className: "wf-call-jump",
+              key: "jump",
+              "data-dsh-workflow-map": "jump-call",
+              "data-call-id": callId,
+              title: say("panel.call.jump.hint"),
+              "aria-label": say("panel.call.jump"),
+              onClick: function () {
+                if (typeof fire.onInspectCall === "function") fire.onInspectCall(callId);
+              },
+            },
+            "↗"
+          )
+        : null
     ),
     open ? wfRenderNodeDetail(h, item, say, fire, { detail: "summary" }) : null
   );
 }
 
 /**
- * The type page's body: the calls of one bucket, in wire order, plus the honest note when the
+ * The type page's body: the calls of one bucket, in wire order, plus the explicit note when the
  * host never sent some of them (the bucket carries the host's count, the list only what arrived).
  */
 function wfRenderTypeBody(h, bucket, nodes, say, actions, ctx) {

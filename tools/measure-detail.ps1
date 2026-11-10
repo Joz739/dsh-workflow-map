@@ -2,14 +2,14 @@
 #
 # Run: pwsh -File tools\measure-detail.ps1
 #
-# session7 (2026-10-27) rewrote both halves to the 会话4 single-page layout. The old pages fed
+# the single-page revision (2026-10-27) rewrote both halves to the the single-page layout single-page layout. The old pages fed
 # wfRenderPanel the retired extras contract (flow / stepDetail / selectedNode) and the old run
 # scored 15/54 with every node-detail check empty. Today the right page's content is DERIVED by
 # wfRightPageSpec(model, prefs) from (rightOpen, rightKind, rightKey); the pages therefore only
 # patch prefs. What this measures that the tree self-test cannot:
 #
 #   · the step page really renders the PAE report: summary, artifacts as copyable rows
-#     (button + full path + basename + grey directory), exit code, honest stats, type rows;
+#     (button + full path + basename + grey directory), exit code, accurate stats, type rows;
 #   · the type page really expands a call into wfRenderNodeDetail: category chip, status,
 #     monospace pre-wrap args clamped to the shipped 180 px, the <details> command block whose
 #     collapsed summary differs from its opened body, and the host's 200-character cap note;
@@ -22,7 +22,7 @@
 #   · Escape and the <details> resize nudge really fire on real events;
 #   · no file body ever reaches the DOM (the privacy rule).
 #
-# The browser is auto-detected (this machine has no Chrome; Edge is the Chromium), and headless
+# The browser is auto-detected (Chrome is unavailable; Edge is Chromium), and headless
 # Chromium must be started with Start-Process (a direct call returns immediately and writes nothing).
 param(
   [string]$Chrome = '',
@@ -74,7 +74,7 @@ try {
     )
     # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
     # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
-    $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+    $nodeExe = if ($env:NODE_EXE) { $env:NODE_EXE } elseif (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { throw 'node not found; add it to PATH or set NODE_EXE' }
     $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
     $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
     $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }
@@ -175,9 +175,9 @@ try {
   $nx = $noreport.facts
   Add-Check 'detail.noreport.bound' ([string]::IsNullOrEmpty([string]$noreport.error)) "error=$($noreport.error)"
   Add-Check 'detail.noreport.present' ($null -ne $nx.stepDetail -and $nx.stepDetail.report -eq 'false') "report=$($nx.stepDetail.report)"
-  Add-Check 'detail.noreport.text' ($nx.honest.noReport -eq $true) 'the honest sentence is on the page'
+  Add-Check 'detail.noreport.text' ($nx.accurate.noReport -eq $true) 'the explicit sentence is on the page'
   Add-Check 'detail.noreport.artifacts' (@($nx.stepDetail.artifacts).Count -eq 0) "artifacts=$(@($nx.stepDetail.artifacts).Count)"
-  Add-Check 'detail.noreport.counts' ((HasText $nx.stepDetail.text '0 工具') -and (HasText $nx.stepDetail.text '无时间记录')) 'honest zeros'
+  Add-Check 'detail.noreport.counts' ((HasText $nx.stepDetail.text '0 工具') -and (HasText $nx.stepDetail.text '无时间记录')) 'accurate zeros'
 
   # ---------------------------------------------------------------------------
   # page 5 — a page about a step whose detail was not sent: it says exactly that
@@ -187,7 +187,7 @@ try {
   $lx = $notloaded.facts
   Add-Check 'detail.notloaded.bound' ([string]::IsNullOrEmpty([string]$notloaded.error)) "error=$($notloaded.error)"
   Add-Check 'detail.notloaded.noDetail' ($null -eq $lx.stepDetail) 'no step detail is invented for another step'
-  Add-Check 'detail.notloaded.saysSo' ($lx.honest.notLoaded -eq $true) 'the page states the detail was not sent'
+  Add-Check 'detail.notloaded.saysSo' ($lx.accurate.notLoaded -eq $true) 'the page states the detail was not sent'
   Add-Check 'detail.notloaded.typeRows' (@($lx.stepTypeRows).Count -eq [int]$expect.unit0Types) "rows=$(@($lx.stepTypeRows).Count) expected=$($expect.unit0Types)"
 
   # ---------------------------------------------------------------------------

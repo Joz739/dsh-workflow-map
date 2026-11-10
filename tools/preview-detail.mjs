@@ -2,7 +2,7 @@
 //
 // Run: node tools/preview-detail.mjs (then pwsh -File tools\measure-detail.ps1)
 //
-// session7 (2026-10-27) rewrote both halves to the single-page layout. The old pages
+// the single-page revision (2026-10-27) rewrote both halves to the single-page layout. The old pages
 // fed wfRenderPanel the retired extras contract (flow / stepDetail / selectedNode), so the
 // old run rendered NO details at all and 39 of 54 checks failed on missing nodes. Today the
 // details live on the RIGHT PAGE, and the page's whole content is derived by
@@ -366,9 +366,9 @@ function pageScript(config) {
         return { target: row.getAttribute('data-wf-copy'), label: row.getAttribute('data-wf-copy-label') };
       }),
       privacy: { secretPresent: bodyText.indexOf(EXPECT.secret) >= 0, note: 'a content body is dropped by store.js' },
- // The two honest-empty sentences, read from the page's OWN dictionary text (the expect file
+ // The two accurate-empty sentences, read from the page's OWN dictionary text (the expect file
  // carries the strings, so no wording is hardcoded in the checker).
-      honest: {
+      accurate: {
         noReport: bodyText.indexOf(EXPECT.noReportText) >= 0,
         notLoaded: bodyText.indexOf(EXPECT.notLoadedText) >= 0,
         emptyBlocks: all('.wf-detail-empty').length,

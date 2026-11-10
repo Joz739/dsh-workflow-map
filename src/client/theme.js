@@ -176,8 +176,10 @@ var WF_CSS = [
   // `data-ds-dark-theme` on <body>, so the light values are the defaults and the dark block below
   // only wins when that attribute is present.
     "--wf-lift:rgba(15,23,42,.045);--wf-lift-2:rgba(15,23,42,.085);" +
+    "--wf-star:#3f8fd4;--wf-star-border:#8ac8ff;" +
     "font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI','Microsoft YaHei',sans-serif;font-size:12px;line-height:1.5}",
-  "body[data-ds-dark-theme] .wf-root{--wf-lift:rgba(255,255,255,.035);--wf-lift-2:rgba(255,255,255,.07)}",
+  "body[data-ds-dark-theme] .wf-root{--wf-lift:rgba(255,255,255,.035);--wf-lift-2:rgba(255,255,255,.07);" +
+    "--wf-star:#8ecbff;--wf-star-border:#8ecbff}",
 
  /* card: fills the main area; the header and the settings card keep their own height,
      the two-column body takes the rest. No drag grips: the column has no free edges.
@@ -196,7 +198,8 @@ var WF_CSS = [
   ".wf-pct{color:var(--dsw-alias-brand-primary,#5b8cff);font-variant-numeric:tabular-nums;font-weight:600}",
   ".wf-sep{opacity:.5}",
   ".wf-status-bad{color:var(--dsw-alias-state-warn-primary,#e0a13a)}",
-  ".wf-btns{display:flex;gap:3px;flex:0 0 auto}",
+  ".wf-unassigned{color:var(--dsw-alias-state-warn-primary,#e0a13a);white-space:nowrap}",
+  ".wf-btns{display:flex;align-items:center;gap:3px;flex:0 0 auto}",
   ".wf-btn{width:23px;height:23px;padding:0;border-radius:6px;border:1px solid transparent;background:transparent;" +
     "color:var(--dsw-alias-label-secondary,#9aa3b2);font:inherit;font-size:13px;line-height:1;cursor:pointer;" +
     "display:inline-flex;align-items:center;justify-content:center}",
@@ -225,11 +228,23 @@ var WF_CSS = [
     "border-radius:9px;background:var(--dsw-alias-state-error-primary,#e85a5a);color:#fff;" +
     "font-size:9.5px;font-weight:700;line-height:16px;text-align:center;font-variant-numeric:tabular-nums;" +
     "box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-1,#232733);pointer-events:none}",
+ // A link styled as a header button. It keeps the hot-inject chip's 30 px height and never
+ // exceeds its width; the blue outline encloses the star and its name as one control.
+  ".wf-btn-star{width:auto;max-width:96px;height:30px;padding:0 9px;gap:4px;box-sizing:border-box;" +
+    "display:inline-flex;align-items:center;justify-content:center;text-decoration:none;" +
+    "font-size:12px;font-weight:600;line-height:1;letter-spacing:.01em;" +
+    "color:var(--wf-star,#8ecbff);border:1px solid var(--wf-star-border,#8ecbff);" +
+    "border-radius:6px;background:transparent}",
+  ".wf-btn-star:hover{color:var(--wf-star,#8ecbff);border-color:var(--wf-star-border,#8ecbff);" +
+    "background:color-mix(in srgb,var(--wf-star,#8ecbff) 12%,transparent)}",
+  ".wf-star-glyph{font-size:14px;line-height:1;color:inherit}",
+  ".wf-star-text{color:inherit;line-height:1}",
 
  /* settings strip (skeleton: endpoint / counts / reset) */
   ".wf-settings{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:7px 12px;font-size:11px;" +
     "color:var(--dsw-alias-label-secondary,#9aa3b2);border-bottom:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.1))}",
   ".wf-kv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}",
+  ".wf-kv-warn{color:var(--dsw-alias-state-warn-primary,#e0a13a)}",
   ".wf-link{padding:2px 8px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.2));" +
     "background:transparent;color:inherit;font:inherit;cursor:pointer}",
   ".wf-link:hover{border-color:var(--dsw-alias-brand-primary,#5b8cff);color:var(--dsw-alias-label-primary,#e9ecf3)}",
@@ -651,10 +666,10 @@ var WF_CSS = [
   ".wf-copy-status{flex:0 0 auto;margin-left:auto;color:inherit;white-space:nowrap}",
   ".wf-copy-status:empty{display:none}",
   ".wf-detail-copy[data-copy-state='copied'] .wf-copy-label,.wf-detail-copy[data-copy-state='failed'] .wf-copy-label{display:none}",
-  ".wf-detail-copy:focus-visible,.wf-detail-file:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:1px}",
-  ".wf-detail-copy[data-copy-state='copied'],.wf-detail-file[data-copy-state='copied']{" +
+  ".wf-detail-copy:focus-visible,.wf-detail-file-copy:focus-visible,.wf-file-open:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#5b8cff);outline-offset:1px}",
+  ".wf-detail-copy[data-copy-state='copied'],.wf-detail-file-copy[data-copy-state='copied']{" +
     "color:var(--dsw-alias-state-success-primary,#45c07a);border-color:currentColor}",
-  ".wf-detail-copy[data-copy-state='failed'],.wf-detail-file[data-copy-state='failed']{" +
+  ".wf-detail-copy[data-copy-state='failed'],.wf-detail-file-copy[data-copy-state='failed']{" +
     "color:var(--dsw-alias-state-error-primary,#e85a5a);border-color:currentColor}",
   ".wf-detail-preview{margin:0;font-family:ui-monospace,SFMono-Regular,Consolas,'Microsoft YaHei',monospace;" +
     "font-size:10px;line-height:1.4;white-space:pre-wrap;word-break:break-all;" +
@@ -677,10 +692,15 @@ var WF_CSS = [
     "color:var(--dsw-alias-label-tertiary,#7d8798)}",
   ".wf-detail-glyph{font-size:10px;line-height:1}",
   ".wf-detail-rows{display:flex;flex-direction:column;gap:1px;min-width:0}",
-  ".wf-detail-file{display:flex;align-items:baseline;gap:6px;width:100%;min-width:0;padding:1px 4px;" +
+  ".wf-detail-file{display:flex;align-items:center;gap:2px;width:100%;min-width:0}",
+  ".wf-detail-file-copy{display:flex;align-items:baseline;gap:6px;flex:1 1 auto;min-width:0;padding:1px 4px;" +
     "border-radius:5px;border:1px solid transparent;background:transparent;color:inherit;font:inherit;" +
     "font-size:10px;line-height:1.5;text-align:left;cursor:pointer}",
-  ".wf-detail-file:hover{background:var(--dsw-alias-bg-layer-2,#2c3140)}",
+  ".wf-detail-file-copy:hover{background:var(--dsw-alias-bg-layer-2,#2c3140)}",
+  ".wf-file-open{flex:0 0 auto;width:18px;height:18px;padding:0;border-radius:4px;border:1px solid transparent;" +
+    "background:transparent;color:var(--dsw-alias-label-tertiary,#7d8798);font:inherit;font-size:11px;" +
+    "line-height:1;cursor:pointer}",
+  ".wf-file-open:hover{background:var(--dsw-alias-bg-layer-2,#2c3140);color:var(--dsw-alias-label-primary,#e9ecf3)}",
   ".wf-detail-base{flex:0 0 auto;color:var(--dsw-alias-label-primary,#e9ecf3);" +
     "font-family:ui-monospace,SFMono-Regular,Consolas,'Microsoft YaHei',monospace}",
   ".wf-detail-dir{flex:1 1 auto;min-width:0;font-size:9.5px;color:var(--dsw-alias-label-tertiary,#7d8798);" +
@@ -1126,6 +1146,12 @@ var WF_CSS_PAGE = [
   ".wf-calls{display:flex;flex-direction:column;gap:6px;min-width:0}",
   ".wf-call-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;min-width:0}",
   ".wf-call{min-width:0;display:flex;flex-direction:column;gap:5px}",
+  ".wf-call-top{display:flex;align-items:stretch;gap:3px;min-width:0}",
+  ".wf-call-top .wf-call-head{flex:1 1 auto;width:auto;min-width:0}",
+  ".wf-call-jump{flex:0 0 auto;width:24px;padding:0;border-radius:7px;border:1px solid transparent;" +
+    "background:transparent;color:var(--dsw-alias-label-tertiary,#7d8798);font:inherit;font-size:12px;" +
+    "line-height:1;cursor:pointer}",
+  ".wf-call-jump:hover{background:var(--dsw-alias-bg-layer-2,#2c3140);color:var(--dsw-alias-label-primary,#e9ecf3)}",
   ".wf-call-head{display:flex;align-items:center;gap:6px;width:100%;padding:5px 7px;border-radius:7px;" +
     "border:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.1));background:var(--dsw-alias-bg-base,#161920);" +
     "color:inherit;font:inherit;font-size:11px;cursor:pointer;text-align:left;box-sizing:border-box}",

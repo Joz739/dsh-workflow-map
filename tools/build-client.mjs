@@ -283,7 +283,7 @@ const forbidden = [
   ['tab seat marker', 'data-seat'],
  // the projected REMAINING time ("remaining ~N minutes") was deleted by user request -
  // the host computation, the wire field, the render segment, its CSS and its two dictionary entries
- // went together. A stale string in ANY chunk would silently restore a segment the user asked to
+ // went together. A stale string in ANY chunk would silently restore a segment the requested to
  // remove (or ship a field to a browser that no longer reads it), so the removal needs its own
  // guard, exactly like the overlay and the cover layer above.
   ['projected remaining field', 'etaMs'],

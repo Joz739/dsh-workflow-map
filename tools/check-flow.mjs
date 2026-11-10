@@ -26,7 +26,7 @@ const results = [];
 const check = (id, pass, detail) => results.push({ id, pass: pass === true, detail: detail === undefined ? '' : String(detail) });
 const skip = (id, why) => results.push({ id, pass: null, detail: why });
 
-/* --- locate the log (arg, else the newest session log on this machine) ---- */
+/* --- locate the log (arg, else the newest session log in this environment) ---- */
 function newestSessionLog() {
   const base = path.join(process.env.USERPROFILE || '', '.dsh', 'sessions');
   const found = [];
@@ -131,7 +131,7 @@ for (let index = 0; index < view.steps.length; index += 1) {
   const model = T.buildModel(view, { ...prefs, selectedStep: index });
   const toolNodes = model.flow.nodes.filter((node) => node.kind === 'tool');
  // Nodes this step no longer has: the per-step cap AND the global 1200-node cap (which
- // prunes ids without touching truncatedNodes) — the same honest gap the header shows.
+ // prunes ids without touching truncatedNodes) — the same visible gap the header shows.
   const missing = Math.max(0, (Number(step.nodeCount) || 0) - model.flow.nodes.length);
   const dropped = stepCalls.length - toolNodes.length;
   totalCalls += stepCalls.length;

@@ -53,11 +53,11 @@
 // panel still draws them as the table says. Those 25 are listed individually under `wireNote` with
 // the seq of the table and of the terminal turn, so the difference is accounted for rather than
 // silently tolerated. Verified independently: the rendered reading is 0 violations while the wire
-// reading is 25 (evidence/verify/_pae09-rendered-status.txt).
+// reading is 25.
 // `order` is only claimed when the two SETS agree: otherwise the difference is already reported as
 // missing/extra and re-reporting it as an order fault would double-count one defect.
 //
-// Exit 0 only when every session is ok / no-todo / empty. Writes evidence/verify/todo-align.{json,txt}.
+// Exit 0 only when every session is ok / no-todo / empty. Writes todo-align.{json,txt} under the local evidence directory.
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";

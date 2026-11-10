@@ -2,11 +2,11 @@
 #
 # Run: pwsh -File tools\preview-shot.ps1
 #
-# On this machine headless Chrome must be started with Start-Process (a direct
+# In this environment headless Chrome must be started with Start-Process (a direct
 # `& chrome ...` invocation returns immediately and silently writes no PNG), so
 # this script does the loop explicitly and verifies each file exists afterwards.
 param(
-  [string]$Chrome = 'C:\Users\Administrator\AppData\Local\Google\Chrome\Application\chrome.exe',
+  [string]$Chrome = $env:CHROME_PATH,
   [int]$Width = 1400,
   [int]$Height = 900
 )
@@ -16,7 +16,15 @@ $root = Split-Path -Parent $PSScriptRoot
 $evidence = Join-Path $root 'evidence'
 $preview = Join-Path $evidence 'preview'
 
-if (-not (Test-Path $Chrome)) { throw "chrome not found: $Chrome" }
+if (-not $Chrome) {
+  $candidates = @(
+    'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+    'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+  )
+  $Chrome = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+if (-not $Chrome -or -not (Test-Path $Chrome)) { throw 'Chromium not found; set CHROME_PATH' }
 
 Push-Location $root
 try {

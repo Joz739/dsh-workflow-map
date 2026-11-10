@@ -2,7 +2,7 @@
 #
 # Run: pwsh -File tools\measure-effects.ps1
 #
-# session7 (2026-10-27) rewrote both halves to the 会话4 single-page layout. The old
+# the single-page revision (2026-10-27) rewrote both halves to the the single-page layout single-page layout. The old
 # script measured the step↔node curve of the two-column layout (wfFxCurve endpoints,
 # resize/scroll retargeting) — that UI is gone from the mount tree, so the old run crashed
 # on a Null (no curve was ever rendered). What the living layer means on TODAY's page,
@@ -20,8 +20,8 @@
 #   · session idle (data-idle='1') → every animation PAUSES (playState 'paused'), none removed;
 #   · the running card's connector (data-live) keeps its gradient while a done one has none.
 #
-# The browser is auto-detected (this machine has no Chrome; Edge is the Chromium), and on
-# this machine headless Chromium must be started with Start-Process (a direct call returns
+# The browser is auto-detected (Chrome is unavailable; Edge is Chromium), and on
+# this environment's headless Chromium must be started with Start-Process (a direct call returns
 # immediately and silently writes nothing).
 param(
   [string]$Chrome = '',
@@ -73,7 +73,7 @@ try {
     )
     # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
     # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
-    $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+    $nodeExe = if ($env:NODE_EXE) { $env:NODE_EXE } elseif (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { throw 'node not found; add it to PATH or set NODE_EXE' }
     $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
     $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
     $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }

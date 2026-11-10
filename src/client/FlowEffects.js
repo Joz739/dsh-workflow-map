@@ -20,7 +20,7 @@
  *
  * Endpoint rule: the curve is drawn only when BOTH cards are fully inside their own scroll viewport; otherwise hidden (data-visible=false).
  * Clamping endpoints to the viewport edge would stop them hugging the card edge, making the 2 px tolerance meaningless,
- * so drawing nothing is the honest option.
+ * so drawing nothing is the explicit option.
  *
  * Pure, no import/export: inlined into client.js by tools/build-client.mjs (single-file browser half).
  */
@@ -208,7 +208,7 @@ function wfChainCurve(origin, upper, lower) {
   var toY = b.top - box.top;
   var dy = toY - fromY;
   // Two cards that touch (or overlap) have no gap to draw in. Drawing a zero-length curve would
-  // put a stray mark on a card's edge, so the link is simply absent — an honest hole, not a lie.
+  // put a stray mark on a card's edge, so the link is simply absent — an explicit hole, not a lie.
   if (!(dy > 0)) return { visible: false, reason: "too-close", d: null };
 
   // The sideways bow ("horizontal bulge"): a share of the horizontal offset plus a fixed 10 px, clamped so
@@ -292,7 +292,7 @@ function wfChainCards(doc, list) {
     if (!row) continue;
     // The CONNECTOR is drawn between the CARDS, not between the list rows: a node row's card is
     // its direct <button>, a group's card is the dashed head. Falling back to the row keeps the
-    // link honest for any future row shape instead of silently dropping it.
+    // link accurate for any future row shape instead of silently dropping it.
     var card = null;
     if (typeof row.querySelector === "function") card = row.querySelector(":scope > .wf-node, :scope > .wf-group-row > .wf-group-head");
     if (!card) card = row;
@@ -332,7 +332,7 @@ function wfChainApply(doc) {
   }
 
   // The layer is rendered with a FIXED number of paths (WF_CHAIN_LINK_SLOTS): an SVG child list
-  // cannot be resized from here, so extra paths are blanked and missing ones reported honestly
+  // cannot be resized from here, so extra paths are blanked and missing ones reported accurately
   // rather than quietly drawing fewer links than there are cards.
   var drawn = 0;
   for (var p = 0; p < count; p += 1) {

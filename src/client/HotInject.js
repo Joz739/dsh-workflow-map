@@ -30,10 +30,10 @@
  * `agent/inbox/spliced { outcome: 'canceled' }`. Until then the button reads "revoking..." and is disabled,
  * which is what stops a second click from becoming a second post.
  *
- * HONESTY RULES (each one has an assertion):
+ * CONSISTENCY RULES (each one has an assertion):
  * 1. Sending is refused while `state === "sending"` — no double post, ever.
  * 2. Empty text is refused before any request leaves (the host would answer 400 anyway, but a
- * round trip for something the browser already knows is not honest either).
+ * round trip for something the browser already knows is not accurate either).
  * 3. A success is claimed ONLY on `{ok:true}` from the host. On anything else the panel shows
  * the host's OWN reason verbatim - never an invented "injection failed".
  * 4. A 409 carries the host's text ("session is not running, hot injection unavailable"), and it is rendered as a
@@ -127,7 +127,7 @@ function wfRevokeState(value) {
 }
 
 /**
- * Turn the host's answer to `/unsteer` into the UI's outcome. The SAME honesty rule as the send:
+ * Turn the host's answer to `/unsteer` into the UI's outcome. The SAME accuratey rule as the send:
  * only `{ok:true}` is a revocation, and every failure prints the host's own reason verbatim — the
  * one text this function may supply is the "the host gave no reason" fallback.
  */
@@ -308,7 +308,7 @@ function wfRenderHotInject(h, say, actions, extras) {
 
  // the HISTORY rows (newest last in the model, drawn newest first so the latest send is
  // the one the user sees without scrolling). Purely derived from the fold: nothing here talks
- // to the host, and an empty list renders the honest "none yet" line instead of a blank block.
+ // to the host, and an empty list renders the explicit "none yet" line instead of a blank block.
   var history = [];
   if (Array.isArray(ui.history)) history = ui.history.slice().reverse();
 
@@ -414,7 +414,7 @@ function wfRenderHotInject(h, say, actions, extras) {
           note
         ),
  // the history block. It sits UNDER the acknowledgement so the composer's shape does
- // not change; the newest row is first, and each row states the one thing the user asked to
+ // not change; the newest row is first, and each row states the one thing the requested to
  // know: was this one taken by the running turn, or is it still waiting.
     h(
       "div",

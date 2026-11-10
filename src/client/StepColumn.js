@@ -196,7 +196,7 @@ function wfDeriveStepStatus(row, plan, todoIndex, currentPlanIndex) {
     }
   }
 
- // 4. The host's event-derived status, then the honest floor.
+ // 4. The host's event-derived status, then the explicit floor.
   var fromHost = wfCanonicalStatus(row && row.status);
   if (fromHost !== null) return { status: fromHost, source: "host" };
   return { status: "pending", source: "none" };
@@ -476,7 +476,7 @@ function wfRenderStepColumn(h, model, say, actions, ui) {
             open: detail !== null && !(model.settings && model.settings.detail === "title") && wfStepDetailOpen(ui, model.selected),
             compact: !!(model.settings && model.settings.detail === "title"),
  // the shared "now" for every rail's age arithmetic. `view.asOf` is the
- // host's own stamp (the ONE honest clock in the plugin); `model.now` is the render
+ // host's own stamp (the ONE accurate clock in the plugin); `model.now` is the render
  // moment the panel passed in and is only a fallback for a view that carries none.
             asOf: model.asOf === null || model.asOf === undefined ? model.now : model.asOf,
           });

@@ -4,9 +4,9 @@
 // currently running step/node + per-step percentage". Three consumers, one implementation:
 //   1. node (offline self-test): import foldEvent and buildView out of src/fold.mjs
 //   2. the host projection     : the same relative import from lib/index.js
-//   3. (later) the browser half: an inlined copy, kept honest by a differential test
+//   3. (later) the browser half: an inlined copy, kept in sync by a differential test
 //
-// CONTRACT FACTS ARE MEASURED, NOT GUESSED (2026-10-17, this session's own log,
+// CONTRACT FACTS ARE VERIFIED (2026-10-17, a reference session log,
 // %USERPROFILE%\.dsh\sessions\…\session-<id>\session.v4.jsonl.zstd):
 //   * envelope = { type, seq, time, data, surfaceOp?, sourceEventSeqs? }; seq is strictly
 //     increasing; `time` is wall-clock ms (the first event has no seq at all).
@@ -20,7 +20,7 @@
 //     blocks carry type reasoning|text|tool-call. `stream` is a chunk array: NEVER fold it.
 //   * user/message data = { content:[{type:"text",text}], source:{kind}, role, id }. The FIRST
 //     block of the first event whose source.kind === "user" is the task text.
-//   * stepProgress/report data = { percent, note? } — the model self-report (our own event
+//   * stepProgress/report data = { percent, note? } — the model self-report (the plugin's event
 //     type, appended by the dsh-session-progress tool `report_step_progress`).
 //   * PAE writes `user/message` events with source.kind === "plugin:dsh-plan-and-execute":
 //     the kickoff/summary/step instructions AND the "[plan-and-execute previous result: ...]"
@@ -31,7 +31,7 @@
 //     session-log-deepseek/*. They return the SAME state reference.
 //
 // BRANCH VOCABULARY  — read out of the harness's own SessionEventMap (the type
-// list and the per-type payload validators inside app.asar), NOT guessed:
+// list and the per-type payload validators inside app.asar), verified:
 //   * the session log carries `job/registered` { jobId, owner, kind, label, startedAt,
 //     toolCall? } and `job/settled` { …the same fields, outcome: { status:
 //     'completed' | 'killed' | 'failed', detail?, result? } } — a background long task.
@@ -59,7 +59,7 @@
 // removedCount, inserted, outcome: 'canceled' }` names an INDEX, never the message that left
 // (measured 2026-10-26 on the host's own `ReactLoopInbox.mutate`, and on 145 real session logs:
 // 11 lines carry `outcome:"canceled"`, 0 carry a durable `agent/inbox/discarded`). To say WHICH
-// of our inject rows the loop dropped, the fold has to replay the same splice sequence the loop's
+// of the hot-inject rows the loop dropped, the fold has to replay the same splice sequence the loop's
 // own `inboxProjectionDefinition` replays. A checkpoint written before this bump has no ledger,
 // so the registry is told to drop it and rebuild from the log (the same contract as v1→v2: a
 // missing field must never be silently answered with a wrong index).
@@ -69,7 +69,7 @@
 // dropped). Checkpoints written before the bump hold ledgers from the older mapping — wrong
 // statuses and leftover rows — so the same contract applies: drop and rebuild from the log.
 // STATE_VERSION 5 keeps its number after the 2026-11-01 step-row change (`awaitingNextTurn`
-// plus the state's `unknownTurnReasons`): both have an HONEST default that the host's stateSchema
+// plus the state's `unknownTurnReasons`): both have a safe default that the host's stateSchema
 // repairs to (false / empty list), so a v5 checkpoint restored from disk is not answered wrongly.
 // The version is bumped only where a missing field would have to be guessed — see v1→v4 above.
 //
@@ -78,7 +78,7 @@
 // attributed by that interval instead of by "whichever step happens to be running when the node
 // arrives". The old rule could not be reconstructed after the fact: it named a step from the
 // CURRENT pointer at fold time, so a checkpoint written under it holds node→step assignments that
-// look valid and are wrong (measured 2026-11-01 over 167 local logs: of 504 `done` steps 193
+// look valid and are wrong (measured 2026-11-01 over 167 session logs: of 504 `done` steps 193
 // (38.3%) owned no node at all, while 36 sessions had one step holding every node in the session).
 // Neither the interval nor the `unassigned` counter can be derived from a v5 checkpoint — the
 // events that would be replayed are not stored in it — so the same contract as v1→v5 applies:
@@ -115,7 +115,7 @@ export const NODES_TOTAL = 1200;
 /** Consecutive same-tool nodes with the same target that get folded into a group. */
 export const GROUP_THRESHOLD = 3;
 
-/** Activity rows kept per branch lane (the oldest are dropped, `count` stays honest). */
+/** Activity rows kept per branch lane (the oldest are dropped, `count` stays accurate). */
 export const BRANCH_NODES = 40;
 
 /** Branches the view draws for one step; the rest are counted, never silently lost. */
@@ -166,7 +166,7 @@ const TYPE_USER_QUESTIONS = "user-questions/request";
 const TYPE_APPROVAL = "approval/request";
 
 // The hot-inject message this plugin's own hot-inject message and the inbox splice that carries it.
-// Measured in this session's log (session-f1b5bf9d, 2026-10-18): the panel's POST lands as
+// Measured in a reference session log (2026-10-18): the panel's POST lands as
 // `agent/inbox/spliced { target: "next-step", inserted:[{ source:{kind:"plugin:dsh-workflow-map"} }] }`
 // and is admitted as a `user/message` with the same `source.kind`. Those two facts are what
 // makes a hot-inject HISTORY possible without a second write path.
@@ -187,7 +187,7 @@ const TYPE_APPROVAL_DECIDED = "approval/decided";
 // ---------------------------------------------------------------------------
 // turn reasons — the `data.reason.kind` of a `turn/end`
 // ---------------------------------------------------------------------------
-// MEASURED, not guessed (167 local session logs, 1067 `turn/end` events, 2026-11-01):
+// Observed (167 session logs, 1067 `turn/end` events, 2026-11-01):
 //   completed 739 · error 171 · aborted 136 · interrupted 17 · max-tokens 4
 // (and `data` is always exactly `{ turn, reason }`, never a bare `{ turn }`).
 //
@@ -386,7 +386,7 @@ export function createInitialState() {
     // `{ planIndex, seq }` parked by foldPaeReport: the seq PAE itself will record as the
     // anchor of the NEXT plan step (orchestrator.json anchorSeqs[planIndex]).
     pendingAnchor: null,
-    // Is a turn open?  `turn/start` → true, `turn/end` → false. This is the ONE honest
+    // Is a turn open?  `turn/start` → true, `turn/end` → false. This is the ONE accurate
     // "is the session working right now" signal the log carries: the step rows stay 'running'
     // until PAE rewrites them, so they cannot answer it, and a long model answer can go minutes
     // without a tool call (its events arrive at the end). Exposed as `view.running`; the browser
@@ -408,7 +408,7 @@ export function createInitialState() {
     // Hot-inject history. One row per message this plugin's `/steer` channel put into
     // the session: `{ id, at, text, pickedUp }`. `pickedUp` flips to true the moment the
     // session's own `user/message` event with the same id enters the log — that is the
-    // MEASURED proof the loop admitted it (measured 2026-10-18, session-f1b5bf9d), so the
+    // Evidence that the loop admitted it (measured 2026-10-18, a reference session), so the
     // panel can say "injected, session picked it up" instead of guessing from the HTTP 200 alone.
     injects: [],
     // the inbox LEDGER: the pending message ids of each loop-owned list, in
@@ -526,7 +526,7 @@ function runningStep(state) {
  * Every other `running` row is CLOSED at `time` (status done, percent pinned 100) instead of
  * being re-labelled 'pending': the work it recorded really happened, and demoting it would
  * also un-count its nodes from the completed total. A row that was never started (startedAt 0)
- * cannot be closed honestly, so it alone falls back to pending.
+ * cannot be closed reliably, so it alone falls back to pending.
  *
  * THE WINDOW OF A STRAY ROW IS CLOSED HERE, at the seq of the event that handed the running
  * pointer to another row (`seq`). That is the only instant the log supports: the stray stopped
@@ -577,7 +577,7 @@ function soleRunning(state, time, seq) {
  *
  * WHY IT REPLACED "the running step". The old rule named a step from the CURRENT running row, so
  * an event was attributed to whatever the fold happened to be pointing at when it arrived — which
- * is not the same question. Two measured consequences over 167 local logs (2026-11-01): 193 of 504
+ * is not the same question. Two measured consequences over 167 session logs (2026-11-01): 193 of 504
  * `done` steps (38.3%) owned no node at all, while 36 sessions had a single step holding every node
  * in the session. The interval cannot produce that kind of error: a step that never ran holds
  * nothing BY CONSTRUCTION, and no step can absorb another step's calls.
@@ -640,22 +640,24 @@ function stepForNode(state, seq, _inProgressIndex) {
   return windowStep(state, seq);
 }
 /**
- * Per-step percent. Three routes, in priority order:
- *   1. a CLOSED step is pinned — its number is finished work, not a time estimate, so a
- *      later (slower) sibling must not be able to pull its bar back down;
- *   2. a model self-report, capped at 99 % — the model's own statement about THIS step;
- *   3. the time baseline: this step's elapsed time / the median finished-step duration, capped at
+ * Per-step percent. Four routes, in priority order:
+ *   1. a COMPLETED step is exactly 100 % (`closed`) — its number is finished work, not a time
+ *      estimate, so a later (slower) sibling must not pull its bar back down;
+ *   2. a FAILED step keeps the last number it had (model report or baseline) and that source;
+ *      with no number it carries none, rather than claiming finished work;
+ *   3. a model self-report, capped at 99 % — the model's own statement about THIS step;
+ *   4. the time baseline: this step's elapsed time / the median finished-step duration, capped at
  *      90 % because it is an extrapolation, not a measurement. With no finished step (the cold
  *      start) the plan's own ordinal - current step / total steps - stands in as `baseline:steps`, but
  *      only from the second step of a ≥ 2-step plan: 0 of N is not progress.
- * With none of the three there is NO number (`source: "none"`): an empty rail is honest, a
- * fabricated number is not.
+ * With none of these there is NO number (`source: "none"`): an empty rail is preferable to a
+ * fabricated number.
  *
  * WHY THE TODO TABLE'S COMPLETION RATIO IS NOT ONE OF THE ROUTES (deleted 2026-11-01). That ratio
  * is finished ROWS over all rows — a fact about the WHOLE SESSION, not about the step the rail is
  * drawn under. Putting it into a step's `percent` hands a total to a part: every row of a
  * half-finished checklist read the same number, the number moved only when the model rewrote the
- * table, and it did not move at all when the step itself advanced. Measured over 167 local session
+ * table, and it did not move at all when the step itself advanced. Measured over 167 session
  * logs (2026-11-01): 23 of the 38 running steps carried exactly their session's global ratio.
  *
  * The obvious replacement — "this step's node count / the session's node count" — is NOT used
@@ -664,16 +666,22 @@ function stepForNode(state, seq, _inProgressIndex) {
  *
  * The high-water record (`step.maxPercent`) stays exactly where it was: it is recorded, it floors
  * the two EXTRAPOLATION routes below (a baseline that can walk backwards was the F1 defect), and
- * it never raises a self-report or a closed step.
+ * it never raises a self-report or a completed step.
  *
  * ONE GATE IN FRONT OF ALL OF THEM: a step that is waiting for the next turn carries no number at
  * all (`awaitingNextTurn` + a closed turn). "Waiting" is not "partly done", and it is certainly
- * not 100 % — the log has no evidence either way, so the honest answer is no number.
+ * not 100 % — the log has no evidence either way, so no number is shown.
  */
 function percentFor(state, step, now) {
-  if (step.status === STEP_STATUS.done || step.status === STEP_STATUS.failed) {
-    const pinned = step.percent === null ? 100 : step.percent;
-    return { percent: clamp(pinned, 0, 100), source: step.percentSource === "none" ? "closed" : step.percentSource };
+  if (step.status === STEP_STATUS.done) {
+    return { percent: 100, source: "closed" };
+  }
+  if (step.status === STEP_STATUS.failed) {
+    if (step.percent === null || !isFiniteNumber(step.percent)) return { percent: null, source: "none" };
+    return {
+      percent: clamp(step.percent, 0, 100),
+      source: step.percentSource === "none" ? "closed" : step.percentSource,
+    };
   }
   // Only the step that is actually running can be partly done. A pending row is future work and a
   // skipped one never will be done, so NEITHER carries a number. The old code let the todo table's
@@ -929,7 +937,7 @@ function reopenStep(step, time, seq) {
     // A REOPENED ROW'S END IS CLEARED. A single [start, end) interval cannot describe a row that ran
     // twice: keeping the FIRST end means every later event falls outside the only interval the row
     // has, so a retried step would own nothing and its work would all count as unattributed. Clearing
-    // it re-opens the interval from the original start, which is the honest reading of "this row is
+    // it re-opens the interval from the original start, which is the explicit reading of "this row is
     // running again" — the interval then spans everything it did, first attempt included, because the
     // fold keeps ONE node list per row rather than one per attempt.
     //
@@ -1022,14 +1030,14 @@ function foldTodos(state, event, time, seq) {
     // The row's ordinal follows the TABLE, not the row's history. A matched row that used to be
     // unnumbered (or numbered differently) must take the ordinal this table now states, or the
     // view keeps a stale planIndex and `applyPlanToView` patches the wrong plan step onto it.
-    // Measured 2026-10-29 on session 164e339f: leftover unnumbered rows kept planIndex 2 / 3 /
+    // Measured 2026-10-29 on a reference session: leftover unnumbered rows kept planIndex 2 / 3 /
     // 4... from an earlier PAE plan and the map rendered plan steps 3-7 twice.
     if (planIndex !== null && next.planIndex !== planIndex) next = { ...next, planIndex };
     const shown = text(stripOrdinal(item.content) || item.content, TITLE_LIMIT);
     const shownKey = normalizeTitle(shown);
     if (shownKey !== "" && shownKey !== next.stepKey) {
       // `aliasKeys` ACCUMULATES every key this row has ever had. A model that rewrites the same row
-      // more than once (measured on this session: step 1 was reworded three times) would otherwise
+      // more than once (measured in a reference session: step 1 was reworded three times) would otherwise
       // lose the older keys, and any node still carrying one would be dropped as an orphan.
       const seen = Array.isArray(next.aliasKeys) ? next.aliasKeys : [];
       const aliasKeys = [...new Set([...seen, next.stepKey, shownKey])].filter((key) => key !== "");
@@ -1294,7 +1302,7 @@ function foldUser(state, event, time, seq) {
 
   if (kind.startsWith(PAE_SOURCE_PREFIX)) {
     // PAE's own context messages, written with source.kind = plugin:dsh-plan-and-execute
-    // (measured in this session's log). Four shapes, told apart by `source.summary` — the
+    // (measured in a reference session log). Four shapes, told apart by `source.summary` — the
     // label PAE itself puts on the instruction (its prompts.ts, lines 273-329):
     //   "plan-and-execute: start planning (...)"       — the kickoff, opens the planning phase
     //   "plan-and-execute: plan summary"           — the plan rows: the step list, anchored at its seq
@@ -1422,7 +1430,7 @@ function parsePlanRows(blockText) {
     // PAE appends each row's own step FILE to the title ("1. title（…）（step-01-x.md）"). That
     // annotation is not title text: keeping it leaves `normalizeTitle` one parenthetical group short
     // of the todo row the model writes ("1. title（…）"), so a plan step can carry a title that no
-    // row of the todo table has. Measured 2026-10-30 on session 1bb4baa0: the fold opened step 1 with
+    // row of the todo table has. Measured 2026-10-30 on a reference session: the fold opened step 1 with
     // the annotated title while its `stepKey` still held the table's wording, `foldTodos` therefore
     // saw "no change" and the view kept a step the conversation does not list (audit-real ①).
     const title = match[2].replace(/\s*[（(][^（()）]*\.(?:md|markdown|mjs|cjs|js|json|ya?ml|txt)[）)]\s*$/, "");
@@ -1490,7 +1498,7 @@ function openPlanStep(state, time, seq, planIndex, title, blockText) {
     // A plan title must not replace the row's identity key on its own: `stepKey` is what `foldTodos`
     // compares the live table against and what node attribution follows. Adopting a title without its
     // key left the pair inconsistent, so the next todo/write judged the row unchanged and a stale
-    // title survived into the view (measured 2026-10-30, session 1bb4baa0). The old key is parked in
+    // title survived into the view (measured 2026-10-30, a reference session). The old key is parked in
     // `aliasKeys` exactly as a rename does, so nodes already carrying it still migrate.
     const adopted = title || step.title;
     const adoptedKey = normalizeTitle(adopted);
@@ -1547,8 +1555,8 @@ function foldPaeReport(state, time, seq, report, blockText) {
  *
  * A finished step is 100% — that is what "done" MEANS — so the bar fills and stays filled.
  * Keeping the last baseline guess here would show a completed step at 83% forever, which is
- * the one thing a workflow map must not do. The model's own last report is preserved on the
- * step as `maxPercent`, so a UI that wants "the last self-report" can still show it.
+ * the one thing a workflow map must not do. The model's last report stays in `state.reports`;
+ * `maxPercent` is only the high-water floor for extrapolation, not the report record.
  *
  * THE WINDOW CLOSES ONCE. `windowEnd` is the seq of the FIRST closure and never moves afterwards:
  * a step's interval is the stretch of log it ran in, so a retry that fails again must not stretch it
@@ -1568,7 +1576,7 @@ function closeStep(step, time, seq) {
     status: STEP_STATUS.done,
     endedAt: time,
     percent: 100,
-    percentSource: step.percentSource === "model" ? "model" : "closed",
+    percentSource: "closed",
     maxPercent: Math.max(step.maxPercent, 100),
     windowEnd,
     // A closed step is finished work: it is no longer waiting for anything.
@@ -1599,7 +1607,7 @@ function foldTurnStart(state, _event, time) {
 function foldTurnEnd(state, event, time, seq) {
   const data = dataOf(event);
   const reason = data && isRecord(data.reason) ? data.reason : null;
-  // The MEASURED shape (167 local logs, 1067 turn/end events, 2026-11-01):
+  // The observed shape (167 session logs, 1067 turn/end events, 2026-11-01):
   //   data = { turn, reason: { kind: "completed" | "error" | "aborted" | "interrupted" |
   //                           "max-tokens", … } }
   // `reason.kind` is absent on some synthetic logs. A MISSING kind is not evidence of an
@@ -1722,7 +1730,7 @@ const BRANCH_ROW_PHASE = "phase";
  *
  * A lane whose seq is unknown (`null`) gets `null`, NOT the last step: the caller (`pushBranch`)
  * keeps such a lane with `stepIndex: null`, and the browser half already draws an unattached lane
- * on the first step (see `store.js`: `branchStep === null && selected !== 0 continue`). An honest
+ * on the first step (see `store.js`: `branchStep === null && selected !== 0 continue`). An accurate
  * null beats a guessed index.
  */
 function branchStepIndex(state, seq) {
@@ -1766,7 +1774,7 @@ function pushBranch(state, spec, time) {
   return { ...state, asOf: time, branches, droppedBranches, nextBranchId: state.nextBranchId + 1 };
 }
 
-/** Append one activity row (head dropped past BRANCH_NODES; `count` stays honest). */
+/** Append one activity row (head dropped past BRANCH_NODES; `count` stays accurate). */
 function addBranchNode(state, branchId, node, time) {
   const at = state.branches.findIndex((item) => item.id === branchId);
   if (at === -1) return state;
@@ -1885,7 +1893,7 @@ function settleLauncherBranch(state, callId, time, isError, body) {
   // `tool-workflow/run-end`, never on the launcher's own (instant) result.
   if (open.kind === "workflow" && open.runId !== "") return state;
   // A subagent / workflow tool does NOT block: its result is the launch ACKNOWLEDGEMENT
-  // ("started subagent <id>", measured in this session). That is an ATTACH, not a close —
+  // ("started subagent <id>", measured in a reference session). That is an ATTACH, not a close —
   // the lane closes on `subagent-settled` (foldUser) or `tool-workflow/run-end`.
   if (!isError && LAUNCH_ACK.test(String(body).trim())) {
     const runId = launcherRunId(String(body).trim());
@@ -2113,7 +2121,7 @@ function rememberJob(state, job) {
 /**
  * Promote a PENDING job to a lane when its tool result arrives while the job is still open.
  *
- * MEASURED in this session's own log: every `pwsh` call ALSO registers a job and settles it
+ * Observed in a reference session log: every `pwsh` call ALSO registers a job and settles it
  * BEFORE its own tool result (452 registrations in one session), so drawing a lane per
  * registration would bury the real parallel work under synchronous commands. A background
  * task is exactly the opposite order — result first, settlement later — and that is the only
@@ -2165,7 +2173,7 @@ function foldApproval(state, event, time, seq) {
 // hot-inject history (the session log is the record — no second write path)
 // ---------------------------------------------------------------------------
 
-/** One injected message, bounded and lossless. `pickedUp` is the honest status word. */
+/** One injected message, bounded and lossless. `pickedUp` is the explicit status word. */
 const INJECT_LIMIT = 40;
 
 /** The two loop-owned inbox lists, and the ONLY keys the ledger ever holds. */
@@ -2342,7 +2350,7 @@ function foldApprovalAsked(state, event, time, seq) {
   const tool = data && typeof data.toolName === "string" ? data.toolName : "";
   const row = { id, state: "asked", stepIndex, label: text(reason || `等待审批 ${tool}`.trim(), TEXT_LIMIT), at: time };
   // The same id cannot be asked twice (the host's own invariant refuses it), but a replayed
-  // log may carry a duplicate: replacing keeps the row count honest either way.
+  // log may carry a duplicate: replacing keeps the row count accurate either way.
   const approvals = [...state.approvals.filter((item) => item.id !== id), row];
   return { ...state, asOf: time, approvals: trimApprovals(approvals) };
 }
@@ -2357,7 +2365,7 @@ function foldApprovalDecided(state, event, time) {
   const approvals = state.approvals.map((item) =>
     item.id === id ? { ...item, state: "decided", outcome, decidedAt: time } : item,
   );
-  // A rejected / cancelled decision is NOT a resolved one for our purpose: the step is still
+  // A rejected / cancelled decision is NOT a resolved one for this purpose: the step is still
   // waiting on the human (the host would re-ask on the next call). Only a grant closes it, and
   // that is expressed by REMOVING the row entirely — the pair is then complete.
   const granted = outcome === "allowed-once";
@@ -2674,6 +2682,9 @@ function nodeView(node) {
     // the detail's meta line names the event that produced the node. Null for the
     // synthetic nodes (a message without a seq), never invented.
     seq: node.seq === null || node.seq === undefined ? null : node.seq,
+    // the host's opaque handle for the trajectory view. Present on tool calls; null when the
+    // node was not produced by a call.
+    callId: typeof node.callId === "string" && node.callId !== "" ? node.callId : null,
   };
 }
 
@@ -2791,7 +2802,7 @@ function syncToTodos(state, seq) {
     seen.add(key);
     // `planIndex` MUST be parsed from the RAW content, not from `title`: `stripOrdinal`
     // already removed the "3." prefix, so `planIndexOf(title)` always returned null and every
-    // created row lost its ordinal. Measured 2026-10-29 on session 164e339f: a 14-row numbered
+    // created row lost its ordinal. Measured 2026-10-29 on a reference session: a 14-row numbered
     // table produced rows whose planIndex fell back to POSITION, so row 9 ("9. n8n 主工作流…")
     // was stamped planIndex 2 and `applyPlanToView` then rewrote it with plan step 2's title and
     // status — the map showed steps 3–7 twice and the wrong step as running.
@@ -2807,7 +2818,7 @@ function syncToTodos(state, seq) {
   // interval can be opened at all. This pass runs AFTER `foldTodos` on every event and rewrites
   // each matched row's status from the table, so by the time the NEXT `todo/write` arrives the row
   // already reads `running` and `foldTodos`'s "status changed → reopen" branch never fires. Opening
-  // the window only there therefore lost EVERY start: measured on session d87d69d9, every step
+  // the window only there therefore lost EVERY start: measured on a reference session, every step
   // kept `windowStart: null` with a non-null `windowEnd`, and 195 of 267 calls were unattributed.
   //
   // A null `seq` means this pass is a PROJECTION (buildView re-derives the step list from an
@@ -2854,7 +2865,7 @@ function syncToTodos(state, seq) {
     if (key !== "" && !byKey.has(key)) byKey.set(key, step);
   }
   // REWORDED ROWS. The model rewrites its own todo text between `todo/write` events
-  // (measured on this session: "read-only inventory: read plugin sources..." became "read-only inventory: sources/config..."), and the
+  // (measured in a reference session: "read-only inventory: read plugin sources..." became "read-only inventory: sources/config..."), and the
   // fold had already created a row for the old wording. Without a second pass those old rows stay
   // behind as orphans AND the new row starts with no nodes — which is exactly why "only the running
   // step shows tool types". A reworded row is matched by the longest shared prefix of its
@@ -2886,7 +2897,7 @@ function syncToTodos(state, seq) {
     // REWORD DETECTION, two signals in priority order.
     //
     // (1) POSITIONAL STATE MATCH. The todo table is an ordered list and the model rewrites its text
-    //     in place: same slot, same lifecycle status, different wording. Measured on this session,
+    //     in place: same slot, same lifecycle status, different wording. Measured in a reference session,
     //     real reworded pairs share as little as 5 of 8 normalised characters, so a text-only
     //     threshold either misses them (nodes lost) or glues unrelated rows together. Slot + status
     //     is the signal that actually holds.
@@ -3036,7 +3047,7 @@ function syncToTodos(state, seq) {
 /**
  * `{ stepIndex: [{ kind, label, at }] }` for every step that is waiting on a human.
  *
- * The three MEASURED sources, in order:
+ * The three observed sources, in order:
  *   1. `approval/asked` with no `approval/decided` for the same id — dsh-user-approval appends
  *      the pair inside one turn (its invariant.js refuses a lone `decided`), so an ask with
  *      nothing after it is a decision still open at the end of the log.
@@ -3101,7 +3112,7 @@ export function buildView(state, nowMs) {
   // NEEDS-CONFIRMATION. Two halves, both derived, neither guessed:
   //   1. the session's own shapes — an `approval/asked` without its `approval/decided`, and a
   //      `question` / `approval` node with no later outcome in the same step (the tool result
-  //      that settles it). Both are MEASURED log facts (dsh-user-approval appends the pair;
+  //      that settles it). Both are log facts (dsh-user-approval appends the pair;
   //      dsh-tool-ask-user records the pending result).
   //   2. the PAE plan's own `requiresConfirmation` — merged onto `step.pendingConfirm` by
   //      the host half (lib/index.js), exactly like the status merge.

@@ -10,10 +10,10 @@
 # and checks the numbers - the same "screenshot measurement" the plan asks for,
 # but exact instead of eyeballed.
 #
-# On this machine headless Chrome must be started with Start-Process (a direct
+# In this environment headless Chrome must be started with Start-Process (a direct
 # `& chrome ...` invocation returns immediately and silently writes nothing).
 param(
-  # Empty by default: the browser is auto-detected below (this machine has no Chrome; Edge is the
+  # Empty by default: the browser is auto-detected below (Chrome is unavailable; Edge is the
   # Chromium on it). Pass -Chrome <path> to force one.
   [string]$Chrome = '',
   [int]$Width = 1400,
@@ -54,7 +54,7 @@ try {
   )
   # Read the DOM over CDP: the Edge launcher detaches from the real browser process,
   # so `--dump-dom` writes into a stdout nobody holds and the dump file stays empty.
-  $nodeExe = if (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { 'D:\nodejs\node.exe' }
+  $nodeExe = if ($env:NODE_EXE) { $env:NODE_EXE } elseif (Get-Command node -ErrorAction SilentlyContinue) { (Get-Command node).Source } else { throw 'node not found; add it to PATH or set NODE_EXE' }
   $sizeArg = ($chromeArgs | Where-Object { $_ -like '--window-size=*' } | Select-Object -First 1)
   $budgetArg = ($chromeArgs | Where-Object { $_ -like '--virtual-time-budget=*' } | Select-Object -First 1)
   $dumpWidth = if ($sizeArg) { ($sizeArg -split '=')[1].Split(',')[0] } else { '1400' }
@@ -80,7 +80,7 @@ try {
     @{ id = 'rail height 6px'; pass = ([math]::Abs($data.railTrackHeight - 6) -lt 0.01); detail = "track $($data.railTrackHeight)px / dock $($data.railHeight)px" },
     @{ id = 'card -> rail gap 8px (every card)'; pass = (@($data.gapValues | Where-Object { [math]::Abs($_ - 8) -gt 0.01 }).Count -eq 0); detail = ($data.gapValues -join ',') },
     # 会话6 · measured: the connector now starts exactly at the dock's bottom (min gap 0 px). That is the
-    # current design — 会话4's chain gap owns the air between UNITS — so the honest assertion is the one
+    # current design — the single-page layout's chain gap owns the air between UNITS — so the explicit assertion is the one
     # that still protects the user: the rail must never OVERLAP the connector it feeds.
     @{ id = 'rail never overlaps the next connector'; pass = ($data.minDockToLinkPx -ge 0 -and -not $data.overlapped); detail = "min gap $($data.minDockToLinkPx)px" },
     @{ id = 'many steps scroll inside the column'; pass = ($data.scrollable -eq $true); detail = "scrollable=$($data.scrollable)" },

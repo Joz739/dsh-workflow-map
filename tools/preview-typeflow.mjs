@@ -9,8 +9,8 @@
 //
 // selected-step type page the calls of exactly that bucket, in wire order, each row a button
 // carrying the node id, its status dot, a verb · target label and
-// aria-expanded — the honest successor of "the step's flow";
-// the cap, honestly stated a bucket's `count` counts FILE occurrences while its `nodes` list
+// aria-expanded — the direct successor of "the step's flow";
+// the cap, stated explicitly a bucket's `count` counts FILE occurrences while its `nodes` list
 // calls: three .md files on one call render ONE row and the page says
 // "N more calls were not sent with the view" instead of inventing two rows;
 // the session-scope page merges every step's bucket but can dereference no calls (the wire
@@ -244,7 +244,7 @@ function pageScript() {
     render();
     report.steps.push(snapshot('selectedStepTypePage'));
 
- // the honest cap: one row, three files, and the page says two more calls were not sent
+ // the explicit cap: one row, three files, and the page says two more calls were not sent
     var firstCall = first('[data-dsh-workflow-map="call"]');
     if (firstCall) { firstCall.click(); await delay(80); report.steps.push(snapshot('afterCallClick')); }
     var again = first('[data-dsh-workflow-map="call"]');

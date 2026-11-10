@@ -342,8 +342,8 @@ function pageScript({ mode, prefsPatch }) {
     if (!button) return null;
     var b = box(button);
     var cs = getComputedStyle(button);
- // session7: the header button is painted with a SOLID brand fill via the CSS var
- // --dsw-alias-brand-primary, so the honest fact is backgroundColor — backgroundImage is
+ // the single-page revision: the header button is painted with a SOLID brand fill via the CSS var
+ // --dsw-alias-brand-primary, so the effective value is backgroundColor — backgroundImage is
  // 'none' on that rule and always was.
     return { text: (button.textContent || '').trim(), width: b.width, height: b.height, background: cs.backgroundImage, backgroundColor: cs.backgroundColor };
   }
@@ -433,7 +433,7 @@ function pageScript({ mode, prefsPatch }) {
  // scroll moves the chain, and a re-render after that must NOT re-centre it.
     var scroll = document.querySelector('[data-dsh-workflow-map="page-scroll"]');
     if (scroll) {
- // session7: establish a REAL offset first — after the earlier phases the scroller sits at 0,
+ // the single-page revision: establish a REAL offset first — after the earlier phases the scroller sits at 0,
  // so "before - 240" used to clamp to 0 and the check could not tell a scroll from a no-op.
       scroll.scrollTop = scroll.scrollHeight;
       var before = round(scroll.scrollTop);

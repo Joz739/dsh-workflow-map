@@ -58,7 +58,7 @@
  *
  * Accepts the ROW or the bare boolean, because the two entry points hold different things:
  * `wfRenderProgressDock` has the row, while `wfProgressLabel` takes scalars and is handed the flag.
- * A missing/absent/undefined field is false — the same honest default the host repairs to.
+ * A missing/absent/undefined field is false — the same safe default the host repairs to.
  */
 function wfAwaitingNextTurn(value) {
   if (value === true) return true;
@@ -74,6 +74,9 @@ function wfProgressLabel(percent, source, status, say, awaiting) {
   // waiting branch too): a pending row that carries a stale flag must never print
   // 「等待下一回合」either — it is not waiting, it simply has not begun.
   if (status === "pending" || status === "skipped") return null;
+  // A completed step is 100 % by definition. Checking status before the source keeps an older
+  // host row (or a plan-promoted row) from printing "100% self-reported" after the fact.
+  if (status === "done") return { kind: "closed", percent: 100, text: "100%" };
   // WAITING FOR THE NEXT TURN. Deliberately placed BEFORE the number check: the host ships no
   // number for a waiting step (`percentFor` returns null), yet the rail still has to SAY why —
   // an empty rail would read as "no information", which is a different claim. A stale number in
@@ -93,7 +96,7 @@ function wfProgressLabel(percent, source, status, say, awaiting) {
   if (source === "model") {
     return { kind: "self", percent: rounded, text: say("panel.percent.self", { percent: rounded }) };
   }
-  // a MEASURED number (the todo table's own completion ratio). It must read differently
+  // an observed number (the todo table's own completion ratio). It must read differently
   // from both "self-reported" and "estimated", or the user cannot tell a fact from a guess.
   if (source === "todos") {
     return { kind: "real", percent: rounded, text: say("panel.percent.real", { percent: rounded }) };
@@ -113,6 +116,7 @@ function wfProgressLabel(percent, source, status, say, awaiting) {
 function wfProgressFillWidth(row) {
   var status = row && typeof row.status === "string" ? row.status : "pending";
   if (status === "pending" || status === "skipped") return 0;
+  if (status === "done") return 100;
   if (wfAwaitingNextTurn(row)) return 0;
   var value = wfFinite(row.percent);
   if (value === null) return status === "running" ? 30 : 0;

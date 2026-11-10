@@ -14,7 +14,7 @@
 // stays RUNNING until the child's `subagent-settled` user message arrives (measured);
 // * a `job/*` pair opens a lane ONLY when its result arrives while the job is still open —
 // synchronous commands (registration → settlement → result, the ordering every `pwsh`
-// call in this session shows) must NOT produce a lane;
+// call in a live session shows) must NOT produce a lane;
 // * a lane NEVER appears in `view.nodes`, and the main-flow node count stays the tool/call
 // count (parallel work must not enter the step's own sequence);
 // * a session with no launcher and no background job has `view.branches === []`.
@@ -34,7 +34,7 @@ const results = [];
 const check = (id, pass, detail) =>
   results.push({ id, pass: pass === true, detail: detail === undefined ? '' : String(detail) });
 
-/* --- locate the log (arg, else the newest session log on this machine) ---- */
+/* --- locate the log (arg, else the newest session log in this environment) ---- */
 function newestSessionLog() {
   const base = path.join(process.env.USERPROFILE || '', '.dsh', 'sessions');
   const found = [];
