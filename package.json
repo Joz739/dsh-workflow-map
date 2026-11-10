@@ -1,7 +1,7 @@
 {
   "name": "dsh-workflow-map",
-  "version": "1.0.1",
-  "description": "DeepSeek Harness（DSH）插件：把会话折叠成分步工作流地图，逐步显示状态、工具与文件类型；进度百分比标注来源（模型自报/时间基线/计划步序），而不是只报一个数；支持把提示词排入下一步队列，被取用前可撤回。",
+  "version": "1.1.0",
+  "description": "DeepSeek Harness（DSH）插件：把会话折叠成分步工作流地图，显示每步状态、进度、工具与文件操作，并支持把提示词排入下一步队列。",
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -71,8 +71,9 @@
   ],
   "scripts": {
     "build": "node tools/build-client.mjs",
-    "test": "node tools/selftest-fold.mjs && node tools/selftest-host.mjs && node tools/selftest-orchestrator.mjs && node tools/selftest-shape.mjs && node tools/selftest-panel.mjs && node tools/selftest-detail.mjs && node tools/selftest-effects.mjs && node tools/selftest-settings.mjs && node tools/probe-route.mjs && node tools/probe-steer.mjs",
-    "test:real": "node tools/check-real-injects.mjs"
+    "test": "node tools/selftest-fold.mjs && node tools/selftest-host.mjs && node tools/selftest-progress-tool.mjs && node tools/selftest-orchestrator.mjs --no-real && node tools/selftest-shape.mjs && node tools/selftest-panel.mjs && node tools/selftest-detail.mjs && node tools/selftest-effects.mjs && node tools/selftest-settings.mjs && node tools/probe-route.mjs && node tools/probe-steer.mjs",
+    "test:real": "node tools/selftest-orchestrator.mjs && node tools/check-real-injects.mjs",
+    "pretest": "node tools/build-client.mjs"
   },
   "dsh": {
     "bundle": {

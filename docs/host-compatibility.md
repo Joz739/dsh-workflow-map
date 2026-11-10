@@ -100,7 +100,7 @@ DSH 闸门带 `includePrerelease`，因此 `0.2.x` 后续元组的预发布也�
 | `0.2.1-rc.3` | 同上 + 隔离实机运行（插件加载、面板注入、视图路由） | 基线版本 |
 | `0.2.1-rc.4` | npm 闭包元数据 + 5 个变动包逐文件 SHA + 契约锚点窗口 | 契约面无变化 |
 | `0.2.1-rc.5` | npm 闭包元数据 + 逐文件比对 + **隔离 `DSH_HOME` 实机运行**（`--dump-config` 解析、web 宿主启动、`/dsh-workflow/*` 三种端点实测，见 §3.1） | 契约面无变化，且宿主半在 `rc.5` 上实机应答 |
-| `0.2.2-rc.1` | **升级后本机内核实机核验**：启用态 / 豁免表、宿主半 ESM 链接、九个契约点、活体 `workflowView` 投影写入（见 §3.2） | 适配；加载期无硬失败，无需改源码 |
+| `0.2.2-rc.1` | **升级后宿主内核实机核验**：启用态 / 豁免表、宿主半 ESM 链接、九个契约点、活体 `workflowView` 投影写入（见 §3.2） | 适配；加载期无硬失败，无需改源码 |
 
 `rc.4` 的结论来自与 `rc.3` 的逐文件比对，不是实机运行结论（见 §8）。`rc.5` 已补做隔离实机运行，`0.2.2-rc.1` 已补做升级后活体核验，记录见下两节。
 
@@ -153,7 +153,7 @@ Invoke-WebRequest 'http://127.0.0.1:<port>/dsh-workflow/state?sessionId=none' -S
 
 背景：DSH 于 2026-11-04 17:30 更新安装目录，asar 内 331 个 `@deepseek-ai/*` 包全部为
 `0.2.2-rc.1`（`@deepseek-ai/dsh-desktop-runtime@0.2.2-rc.1`、`cordis@4.1.0`）。本轮不改既有环境，
-直接在**正在运行的本机内核**上做只读探针 + 活体状态检查，不动 `~/.dsh` 以外的任何配置。
+直接在**正在运行的宿主内核**上做只读探针 + 活体状态检查，不动 `~/.dsh` 以外的任何配置。
 
 **A 级：声明闸门**
 
@@ -198,7 +198,7 @@ LINK peer dsh-agent-loop OK / LINK peer dsh-llm OK / LINK control dsh-tools OK
 
 **D 级：活体投影**
 
-当前会话（`session-3ca619ce-…`，即本轮请求）的投影缓存
+当前会话（一个真实会话，即本轮请求）的投影缓存
 `~/.dsh/storages/session_projcache/sessions/<id>.json` 内 `workflowView` 段落
 `ver: 6, seq: 17, stateVersion: 6`，`task` 文本就是本轮请求正文 ⇒ 宿主半正在新内核上
 持续折叠本会话事件并发布 wire view，不是「能加载但功能已哑」。
@@ -245,7 +245,7 @@ LINK peer dsh-agent-loop OK / LINK peer dsh-llm OK / LINK control dsh-tools OK
 
 `rc.1` 的 profile 因此比 `rc.3` 少 3 个客户端包。这 3 个包都与本插件的契约面无关（模型标签角标、入口定制、API 通道包），缺失不影响本插件加载。
 
-### 4.4 `rc.3 → rc.5` 之间真正改动的 5 个包
+### 4.4 `rc.3 → rc.5` 之间实际改动的 5 个包
 
 | 包 | `rc.3` | `rc.4` | `rc.5` | 改动文件 | 是否触及本插件契约 |
 |---|---|---|---|---|---|
@@ -370,7 +370,7 @@ for (const r of ranges) {
 
 ## 八、限制声明
 
-- **动态核验范围**：截至 2026-11-06，`0.2.1-rc.3` 是实机运行过的版本；`0.2.1-rc.5` 已在隔离 `DSH_HOME` 的临时区实机启动并实测路由应答（§3.1），但不覆盖「真实会话内的投影内容」；`0.2.2-rc.1` 在升级后的本机内核上做了活体核验（§3.2），含当前会话的 `workflowView` 投影写入，但**未跑完整回合的端到端画布渲染**。`0.2.1-rc.4` 仍只做了静态比对，未实机启动。
+- **动态核验范围**：截至 2026-11-06，`0.2.1-rc.3` 是实机运行过的版本；`0.2.1-rc.5` 已在隔离 `DSH_HOME` 的临时区实机启动并实测路由应答（§3.1），但不覆盖「真实会话内的投影内容」；`0.2.2-rc.1` 在升级后的宿主内核上做了活体核验（§3.2），含当前会话的 `workflowView` 投影写入，但**未跑完整回合的端到端画布渲染**。`0.2.1-rc.4` 仍只做了静态比对，未实机启动。
 - **比对对象**：只比对 npm 上已发布的产物，不覆盖未发布的仓库提交。
 - **闭包口径**：206 个包名按 `dsh-base` 与 `dsh-web-app` 的依赖并集确定；更换清单会改变闭包边界。
 - **第三方依赖**：闭包内含 `cordis`、`schemastery`、`zod` 等第三方包，它们不随 DSH 的 `rc` 编号发布，这里不对其版本承诺做任何声明。
@@ -389,4 +389,4 @@ for (const r of ranges) {
 | semver 实现 | 7.8.5（`0.2.1` 线矩阵）；`0.2.2-rc.1` 矩阵用升级后内核自带 `semver`（`satisfies`，分别带与不带 `includePrerelease`） |
 | 闭包规模 | 206 个包名，24 个存在版本间差异 |
 | 逐文件比对包 | `dsh-app-boot`、`dsh-session`、`dsh-session-projection`、`dsh-host-webserver`、`dsh-agent-loop`、`dsh-session-persistence-jsonl`、`dsh-plugin-manager`、`dsh-client-ui-layout`、`dsh-client-ui-sidebar`、`dsh-client-ui-conversation`、`dsh-client-ui-chat`、`dsh-cordis-client-runner`、`dsh-llm-deepseek-account`、`dsh-mcp-resources` |
-| 实机运行内核 | `0.2.1-rc.3`（基线运行内核）；`0.2.1-rc.5`（隔离 `DSH_HOME` 临时区，仅路由与 loader 层）；`0.2.2-rc.1`（升级后本机内核，活体：启用态 / ESM 链接 / 契约点 / 投影写入） |
+| 实机运行内核 | `0.2.1-rc.3`（基线运行内核）；`0.2.1-rc.5`（隔离 `DSH_HOME` 临时区，仅路由与 loader 层）；`0.2.2-rc.1`（升级后宿主内核，活体：启用态 / ESM 链接 / 契约点 / 投影写入） |

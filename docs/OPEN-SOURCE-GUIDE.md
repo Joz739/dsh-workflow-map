@@ -88,7 +88,7 @@ pnpm pack --dry-run
 - 第一行为 `package: dsh-workflow-map@<版本>`；
 - 含 `client.js`、`lib/`、`src/`、`index.js`、`cordis.patch.yml`、`locale/*.json`、`icon.svg`、
   `README.md`、`CHANGELOG.md`、`LICENSE`、`docs/OPEN-SOURCE-GUIDE.md`、`docs/host-compatibility.md`；
-- **不含** `tools/`、`evidence/`、`*.bak*` 与本地草稿。
+- **不含** `tools/`、`*.bak*` 与本地草稿。
 
 `files[]` 是白名单：以**文件**（而非目录）列出，能避免整目录被连带发布。
 
@@ -155,9 +155,10 @@ curl "http://127.0.0.1:<GUI端口>/dsh-workflow/state?sessionId=<会话ID>"
 # 改过 src/client/*.js 必须重新生成浏览器半
 node tools/build-client.mjs
 
-# 离线自测（10 套，逐套输出通过数/总数与退出码）
+# 离线自测（11 套，逐套输出通过数/总数与退出码）
 node tools/selftest-fold.mjs          # 折叠语义
 node tools/selftest-host.mjs          # 注册、schema、投影接线
+node tools/selftest-progress-tool.mjs  # 模型自报工具注册
 node tools/selftest-orchestrator.mjs  # PAE 计划读取与合并
 node tools/selftest-shape.mjs         # 包骨架、配置、files 白名单
 node tools/selftest-panel.mjs         # 渲染树、样式、交互
@@ -168,7 +169,7 @@ node tools/probe-route.mjs            # 真实 HTTP 路由
 node tools/probe-steer.mjs            # 注入 / 撤回通道
 ```
 
-各套件的通过数与退出码以当次运行输出为准；`npm test` 链式执行全部 10 套。
+各套件的通过数与退出码以当次运行输出为准；`npm test` 链式执行全部 11 套。
 
 ```bash
 npm test
@@ -198,7 +199,6 @@ pwsh -File tools/measure-main.ps1      # 单页几何与交互
 
 浏览器量测的条数与通过数以当次运行输出为准（`measure-main` 另含浅色/深色主题对比检查）。
 
-> `tools/retired/` 里是量「已移除界面」的历史脚本，**不属于验证链**，不期望通过。
 
 ---
 
@@ -249,7 +249,7 @@ dsh-workflow-map/
 ├─ cordis.patch.yml      挂载声明
 ├─ locale/{zh,en}.json   词典
 ├─ docs/                 发布指南与宿主兼容性核验
-├─ tools/                自测 · 探针 · 浏览器量测
+├─ tools/                自测 · 探针 · 浏览器量测 · 构建脚本
 ├─ CHANGELOG.md
 ├─ LICENSE (MIT)
 └─ README.md

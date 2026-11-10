@@ -6,7 +6,7 @@ A DeepSeek Harness plugin that renders the current session as an interactive ste
 
 > **Host requirement**
 >
-> - **DSH kernel**: `engines.dsh` = `>=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0`, covering the whole `0.2.1` series (`0.2.1-rc.1` through `0.2.1-rc.5`) and the `0.2.1` release, plus the `0.2.2` prerelease line (verified on this machine at `0.2.2-rc.1`).
+> - **DSH kernel**: `engines.dsh` = `>=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0`, covering the whole `0.2.1` series (`0.2.1-rc.1` through `0.2.1-rc.5`) and the `0.2.1` release, plus the `0.2.2` prerelease line (verified on the host at `0.2.2-rc.1`).
 > - **Node.js**: `>=20` (`engines.node`).
 > - Host packages are declared as `peerDependencies` (all optional peers, same range as `engines.dsh`); the host is not bundled. Hosts below `0.2.1-rc.1`, or at `0.3.0` and above, are outside the declared range.
 > - Range note: a two-clause union. `>=0.2.1-rc.1 <0.3.0-0` carries an explicit prerelease tag on the `0.2.1` tuple, which matches `0.2.1-rc.x`; `>=0.2.2-rc.1 <0.3.0-0` makes npm/pnpm's **default** engines check accept `0.2.2-rc.x` too (the single clause silently excludes prereleases of other tuples under the default check; DSH's own gate uses `includePrerelease` and is unaffected). The upper bound `<0.3.0-0` sorts below every prerelease of `0.3.0`, so the whole `0.3` line (including `0.3.0-rc.1`) stays outside the range.
@@ -19,35 +19,33 @@ Per-version method and result:
 | `0.2.1-rc.1` / `0.2.1-rc.2` / `0.2.1-rc.4` / `0.2.1-rc.5` | Cross-version contract check: closure metadata, per-file SHA-256, contract anchor windows | All nine contract points unchanged |
 | `0.2.2-rc.1` | Live check on the upgraded kernel: plugin enabled, host-half ESM link, nine contract points, live `workflowView` projection write | Compatible; no load-time failure |
 
-A contract check is not a real-host run: the four `0.2.1` versions were compared against published artifacts and contract anchors only, and never booted. `0.2.2-rc.1` was checked live on the upgraded local kernel on 2026-11-06 (three layers: declared range, load chain, live projection). Method and evidence: [`docs/host-compatibility.md`](docs/host-compatibility.md).
+A contract check is not a real-host run: the four `0.2.1` versions were compared against published artifacts and contract anchors only, and never booted. `0.2.2-rc.1` was checked live on the upgraded kernel on 2026-11-06 (three layers: declared range, load chain, live projection). Method and evidence: [`docs/host-compatibility.md`](docs/host-compatibility.md).
 
 Three entry points share one data source and one set of components: the sidebar panel item
 (`sidebar.panellist`), the main content area (`main`), and the session tab bar (`conversation.view`).
 The panel folds session events into a step sequence, showing each step's status, progress, tool calls
 and file operations, and can inject prompts into the next step of a running session.
 
-![Workflow map main screen preview (dark theme): serial main flow, type interfaces on both sides, details on the right page](docs/screenshots/01-main-dark.png)
+![Workflow map main screen (dark theme): serial main flow, type interfaces on both sides, details on the right page](docs/screenshots/01-main-dark.png)
 
-*Main screen (dark): the selected sidebar entry on the left, the serial main flow in the centre (one unit
-card per step, round interfaces on both sides for tool/file types, the running unit highlighted with a
-flowing frame), the step detail page on the right, and the persistent injection bar at the bottom.*
+*Main screen (dark): the serial main flow in the centre (one unit card per step, round interfaces on both
+sides for tool/file types), the step detail page on the right; the header carries refresh, hot inject,
+GitHub Star and settings.*
 
 ### Screenshots (full preview)
 
 | | |
 |---|---|
-| ![Main screen full preview (light theme)](docs/screenshots/02-main-light.png) | ![Running step preview: flowing gradient frame](docs/screenshots/03-running-step.png) |
-| **Main screen, light theme**: same layout, colours follow the host theme | **Running unit**: the flowing frame marks "calling right now" |
-| ![Step detail preview: type list and call records on the right page](docs/screenshots/04-step-detail.png) | ![Hot inject preview: queue a prompt for the next step](docs/screenshots/05-hot-inject.png) |
-| **Step detail**: type list, call arguments and result summary for that step | **Hot inject**: queue a prompt for the next step, revocable before it is claimed |
-| ![Settings panel preview: palette, motion, detail depth and export](docs/screenshots/06-settings.png) | |
+| ![Hot inject: queue a prompt for the next step](docs/screenshots/05-hot-inject.png) | ![Settings panel: palette, motion, detail depth and export](docs/screenshots/06-settings.png) |
+| **Hot inject**: queue a prompt for the next step, revocable before it is claimed | **Settings**: palette, motion, detail depth, node limit and export |
 
-All six are offscreen renders of the interface and contain no real session content.
+All three are real screenshots of a demo session, cropped to remove the sidebar and session list. The text
+in the hot-inject box is an example and was not sent.
 
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-1.0.0-success)
+![version](https://img.shields.io/badge/version-1.1.0-success)
 
 ---
 
@@ -64,10 +62,10 @@ three facts on one screen, with every data source and decision rule traceable.
 │ session         4/10 · 46%                 ⚙ │
 ├──────────────────────────────┼───────────────────┤
 │ ◯─┐  01/10  skeleton and registration │  step 5 detail       │
-│   │   ▓▓▓▓▓▓▓▓▓▓ 100% reported │  ──────────────── │
+│   │   ▓▓▓▓▓▓▓▓▓▓ 100%          │  ──────────────── │
 │   │                            │  files this step used │
 │ ◯─┘  02/10  host projection      │  ● md type   4 calls │
-│   │   ▓▓▓▓▓▓▓▓▓▓ 100% reported │  ● js type   2 calls │
+│   │   ▓▓▓▓▓▓▓▓▓▓ 100%          │  ● js type   2 calls │
 │   │                            │  ● pwsh type 2 calls │
 │ ◯─┐  05/10  browser shell       <- running (highlighted) │
 │   │   ▓▓▓▓▓░░░░░ ~58% estimated │  step 5 detail      │
@@ -122,26 +120,27 @@ the capability.
 ### 2.2 Progress estimation
 
 Each step's percentage is resolved by the following **priority** (`percentFor` in `src/fold.mjs`):
-| Priority | Source | Rule | Cap |
-|---|---|---|---|
-| 1 | Model self-report `model` | The most recent `stepProgress/report` percentage for that step | 99 |
-| 2 | Time baseline `baseline` | `elapsed / median(finished-step durations in this session) * 100` | 90 |
-| 3 | Plan ordinal `baseline:steps` | Cold start with `current step / total steps * 100` when no finished-step duration exists yet (plan of at least 2 steps, not the first one) | 90 |
-| - | `none` | None of the three is available | No number shown |
 
-Constraint: an unfinished step never shows 100 %; a finished (done or failed) step is pinned to 100 %; a step whose turn has
-ended and that is still waiting for the next turn shows no number, rather than 100 %.
+| Priority | State / source | Rule | Cap |
+|---|---|---|---|
+| 1 | Done `closed` | Fixed at 100% | 100 |
+| 2 | Failed | Keeps its last reported or estimated value and source; no number when there is none | - |
+| 3 | Running · model self-report `model` | The most recent `stepProgress/report` percentage for that step | 99 |
+| 4 | Running · time baseline `baseline` | `elapsed / median(finished-step durations in this session) * 100` | 90 |
+| 5 | Running · plan ordinal `baseline:steps` | Cold start with `current step / total steps * 100` when no finished-step duration exists yet (plan of at least 2 steps, not the first one) | 90 |
+| - | `none` | No source available | No number shown |
+
+Constraint: a running step never shows 100%; a completed step is fixed at 100%; a failed step keeps its last value; a step
+whose turn has ended and that is still waiting for the next turn shows no number, rather than 100%.
 
 **The todo table's global completion ratio is not a per-step percentage.** It is finished rows over all rows - a fact about
 the session, not a measurement of the step the rail is drawn under. Feeding it into a step hands a total to a part: every
 row of a half-finished checklist reads the same number, and it moves only when the table is rewritten. Measured over 167
-session logs, 23 of 38 running steps carried exactly their session's completion ratio (recounted with the
-current fold: 25 of 39 - the two samples were taken at different times, same direction and magnitude). A model
-self-report and the time
+session logs, 23 of 38 running steps carried exactly their session's completion ratio. A model self-report and the time
 baseline are both quantities about this step, so those are the only two routes; the high-water record `step.maxPercent` is
-still written, floors the two extrapolation routes only, never raises a self-report, and takes no part in a finished step's
-value. When `foldTodos` takes a finished row back to `in_progress`, or demotes it to `pending`, it clears `percent` and
-`maxPercent` and resets `startedAt`: a finished record's number belongs to that closure, not to the row that reopens it.
+still written, floors the two extrapolation routes only, never raises a self-report, and takes no part in a completed
+step's value. When `foldTodos` takes a finished row back to `in_progress`, or demotes it to `pending`, it clears `percent`
+and `maxPercent` and resets `startedAt`: a finished record's number belongs to that closure, not to the row that reopens it.
 
 **`awaitingNextTurn`**: the todo table still writes that row as `in_progress`, but the turn it was working in has already
 ended through `turn/end` and no `turn/start` has opened the next one (PAE continues this step in the next turn). The panel
@@ -152,7 +151,18 @@ A second line under the rail reads `estimated N minutes ago`, i.e. `view.asOf - 
 It describes how **stale** the number is, distinguishing "being updated" from "unchanged for a long time".
 The line is not rendered when the field is absent.
 
-### 2.3 Single-page layout
+### 2.3 Model self-report tool
+
+When the host exposes a `tools` service, the plugin registers `report_step_progress(percent, note?)`. The model calls it
+after a piece of observable work; the plugin appends `{ percent, note }` to the current session as a
+`stepProgress/report` event. `percent` is a finite number from 0 to 100 and `note` is capped at 200 characters.
+
+Registration is collision-safe: when a tool with the same name already exists (for example, a companion plugin
+registered first), this plugin skips registration. The "self-report tool" row in the settings card shows the current
+state: `built-in` (registered by this plugin), `external` (a same-name tool already exists), or `unavailable` (the host
+did not expose `tools`, or registration failed). The projection and view route mount normally either way.
+
+### 2.4 Single-page layout
 
 One vertical main flow, one unit per step; each unit carries round interfaces on both sides, one per
 tool or file type.
@@ -168,7 +178,7 @@ tool or file type.
 A single page was chosen over columns for continuity: switching steps in a two-column layout moves two
 scroll regions at once, whereas here the main flow does not shift when the right page opens or closes.
 
-### 2.4 Visual state encoding
+### 2.5 Visual state encoding
 
 The running unit and the single connector pointing at it use a flowing gradient; every other unit stays
 statically filled even when its status is `running` (for example, when it is not the live one). Durations
@@ -186,7 +196,7 @@ every animation inside the panel to `none`, and `document.getAnimations()` retur
 `data-idle="1"` (session idle) sets animations to `paused` while keeping the current frame. The two are
 not the same thing.
 
-### 2.5 One implementation, three seats
+### 2.6 One implementation, three seats
 
 All three entries register the same component, the same polling and the same preferences record - there is
 no second implementation. The session-tab entry additionally carries a box-less marker so a `:has()` rule
@@ -342,7 +352,7 @@ steps, their status, the percentage source, the node list and the report artifac
 
 ## 8. Compatibility and constraints
 
-- **DeepSeek Harness**: the `engines.dsh` range `>=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0` (relies on session projections and `webServer` route registration); `0.3.0` and newer are not supported. `0.2.2-rc.1` was verified live on this machine; see [`docs/host-compatibility.md`](docs/host-compatibility.md).
+- **DeepSeek Harness**: the `engines.dsh` range `>=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0` (relies on session projections and `webServer` route registration); `0.3.0` and newer are not supported. `0.2.2-rc.1` was verified live on the host; see [`docs/host-compatibility.md`](docs/host-compatibility.md).
 - **Node.js**: `>=20`.
 - The three endpoints mount on the host's existing port; **no new listener** is opened.
 - The composer is rendered by the host and is not part of this plugin. The plugin neither replaces nor
@@ -392,7 +402,6 @@ pwsh -File tools/measure-main.ps1
 `client.js` is a build artifact (its first line carries a GENERATED marker) and must not be edited by hand.
 Browser parity check (Edge and Chrome, one run each): `node tools/check-browser.mjs`; it exits 0 only when both engines
 produce the same assertion set with the same per-item verdicts.
-`tools/retired/` holds historical scripts for removed UI; they are not part of the verification chain.
 
 ---
 
@@ -482,8 +491,9 @@ while the todo table still says `in_progress`), the rail publishes no number and
 turn" instead. The second line ("estimated N minutes ago") states how stale the displayed value is.
 
 **Why does an unfinished step never reach 100 %?**
-A self-report caps at 99 and the time baseline at 90; only a done/failed status pins 100 %. This keeps "nearly there"
-from being confused with "already there". A step that is still waiting for the next turn shows no number rather than 100 %.
+A running step caps its self-report at 99 and its time baseline at 90; a completed step is fixed at 100%; a failed step
+keeps its last reported or estimated value. This keeps "nearly there" from being confused with "already there". A step
+that is still waiting for the next turn shows no number rather than 100%.
 
 **Does it upload user code?**
 No. The plugin makes no network requests; it reads only the local session log and the `.pae` plan file.
@@ -492,7 +502,7 @@ No. The plugin makes no network requests; it reads only the local session log an
 No. Both halves belong to one package: `dsh.profile.bundles` registers the host row, and the browser half is
 loaded by that row.
 
-**Can I turn animation off?**
+**Can animation be turned off?**
 Set motion to `static` in the settings, or enable "reduce motion" in the OS; both set every animation inside
 the panel to `none`.
 
