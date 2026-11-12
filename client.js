@@ -8697,6 +8697,11 @@ window.__ModuleLoader__.load({
 
           function tick() {
             if (stopped) return;
+     // One loop, not one per click. A direct call (the ↻ button, a visibility change)
+     // arrives while a scheduled tick is still pending; without this, every call leaves
+     // a permanent timer behind and the map polls once more per second, forever.
+            window.clearTimeout(timer);
+            timer = 0;
             var delay = delayForPage();
             if (controller && typeof controller.abort === "function") {
               try {
