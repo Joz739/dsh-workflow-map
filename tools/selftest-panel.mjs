@@ -1215,6 +1215,59 @@ check(
   JSON.stringify({ capped: missingTree.props['data-capped'], sats: byData(missingTree, 'sat').length })
 );
 
+// A capped page must NOT also report the circles it did not pay for as "types". The unit-level
+// note counts only what the HOST dropped; the page-level limit note owns the budget. Without this
+// assertion the two notes both appear and the user reads them as two separate omissions.
+const cappedUnits = byData(cappedTree, 'unit');
+const unitNotes = cappedUnits.reduce(
+  (n, unit) => n + findAll(unit, (el) => typeof el.props.className === 'string' && el.props.className.split(/\s+/).includes('wf-unit-more')).length,
+  0
+);
+check('flow.limit.noDuplicateTypeNote', unitNotes === 0, unitNotes + ' unit-level notes on a capped page with no host-dropped types');
+
+// The page note sits in the page HEAD, not at the end of the scroller: a cap reported below the
+// fold is a cap the user never sees.
+const limitNote = byData(cappedTree, 'limit-note')[0];
+check(
+  'flow.limit.noteInHead',
+  limitNote !== undefined && findAll(byData(cappedTree, 'page-head')[0], (el) => el === limitNote).length === 1,
+  limitNote === undefined ? 'no limit note' : 'note is inside the page head'
+);
+
+// Both facts at once: four right-side types (two fit the side, two are host-dropped) and a budget
+// of 3 that can pay for only the first bucket (alpha, 3 nodes). The unit note must say "2 types"
+// and the page note "2 nodes" — each fact stated once, by the layer that owns it.
+const droppedNodes = [];
+const droppedIds = [];
+const addDropped = (tool, times) => {
+  for (let k = 0; k < times; k += 1) {
+    const id = 'd' + droppedIds.length;
+    droppedIds.push(id);
+    droppedNodes.push({ id, kind: 'tool', tool, title: id, detail: '', files: [], resultHead: '', error: '', at: droppedIds.length, durationMs: 1 });
+  }
+};
+addDropped('alpha', 3);
+addDropped('beta', 2);
+addDropped('gamma', 1);
+addDropped('delta', 1);
+const hostDroppedView = {
+  steps: [{ index: 0, title: 'dropped', status: 'done', nodeIds: droppedIds, nodeCount: droppedIds.length, groups: [] }],
+  nodes: droppedNodes,
+  counts: { steps: 1, nodes: droppedIds.length, running: 0, completed: 1 },
+};
+const hostDroppedModel = T.buildModel(hostDroppedView, defaults);
+const bothTree = T.renderMainFlow(createElement, hostDroppedModel, say, {}, { openStep: null, openType: null, asOf: 0, nodeLimit: 3 });
+const bothUnitNotes = findAll(
+  byData(bothTree, 'unit')[0],
+  (el) => typeof el.props.className === 'string' && el.props.className.split(/\s+/).includes('wf-unit-more')
+);
+const bothPageNote = byData(bothTree, 'limit-note')[0];
+check(
+  'flow.limit.notesStayApart',
+  bothUnitNotes.length === 1 && textOf(bothUnitNotes[0]).includes('2 类') && bothPageNote !== undefined && textOf(bothPageNote).includes('2 个节点'),
+  JSON.stringify({ unit: textOf(bothUnitNotes[0]), page: bothPageNote === undefined ? null : textOf(bothPageNote) })
+);
+
 /* ------------------------------------------------------------------------- */
 /* branch lanes : parallel subagents / workflows / jobs */
 /* ------------------------------------------------------------------------- */

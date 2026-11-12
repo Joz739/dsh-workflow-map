@@ -240,8 +240,10 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
   var rightList = Array.isArray(row.right) ? row.right : [];
   var takeLeft = wfFinite(context.takeLeft) === null ? leftList.length : Math.min(leftList.length, Math.max(0, Math.round(context.takeLeft)));
   var takeRight = wfFinite(context.takeRight) === null ? rightList.length : Math.min(rightList.length, Math.max(0, Math.round(context.takeRight)));
-  var leftDropped = (wfFinite(dropped.left) === null ? 0 : dropped.left) + (leftList.length - takeLeft);
-  var rightDropped = (wfFinite(dropped.right) === null ? 0 : dropped.right) + (rightList.length - takeRight);
+  // Only the types the HOST dropped are reported here. Circles the page node budget could not
+  // pay for are NOT types: they are counted once, by the page-level limit note.
+  var leftDropped = wfFinite(dropped.left) === null ? 0 : dropped.left;
+  var rightDropped = wfFinite(dropped.right) === null ? 0 : dropped.right;
   var metaBits = [];
   if (wfFinite(row.toolCount) !== null) metaBits.push(say("panel.step.tools", { count: row.toolCount }));
   if (wfFinite(row.fileCount) !== null) metaBits.push(say("panel.step.files", { count: row.fileCount }));
@@ -393,6 +395,15 @@ function wfRenderMainFlow(h, model, say, actions, extras) {
     "div",
     { className: "wf-page-head", key: "head", "data-dsh-workflow-map": "page-head" },
     h("span", { key: "label" }, say("panel.page.main")),
+    // The cap is a fact about the page, so it is stated in the page head: at the end of a long
+    // list the note would sit below the fold, where being capped looks like nothing happened.
+    omitted > 0
+      ? h(
+          "span",
+          { className: "wf-unit-more", key: "limit", "data-dsh-workflow-map": "limit-note" },
+          say("panel.page.limitNote", { limit: limit, count: omitted })
+        )
+      : null,
     h("span", { className: "wf-count", key: "count" }, model ? model.progress.done + "/" + model.progress.total : "")
   );
 
@@ -429,17 +440,6 @@ function wfRenderMainFlow(h, model, say, actions, extras) {
       "data-capped": omitted > 0 ? "true" : "false",
     },
     header,
-    h(
-      "div",
-      { className: "wf-page-scroll", key: "scroll", "data-dsh-workflow-map": "page-scroll" },
-      body,
-      omitted > 0
-        ? h(
-            "div",
-            { className: "wf-unit-more", key: "limit", "data-dsh-workflow-map": "limit-note" },
-            say("panel.page.limitNote", { limit: limit, count: omitted })
-          )
-        : null
-    )
+    h("div", { className: "wf-page-scroll", key: "scroll", "data-dsh-workflow-map": "page-scroll" }, body)
   );
 }
