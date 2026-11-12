@@ -5,6 +5,63 @@ on:
   pull_request:
 
 jobs:
+  attribution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: No Claude/Anthropic attribution
+        shell: bash
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          fail=0
+          total=0
+          if [ -f .mailmap ] && grep -Eiq 'claude|anthropic' .mailmap; then
+            echo "::error::.mailmap maps an identity to Claude/Anthropic"
+            fail=$((fail + 1))
+          fi
+          # --all, not HEAD: a tag or backup branch that gets pushed is just as visible on
+          # GitHub as a commit on main, and a push event's HEAD would not contain it.
+          while IFS= read -r sha; do
+            total=$((total + 1))
+            reason=""
+            if git show -s --format='%an%n%ae%n%cn%n%ce' "$sha" | grep -Eiq 'claude|anthropic'; then
+              reason="author/committer identity"
+            fi
+            msg=$(git show -s --format='%B' "$sha")
+            if [ -z "$reason" ] && printf '%s\n' "$msg" | grep -Eiq '^[[:space:]]*(co-authored-by|co-developed-by|signed-off-by|assisted-by|generated-by)[[:space:]]*:.*(claude|anthropic)'; then
+              reason="attribution trailer"
+            fi
+            if [ -z "$reason" ] && printf '%s\n' "$msg" | grep -Eiq 'claude\.ai|anthropic\.com|claude code'; then
+              echo "::warning::$(git show -s --format='%h %s' "$sha") mentions Claude/Anthropic in its message body (hygiene; does not affect contributors)"
+            fi
+            if [ -n "$reason" ]; then
+              fail=$((fail + 1))
+              echo "::error::$(git show -s --format='%h %s' "$sha") -- $reason"
+              git show -s --format='  author:    %an <%ae>%n  committer: %cn <%ce>' "$sha"
+            fi
+          done < <(git rev-list --all)
+          echo "scanned $total commit(s), $fail violation(s)"
+          # A squash merge writes the PR title + body into a NEW commit at merge time, which no
+          # commit in this checkout contains yet. Scan the body itself, or this check misses the
+          # most common way an attribution line reaches main.
+          if [ -n "${PR_BODY:-}" ]; then
+            if printf '%s\n' "$PR_BODY" | grep -Eiq '^[[:space:]]*(co-authored-by|co-developed-by|signed-off-by|assisted-by|generated-by)[[:space:]]*:.*(claude|anthropic)'; then
+              echo "::error::PR body carries a Claude/Anthropic attribution trailer; a squash merge would put it in the commit"
+              fail=$((fail + 1))
+            fi
+            if printf '%s\n' "$PR_BODY" | grep -Eiq 'claude\.ai|anthropic\.com|claude code'; then
+              echo "::warning::PR body mentions Claude/Anthropic; a squash merge would carry that text into the commit message (hygiene; does not affect contributors)"
+            fi
+          fi
+          if [ "$fail" -ne 0 ]; then
+            echo "Owner rule: no Claude/Anthropic attribution in this repository."
+            exit 1
+          fi
+
   test:
     strategy:
       fail-fast: false
