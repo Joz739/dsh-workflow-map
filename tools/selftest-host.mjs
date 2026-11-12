@@ -22,6 +22,9 @@
 // 8. apply attaches exactly one HTTP route : the `/dsh-workflow` prefix seat,
 // SHARED across repeated applies (the real server throws on a duplicate path), and its
 // disposer really removes it.
+// 9. a host that HAS a tools service gets the tool through the lazy injection, not through
+// `inject`: that array gates the whole apply, so `tools` in it would make a tools-less host
+// fail to mount instead of losing one capability.
 //
 // Exit code 0 = every assertion passed.
 
@@ -111,12 +114,11 @@ equal("(1) the stateVersion is the fold's", projection.stateVersion, STATE_VERSI
 check("(1) a stateSchema was supplied", typeof projection.stateSchema?.parse === "function", "missing stateSchema.parse");
 check("(1) a wire block with viewSchema + view", typeof projection.wire?.viewSchema?.parse === "function" && typeof projection.wire?.view === "function", "missing wire pieces");
 equal("(1) the package identity", [name, packageName], ["workflow-map", "dsh-workflow-map"]);
-equal("(1) inject declares the registry, session store, web server, agent registry and tools", inject, [
+equal("(1) inject declares the registry, session store, web server and agent registry", inject, [
   "sessionProjections",
   "sessions",
   "webServer",
   "agents",
-  "tools",
 ]);
 check("(1) selfCheck lists the registration", selfCheck.registrations.some((row) => row.endsWith(PROJECTION_KEY)), JSON.stringify(selfCheck.registrations));
 
@@ -351,6 +353,37 @@ for (const dispose of effects) dispose();
 equal("(8) disposing every owner removes the route", routes.size, 0);
 equal("(8) no owner remains", routeInfo().owners, 0);
 equal("(8) no seat remains", routeInfo().servers, 0);
+
+// ---------------------------------------------------------------------------
+// (9) lazy injection: a host that has `tools` still gets the progress tool
+// ---------------------------------------------------------------------------
+
+const injected = [];
+const registeredTools = [];
+const toolsService = {
+  get: () => undefined,
+  register(definition) {
+    registeredTools.push(definition);
+    return () => {};
+  },
+};
+const ctxWithTools = {
+  sessionProjections: { register: () => () => {} },
+  sessions: { get: () => undefined },
+  effect(execute) {
+    const dispose = execute();
+    return dispose;
+  },
+  inject(dependencies, callback) {
+    injected.push(dependencies);
+    callback(ctxWithTools);
+  },
+  tools: toolsService,
+};
+apply(ctxWithTools);
+equal("(9) the lazy injection asks for the tools service", injected, [["tools"]]);
+equal("(9) the tool is registered through the lazy injection", registeredTools.length, 1);
+equal("(9) the registered tool is the progress tool", registeredTools[0]?.name, "report_step_progress");
 // ---------------------------------------------------------------------------
 // report
 // ---------------------------------------------------------------------------

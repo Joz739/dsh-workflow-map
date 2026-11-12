@@ -85,8 +85,8 @@ check('host.name', /export const name = "workflow-map";/.test(hostImpl), 'export
 check('host.packageName', hostImpl.includes('packageName = "dsh-workflow-map"'), 'export const packageName');
 check(
   'host.inject.services',
-  /export const inject = \["sessionProjections", "sessions", "webServer", "agents", "tools"\];/.test(hostImpl),
-  'inject: [sessionProjections, sessions, webServer, agents, tools]',
+  /export const inject = \["sessionProjections", "sessions", "webServer", "agents"\];/.test(hostImpl),
+  'inject: [sessionProjections, sessions, webServer, agents]',
 );
 check('host.apply.takesCtx', /export function apply\(ctx\)/.test(hostImpl), 'export function apply(ctx)');
 check('host.registers', /const registry = ctx\.sessionProjections;/.test(hostImpl) && /registry\.register\(\{/.test(hostImpl), 'registry.register({');
