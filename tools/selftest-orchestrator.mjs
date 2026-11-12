@@ -34,6 +34,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+  MAX_PLAN_BYTES,
   MAX_PLAN_STEPS,
   PLAN_FILE,
   PLAN_ROOT,
@@ -255,6 +256,40 @@ fs.utimesSync(rewriteFile, bumped, bumped);
 const rewritten = rewriteReader.read();
 equal("(F3) a same-length rewrite is re-read", rewritten === null ? null : rewritten.phase, "b");
 equal("(F3) exactly one read after the rewrite", rewriteReader.stats().read, 2);
+
+// ---------------------------------------------------------------------------
+// (F4) the size gate: a plan file over MAX_PLAN_BYTES is refused before it is read
+// ---------------------------------------------------------------------------
+
+const overLimitFile = fixturePlan("too-large", "session-too-large", "{ this would never parse ");
+fs.writeFileSync(overLimitFile, Buffer.alloc(MAX_PLAN_BYTES + 1, 0x20));
+const overLimitReader = createPlanReader({ cwd: path.join(TMP, "too-large"), sessionId: "session-too-large" });
+equal("(F4) an oversized plan reads as null", overLimitReader.read(), null);
+equal(
+  "(F4) the gate refuses on stat alone, before any read",
+  [overLimitReader.stats().stat, overLimitReader.stats().read, overLimitReader.stats().miss, overLimitReader.stats().error],
+  [1, 0, 1, 1],
+);
+equal("(F4) the refusal is logged once as TOO_LARGE", overLimitReader.errors().map((entry) => entry.code), ["TOO_LARGE"]);
+equal("(F4) the fixture is exactly one byte over the limit", fs.statSync(overLimitFile).size, MAX_PLAN_BYTES + 1);
+equal("(F4) a second read hits the negative cache", overLimitReader.read(), null);
+equal(
+  "(F4) and it still never touched the disk",
+  [overLimitReader.stats().stat, overLimitReader.stats().hit, overLimitReader.stats().read, overLimitReader.stats().error],
+  [2, 1, 0, 1],
+);
+
+// The gate is `>` not `>=`: a document of exactly MAX_PLAN_BYTES is still a legal plan.
+const atLimitFile = fixturePlan("at-limit", "session-at-limit", "");
+const atLimitJson = JSON.stringify({ phase: "executing" });
+fs.writeFileSync(atLimitFile, atLimitJson + " ".repeat(MAX_PLAN_BYTES - Buffer.byteLength(atLimitJson)));
+const atLimitReader = createPlanReader({ cwd: path.join(TMP, "at-limit"), sessionId: "session-at-limit" });
+const atLimit = atLimitReader.read();
+equal(
+  "(F4) a plan exactly at the limit is still read",
+  [fs.statSync(atLimitFile).size, atLimit === null ? null : atLimit.phase, atLimitReader.stats().read],
+  [MAX_PLAN_BYTES, "executing", 1],
+);
 
 // ---------------------------------------------------------------------------
 // (G) missing / damaged fields
