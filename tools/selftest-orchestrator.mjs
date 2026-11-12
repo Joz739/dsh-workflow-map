@@ -13,6 +13,8 @@
 // (D) a REAL planning-phase document (no `plan` yet) is still renderable.
 // (E) missing file / directory-instead-of-file: null, one deduped error line, never throws.
 // (F) corrupt JSON: null + PARSE_FAILED, and a repaired file is picked up again; BOM tolerated.
+// (F2) a broken file is read ONCE, not once per event — the negative cache is what makes that true.
+// (F3) the negative cache is not a trap: a same-length rewrite (new mtime) is re-read.
 // (G) missing / damaged fields degrade one field at a time and never shift an ordinal.
 // (H) cache invalidation: changed size and changed mtime are both noticed.
 // (I) READ ONLY: the real plan file's mtime/size are unchanged after every read above.
@@ -225,6 +227,34 @@ equal("(F) the repaired title", repaired === null ? null : repaired.steps[0].tit
 fixturePlan("bom", "session-bom", `\uFEFF${JSON.stringify({ phase: "planning", task: "带 BOM" })}`);
 const bomReader = createPlanReader({ cwd: path.join(TMP, "bom"), sessionId: "session-bom" });
 equal("(F) a leading BOM is tolerated", bomReader.read() === null ? null : bomReader.read().phase, "planning");
+
+// ---------------------------------------------------------------------------
+// (F2) the negative cache: a broken file is read once, not once per event
+// ---------------------------------------------------------------------------
+
+fixturePlan("broken-once", "session-broken-once", "{ this is not json ");
+const onceReader = createPlanReader({ cwd: path.join(TMP, "broken-once"), sessionId: "session-broken-once" });
+equal("(F2) first read fails", onceReader.read(), null);
+equal("(F2) second read comes from the negative cache", onceReader.read(), null);
+equal("(F2) third read too", onceReader.read(), null);
+equal("(F2) one read, two negative hits, one miss", [onceReader.stats().read, onceReader.stats().hit, onceReader.stats().miss], [1, 2, 1]);
+equal("(F2) the failure is logged once", onceReader.errors().length, 1);
+
+// ---------------------------------------------------------------------------
+// (F3) the negative cache must not be a trap: a same-length rewrite is still a new key
+// ---------------------------------------------------------------------------
+
+const rewriteFile = fixturePlan("rewrite", "session-rewrite", "{ not json !!");
+const rewriteReader = createPlanReader({ cwd: path.join(TMP, "rewrite"), sessionId: "session-rewrite" });
+equal("(F3) first read fails", rewriteReader.read(), null);
+fs.writeFileSync(rewriteFile, '{"phase":"b"}');
+equal("(F3) the fixture really rewrote the same number of bytes", [fs.statSync(rewriteFile).size, Buffer.byteLength("{ not json !!")], [13, 13]);
+// Force the mtime: `${mtimeMs}:${size}` would otherwise collide when both writes land in one ms.
+const bumped = new Date(Date.now() + 1000);
+fs.utimesSync(rewriteFile, bumped, bumped);
+const rewritten = rewriteReader.read();
+equal("(F3) a same-length rewrite is re-read", rewritten === null ? null : rewritten.phase, "b");
+equal("(F3) exactly one read after the rewrite", rewriteReader.stats().read, 2);
 
 // ---------------------------------------------------------------------------
 // (G) missing / damaged fields

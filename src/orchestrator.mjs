@@ -14,8 +14,10 @@
  * permission problem or a schema surprise must degrade the panel, never the session: every
  * failure returns null and appends ONE line to errors.
  * * ONE STAT PER VIEW. read stats the file and reuses the parsed value while `mtimeMs:size`
- * is unchanged, so a per-event wire build costs one statSync and no read. The parsed value
- * is deep-frozen, so the cache can be handed to every view without aliasing risk.
+ * is unchanged, so a per-event wire build costs one statSync and no read. A FAILED read is
+ * remembered by the same key: a half-written file is not parsed again on every event, and the
+ * rewrite that fixes it changes mtimeMs:size, which is what makes the next attempt a fresh one.
+ * The parsed value is deep-frozen, so the cache can be handed to every view without aliasing risk.
  * * NO CLOCK, NO AMBIENT STATE. `asOfMtime` is the file's own mtime — the only accurate "as of"
  * instant this source has.
  * * PATHS ARE REQUIRED. `<cwd>` and the session id must both be supplied. A session id
@@ -62,6 +64,8 @@ export const MAX_TASK_TITLE = 400;
 export const MAX_SUMMARY = 400;
 export const MAX_PATH = 400;
 export const MAX_PHASE = 40;
+/** A plan file bigger than this is not a plan: refuse to pull it into memory. */
+export const MAX_PLAN_BYTES = 4 * 1024 * 1024;
 
 /** PAE's `statuses` / `anchorSeqs` keys are 1-based ordinals printed as strings. */
 const ORDINAL = /^[1-9][0-9]{0,3}$/;
@@ -382,6 +386,10 @@ export function createPlanReader(options) {
   const errors = [];
   let cacheKey = null;
   let cached = null;
+ // The key of the last read that FAILED (unreadable or unparsable). PAE rewrites this file
+ // between steps, so a half-written document must not be read and parsed on every event;
+ // a rewrite changes mtimeMs:size — the key — so the next attempt is a fresh one.
+  let badKey = null;
 
   function noteError(code, message) {
     counters.error += 1;
@@ -393,9 +401,10 @@ export function createPlanReader(options) {
     if (errors.length > MAX_ERRORS) errors.splice(0, errors.length - MAX_ERRORS);
   }
 
-  function fail(code, error) {
+  function fail(code, error, key) {
     cacheKey = null;
     cached = null;
+    if (typeof key === "string") badKey = key;
     counters.miss += 1;
     noteError(code, error instanceof Error ? error.message : String(error));
     return null;
@@ -420,13 +429,20 @@ export function createPlanReader(options) {
       counters.hit += 1;
       return cached;
     }
+    if (badKey === key) {
+      counters.hit += 1;
+      return null;
+    }
+    if (stat.size > MAX_PLAN_BYTES) {
+      return fail("TOO_LARGE", `${PLAN_FILE} is ${stat.size} bytes, over the ${MAX_PLAN_BYTES}-byte limit`, key);
+    }
 
     counters.read += 1;
     let raw;
     try {
       raw = readFileSync(filePath, "utf8");
     } catch (error) {
-      return fail(errorCode(error), error);
+      return fail(errorCode(error), error, key);
     }
 
     let document;
@@ -434,10 +450,11 @@ export function createPlanReader(options) {
  // A BOM is legal in a text file and illegal to JSON.parse: strip it, do not fail on it.
       document = JSON.parse(raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw);
     } catch (error) {
-      return fail("PARSE_FAILED", error);
+      return fail("PARSE_FAILED", error, key);
     }
 
     cacheKey = key;
+    badKey = null;
     cached = normalizePlanDocument(document, { asOfMtime: stat.mtimeMs, sourcePath: filePath });
     counters.miss += 1;
     return cached;
@@ -452,6 +469,7 @@ export function createPlanReader(options) {
     reset() {
       cacheKey = null;
       cached = null;
+      badKey = null;
       counters.stat = 0;
       counters.read = 0;
       counters.hit = 0;
