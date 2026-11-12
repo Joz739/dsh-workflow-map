@@ -139,6 +139,39 @@ function wfRenderSatSide(h, list, side, say, actions, ctx) {
 }
 
 /**
+ * 「节点上限」：整页最多能画几个圆圈。
+ * 一个圆圈代表 count 个节点，所以它花 count；花不起的不画。
+ * limit === null（设置里的「全部」）不切、不记，页面与改前完全一致。
+ */
+function wfNodeBudget(units, limit) {
+  if (limit === null) return null;
+  var left = limit;
+  var used = 0;
+  var total = 0;
+  var takes = [];
+  for (var i = 0; i < units.length; i += 1) {
+    var unit = units[i] && typeof units[i] === "object" ? units[i] : {};
+    var take = { left: 0, right: 0 };
+    var sides = [["left", unit.left], ["right", unit.right]];
+    for (var s = 0; s < sides.length; s += 1) {
+      var side = sides[s][0];
+      var list = Array.isArray(sides[s][1]) ? sides[s][1] : [];
+      for (var j = 0; j < list.length; j += 1) {
+        var bucket = list[j] && typeof list[j] === "object" ? list[j] : {};
+        var cost = wfFinite(bucket.count) === null ? 1 : Math.max(1, Math.round(bucket.count));
+        total += cost;
+        if (cost > left) continue;
+        left -= cost;
+        used += cost;
+        take[side] += 1;
+      }
+    }
+    takes.push(take);
+  }
+  return { takes: takes, used: used, total: total };
+}
+
+/**
  * One main-flow unit: the step card in the middle, its satellites on both sides, and — except on
  * the last unit — the straight connector down to the next one.
  *
@@ -203,8 +236,12 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
  // (stepIndex, typeKey), and without the index every circle of every step would open step null.
   var unitContext = Object.assign({}, context, { stepIndex: index });
   var dropped = row.dropped && typeof row.dropped === "object" ? row.dropped : {};
-  var leftDropped = wfFinite(dropped.left) === null ? 0 : dropped.left;
-  var rightDropped = wfFinite(dropped.right) === null ? 0 : dropped.right;
+  var leftList = Array.isArray(row.left) ? row.left : [];
+  var rightList = Array.isArray(row.right) ? row.right : [];
+  var takeLeft = wfFinite(context.takeLeft) === null ? leftList.length : Math.min(leftList.length, Math.max(0, Math.round(context.takeLeft)));
+  var takeRight = wfFinite(context.takeRight) === null ? rightList.length : Math.min(rightList.length, Math.max(0, Math.round(context.takeRight)));
+  var leftDropped = (wfFinite(dropped.left) === null ? 0 : dropped.left) + (leftList.length - takeLeft);
+  var rightDropped = (wfFinite(dropped.right) === null ? 0 : dropped.right) + (rightList.length - takeRight);
   var metaBits = [];
   if (wfFinite(row.toolCount) !== null) metaBits.push(say("panel.step.tools", { count: row.toolCount }));
   if (wfFinite(row.fileCount) !== null) metaBits.push(say("panel.step.files", { count: row.fileCount }));
@@ -301,7 +338,7 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
       // without the badge row having to be in view.
       "data-confirm": wfConfirmRows(row).length > 0 || row.requiresConfirmation === true ? "true" : "false",
     },
-    wfRenderSatSide(h, row.left, "left", say, actions, unitContext),
+    wfRenderSatSide(h, leftList.slice(0, takeLeft), "left", say, actions, unitContext),
     h(
       "div",
       {
@@ -314,7 +351,7 @@ function wfRenderUnit(h, unit, position, total, say, actions, ctx) {
       wfRenderProgressDock(h, context.compact ? Object.assign({}, row, { compact: true }) : row, say, context.asOf),
       droppedNote
     ),
-    wfRenderSatSide(h, row.right, "right", say, actions, unitContext),
+    wfRenderSatSide(h, rightList.slice(0, takeRight), "right", say, actions, unitContext),
     position + 1 < total
       ? h("span", {
           className: "wf-unit-link",
@@ -338,6 +375,10 @@ function wfRenderMainFlow(h, model, say, actions, extras) {
   var ui = extras || {};
   var rows = model && Array.isArray(model.steps) ? model.steps : [];
   var units = model && model.page && Array.isArray(model.page.units) ? model.page.units : [];
+  var nodeLimit = wfFinite(ui.nodeLimit) === null ? null : Math.round(ui.nodeLimit);
+  var limit = nodeLimit === null || nodeLimit <= 0 ? null : nodeLimit;
+  var budget = wfNodeBudget(units, limit);
+  var omitted = budget === null ? 0 : budget.total - budget.used;
   var context = {
  // `openStep` is the step whose page is on the right; `selectedStep` is the panel's remembered
  // selection (they are usually the same, but the header can open a page without re-selecting).
@@ -369,14 +410,36 @@ function wfRenderMainFlow(h, model, say, actions, extras) {
             "data-running": wfFinite(model && model.page ? model.page.runningIndex : null) === null ? "" : String(model.page.runningIndex),
           },
           units.map(function (unit, position) {
-            return wfRenderUnit(h, unit, position, units.length, say, actions, context);
+            var take = budget === null ? null : budget.takes[position];
+            var unitContext = Object.assign({}, context, {
+              takeLeft: take === null || take === undefined ? null : take.left,
+              takeRight: take === null || take === undefined ? null : take.right,
+            });
+            return wfRenderUnit(h, unit, position, units.length, say, actions, unitContext);
           })
         );
 
   return h(
     "div",
-    { className: "wf-page", key: "page", "data-dsh-workflow-map": "main" },
+    {
+      className: "wf-page",
+      key: "page",
+      "data-dsh-workflow-map": "main",
+      "data-node-limit": limit === null ? "0" : String(limit),
+      "data-capped": omitted > 0 ? "true" : "false",
+    },
     header,
-    h("div", { className: "wf-page-scroll", key: "scroll", "data-dsh-workflow-map": "page-scroll" }, body)
+    h(
+      "div",
+      { className: "wf-page-scroll", key: "scroll", "data-dsh-workflow-map": "page-scroll" },
+      body,
+      omitted > 0
+        ? h(
+            "div",
+            { className: "wf-unit-more", key: "limit", "data-dsh-workflow-map": "limit-note" },
+            say("panel.page.limitNote", { limit: limit, count: omitted })
+          )
+        : null
+    )
   );
 }

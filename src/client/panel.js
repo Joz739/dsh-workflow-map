@@ -217,6 +217,7 @@ var DICT_ZH = {
   "panel.page.kind.tool": "调用工具",
   "panel.page.sat.label": "{label}（{kind}）{count} 处，点击查看这一类调用",
   "panel.page.moreTypes": "另有 {count} 类未画在两侧",
+  "panel.page.limitNote": "节点上限 {limit}：另有 {count} 个节点未画在两侧",
   "panel.page.close": "关闭这一页",
   "panel.page.noReport": "这一步的详情还没有随视图发送",
   "panel.page.inject": "热注入",
@@ -356,6 +357,7 @@ var DICT_EN = {
   "panel.page.kind.tool": "tool",
   "panel.page.sat.label": "{label} ({kind}), {count} calls — click to see this type's calls",
   "panel.page.moreTypes": "{count} more types are not drawn on the sides",
+  "panel.page.limitNote": "Node limit {limit}: {count} more nodes are not drawn on the sides",
   "panel.page.close": "Close this page",
   "panel.page.noReport": "This step's details have not been sent with the view yet",
   "panel.page.inject": "Hot inject",
@@ -1625,6 +1627,8 @@ function wfRenderPanel(model, prefs, say, actions, ui) {
         asOf: wfFinite(extras.asOf) === null ? model.asOf : extras.asOf,
  // "Title only" narrows the unit's rail to one line, exactly as it did in the old column.
         compact: settings.detail === "title",
+// The node limit is a PAGE budget: the setting names the whole map's look, not one step's.
+        nodeLimit: settings.nodeLimit,
       }),
  // The right page: a step record, one file type's calls, or the inject composer.
       extras.right

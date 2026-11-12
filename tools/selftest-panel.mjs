@@ -1163,6 +1163,59 @@ check(
 check('flow.render.planningEmpty', textOf(collapsedTree) !== '', 'the collapsed capsule still renders');
 
 /* ------------------------------------------------------------------------- */
+/* node limit : a WHOLE-PAGE budget, accumulated across steps                */
+/* ------------------------------------------------------------------------- */
+
+// 12 steps, each with 2 buckets of 2 nodes: 48 nodes behind 24 circles. A per-step
+// limit of 30 would draw every circle (2 per step is under 30); a page budget of 30
+// can only pay for 15 of them. That difference is the whole contract.
+const budgetSteps = [];
+const budgetNodes = [];
+for (let s = 0; s < 12; s += 1) {
+  const ids = [];
+  for (let k = 0; k < 4; k += 1) {
+    const id = 'nb' + s + '-' + k;
+    ids.push(id);
+    budgetNodes.push({ id, kind: 'tool', tool: k % 2 === 0 ? 'read' : 'edit', title: id, detail: '', files: [], resultHead: '', error: '', at: 1000 + s, durationMs: 1 });
+  }
+  budgetSteps.push({ index: s, title: 'step ' + s, status: 'done', nodeIds: ids, nodeCount: ids.length, groups: [] });
+}
+const budgetView = { steps: budgetSteps, nodes: budgetNodes, counts: { steps: 12, nodes: 48, running: 0, completed: 12 } };
+const budgetModel = T.buildModel(budgetView, defaults);
+const budgetCircles = budgetModel.page.units.reduce((n, u) => n + (u.left || []).length + (u.right || []).length, 0);
+check('flow.limit.fixture', budgetCircles === 24, budgetCircles + ' circles / 48 nodes');
+
+const renderBudget = (nodeLimit) =>
+  T.renderMainFlow(createElement, budgetModel, say, {}, { openStep: null, openType: null, asOf: 0, nodeLimit });
+const cappedTree = renderBudget(30);
+const cappedSats = byData(cappedTree, 'sat');
+const cappedNote = byData(cappedTree, 'limit-note');
+check(
+  'flow.limit.pageBudget',
+  cappedTree.props['data-capped'] === 'true' && cappedTree.props['data-node-limit'] === '30',
+  JSON.stringify({ capped: cappedTree.props['data-capped'], limit: cappedTree.props['data-node-limit'] })
+);
+check('flow.limit.circles', cappedSats.length === 15, cappedSats.length + ' circles drawn (a per-step limit would draw 24)');
+check(
+  'flow.limit.note',
+  cappedNote.length === 1 && textOf(cappedNote[0]).includes('30') && textOf(cappedNote[0]).includes('18'),
+  textOf(cappedNote[0])
+);
+
+const allTree = renderBudget(0);
+check(
+  'flow.limit.all',
+  allTree.props['data-capped'] === 'false' && allTree.props['data-node-limit'] === '0' && byData(allTree, 'sat').length === 24 && byData(allTree, 'limit-note').length === 0,
+  JSON.stringify({ capped: allTree.props['data-capped'], sats: byData(allTree, 'sat').length })
+);
+const missingTree = renderBudget(undefined);
+check(
+  'flow.limit.missing',
+  missingTree.props['data-capped'] === 'false' && missingTree.props['data-node-limit'] === '0' && byData(missingTree, 'sat').length === 24,
+  JSON.stringify({ capped: missingTree.props['data-capped'], sats: byData(missingTree, 'sat').length })
+);
+
+/* ------------------------------------------------------------------------- */
 /* branch lanes : parallel subagents / workflows / jobs */
 /* ------------------------------------------------------------------------- */
 

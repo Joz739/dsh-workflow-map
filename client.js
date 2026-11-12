@@ -6917,6 +6917,39 @@ window.__ModuleLoader__.load({
     }
 
     /**
+     * 「节点上限」：整页最多能画几个圆圈。
+     * 一个圆圈代表 count 个节点，所以它花 count；花不起的不画。
+     * limit === null（设置里的「全部」）不切、不记，页面与改前完全一致。
+     */
+    function wfNodeBudget(units, limit) {
+      if (limit === null) return null;
+      var left = limit;
+      var used = 0;
+      var total = 0;
+      var takes = [];
+      for (var i = 0; i < units.length; i += 1) {
+        var unit = units[i] && typeof units[i] === "object" ? units[i] : {};
+        var take = { left: 0, right: 0 };
+        var sides = [["left", unit.left], ["right", unit.right]];
+        for (var s = 0; s < sides.length; s += 1) {
+          var side = sides[s][0];
+          var list = Array.isArray(sides[s][1]) ? sides[s][1] : [];
+          for (var j = 0; j < list.length; j += 1) {
+            var bucket = list[j] && typeof list[j] === "object" ? list[j] : {};
+            var cost = wfFinite(bucket.count) === null ? 1 : Math.max(1, Math.round(bucket.count));
+            total += cost;
+            if (cost > left) continue;
+            left -= cost;
+            used += cost;
+            take[side] += 1;
+          }
+        }
+        takes.push(take);
+      }
+      return { takes: takes, used: used, total: total };
+    }
+
+    /**
      * One main-flow unit: the step card in the middle, its satellites on both sides, and — except on
      * the last unit — the straight connector down to the next one.
      *
@@ -6981,8 +7014,12 @@ window.__ModuleLoader__.load({
      // (stepIndex, typeKey), and without the index every circle of every step would open step null.
       var unitContext = Object.assign({}, context, { stepIndex: index });
       var dropped = row.dropped && typeof row.dropped === "object" ? row.dropped : {};
-      var leftDropped = wfFinite(dropped.left) === null ? 0 : dropped.left;
-      var rightDropped = wfFinite(dropped.right) === null ? 0 : dropped.right;
+      var leftList = Array.isArray(row.left) ? row.left : [];
+      var rightList = Array.isArray(row.right) ? row.right : [];
+      var takeLeft = wfFinite(context.takeLeft) === null ? leftList.length : Math.min(leftList.length, Math.max(0, Math.round(context.takeLeft)));
+      var takeRight = wfFinite(context.takeRight) === null ? rightList.length : Math.min(rightList.length, Math.max(0, Math.round(context.takeRight)));
+      var leftDropped = (wfFinite(dropped.left) === null ? 0 : dropped.left) + (leftList.length - takeLeft);
+      var rightDropped = (wfFinite(dropped.right) === null ? 0 : dropped.right) + (rightList.length - takeRight);
       var metaBits = [];
       if (wfFinite(row.toolCount) !== null) metaBits.push(say("panel.step.tools", { count: row.toolCount }));
       if (wfFinite(row.fileCount) !== null) metaBits.push(say("panel.step.files", { count: row.fileCount }));
@@ -7079,7 +7116,7 @@ window.__ModuleLoader__.load({
           // without the badge row having to be in view.
           "data-confirm": wfConfirmRows(row).length > 0 || row.requiresConfirmation === true ? "true" : "false",
         },
-        wfRenderSatSide(h, row.left, "left", say, actions, unitContext),
+        wfRenderSatSide(h, leftList.slice(0, takeLeft), "left", say, actions, unitContext),
         h(
           "div",
           {
@@ -7092,7 +7129,7 @@ window.__ModuleLoader__.load({
           wfRenderProgressDock(h, context.compact ? Object.assign({}, row, { compact: true }) : row, say, context.asOf),
           droppedNote
         ),
-        wfRenderSatSide(h, row.right, "right", say, actions, unitContext),
+        wfRenderSatSide(h, rightList.slice(0, takeRight), "right", say, actions, unitContext),
         position + 1 < total
           ? h("span", {
               className: "wf-unit-link",
@@ -7116,6 +7153,10 @@ window.__ModuleLoader__.load({
       var ui = extras || {};
       var rows = model && Array.isArray(model.steps) ? model.steps : [];
       var units = model && model.page && Array.isArray(model.page.units) ? model.page.units : [];
+      var nodeLimit = wfFinite(ui.nodeLimit) === null ? null : Math.round(ui.nodeLimit);
+      var limit = nodeLimit === null || nodeLimit <= 0 ? null : nodeLimit;
+      var budget = wfNodeBudget(units, limit);
+      var omitted = budget === null ? 0 : budget.total - budget.used;
       var context = {
      // `openStep` is the step whose page is on the right; `selectedStep` is the panel's remembered
      // selection (they are usually the same, but the header can open a page without re-selecting).
@@ -7147,15 +7188,37 @@ window.__ModuleLoader__.load({
                 "data-running": wfFinite(model && model.page ? model.page.runningIndex : null) === null ? "" : String(model.page.runningIndex),
               },
               units.map(function (unit, position) {
-                return wfRenderUnit(h, unit, position, units.length, say, actions, context);
+                var take = budget === null ? null : budget.takes[position];
+                var unitContext = Object.assign({}, context, {
+                  takeLeft: take === null || take === undefined ? null : take.left,
+                  takeRight: take === null || take === undefined ? null : take.right,
+                });
+                return wfRenderUnit(h, unit, position, units.length, say, actions, unitContext);
               })
             );
 
       return h(
         "div",
-        { className: "wf-page", key: "page", "data-dsh-workflow-map": "main" },
+        {
+          className: "wf-page",
+          key: "page",
+          "data-dsh-workflow-map": "main",
+          "data-node-limit": limit === null ? "0" : String(limit),
+          "data-capped": omitted > 0 ? "true" : "false",
+        },
         header,
-        h("div", { className: "wf-page-scroll", key: "scroll", "data-dsh-workflow-map": "page-scroll" }, body)
+        h(
+          "div",
+          { className: "wf-page-scroll", key: "scroll", "data-dsh-workflow-map": "page-scroll" },
+          body,
+          omitted > 0
+            ? h(
+                "div",
+                { className: "wf-unit-more", key: "limit", "data-dsh-workflow-map": "limit-note" },
+                say("panel.page.limitNote", { limit: limit, count: omitted })
+              )
+            : null
+        )
       );
     }
 
@@ -8321,6 +8384,7 @@ window.__ModuleLoader__.load({
       "panel.page.kind.tool": "调用工具",
       "panel.page.sat.label": "{label}（{kind}）{count} 处，点击查看这一类调用",
       "panel.page.moreTypes": "另有 {count} 类未画在两侧",
+      "panel.page.limitNote": "节点上限 {limit}：另有 {count} 个节点未画在两侧",
       "panel.page.close": "关闭这一页",
       "panel.page.noReport": "这一步的详情还没有随视图发送",
       "panel.page.inject": "热注入",
@@ -8460,6 +8524,7 @@ window.__ModuleLoader__.load({
       "panel.page.kind.tool": "tool",
       "panel.page.sat.label": "{label} ({kind}), {count} calls — click to see this type's calls",
       "panel.page.moreTypes": "{count} more types are not drawn on the sides",
+      "panel.page.limitNote": "Node limit {limit}: {count} more nodes are not drawn on the sides",
       "panel.page.close": "Close this page",
       "panel.page.noReport": "This step's details have not been sent with the view yet",
       "panel.page.inject": "Hot inject",
@@ -9729,6 +9794,8 @@ window.__ModuleLoader__.load({
             asOf: wfFinite(extras.asOf) === null ? model.asOf : extras.asOf,
      // "Title only" narrows the unit's rail to one line, exactly as it did in the old column.
             compact: settings.detail === "title",
+    // The node limit is a PAGE budget: the setting names the whole map's look, not one step's.
+            nodeLimit: settings.nodeLimit,
           }),
      // The right page: a step record, one file type's calls, or the inject composer.
           extras.right
