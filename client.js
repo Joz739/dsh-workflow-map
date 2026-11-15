@@ -6,6 +6,7 @@
 // src/client/ProgressUnder.js, src/client/StepDetail.js, src/client/StepColumn.js,
 // src/client/NodeDetail.js, src/client/NodeCard.js, src/client/export.js,
 // src/client/FlowColumn.js, src/client/Branches.js, src/client/FlowEffects.js,
+// src/client/MainFlow.js, src/client/RightPage.js, src/client/HotInject.js,
 // src/client/panel.js.
 // Rebuild: node tools/build-client.mjs
 
@@ -164,7 +165,7 @@ window.__ModuleLoader__.load({
     /**
      * single-page chain geometry. ONE vertical run of step units; each unit hangs a few
      * round satellites off its LEFT (read / query) and RIGHT (write / edit / tool) edges, joined by
-     * STRAIGHT lines (straight connectors were requested, not the old bezier channel).
+     * Straight lines: straight connectors replaced the bezier channel.
      *
      * PAGE_PAD air between the scroller edge and a satellite circle
      * SATELLITE round icon diameter (30 px — a top-level click target, bigger than the 22 px
@@ -1120,6 +1121,8 @@ window.__ModuleLoader__.load({
       ".wf-unit[data-status='pending'] .wf-unit-title{color:var(--dsw-alias-label-secondary,#9aa3b2)}",
       ".wf-unit[data-status='skipped'] .wf-unit-title{color:var(--dsw-alias-label-tertiary,#7d8798);text-decoration:line-through}",
       ".wf-unit-more{font-size:9.5px;line-height:1.4;color:var(--dsw-alias-label-tertiary,#7d8798)}",
+      ".wf-page-label{flex:0 0 auto;white-space:nowrap}",
+      "[data-dsh-workflow-map='limit-note']{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
 
      // The straight connector down the middle, in the gap the units leave: 2 px wide, WF_UNIT_GAP
      // tall, drawn ONLY between two units (never under the last one). Done steps get a solid line,
@@ -6777,12 +6780,12 @@ window.__ModuleLoader__.load({
 
     // ===== src/client/MainFlow.js =====
     /**
-     * MainFlow.js — the single page: ONE serial main flow, satellites on both sides.
+     * MainFlow.js — the single page: one serial main flow, satellites on both sides.
      *
-     * The layout the requested for, in one sentence: the steps run serially down the middle, each
-     * step's core unit carries a few parallel "interfaces" off its left and right edges, every
-     * interface ends in a round icon naming the TOOL FILE TYPE it stands for, and every connector is
-     * a STRAIGHT line. The main chain only ever runs one way — down.
+     * The layout, in one sentence: the steps run serially down the middle, each step's core unit
+     * carries a few parallel "interfaces" off its left and right edges, every interface ends in a
+     * round icon naming the tool file type it stands for, and every connector is a straight line.
+     * The main chain only runs one way: down.
      *
      * Why the satellites exist at all: a step's flow is not a flat list of tool calls, it is "this
      * step touched .md files here, ran pwsh there". The circle is that fact turned into a click
@@ -6793,8 +6796,7 @@ window.__ModuleLoader__.load({
      * this file only draws what the buckets already say
      * RightPage.js the same buckets, with their calls, for the opened page
      *
-     * Pure: `h` and `say` are injected, no React import, no DOM. tools/selftest-panel.mjs drives the
-     * exact tree the frame mounts.
+     * Pure: `h` and `say` are injected; no React import, no DOM.
      *
      * Inlined into client.js by tools/build-client.mjs (single-file browser half).
      */
@@ -7058,9 +7060,9 @@ window.__ModuleLoader__.load({
           h(
             "span",
             { className: "wf-unit-meta", key: "meta" },
-            // The badge names the state the CARD is in. A waiting row is still `running` on the wire, so
-            // the plain status word would advertise activity that is not happening — the same defect the
-            // number had. `panel.status.awaiting` exists for exactly that one substitution.
+            // The badge names the state the card is in. A waiting row is still `running` on the wire, so
+            // the wire status would advertise activity that is not happening; `panel.status.awaiting`
+            // is the one substitution.
             h(
               "span",
               { className: "wf-badge", key: "badge" },
@@ -7069,14 +7071,10 @@ window.__ModuleLoader__.load({
             metaBits.map(function (bit, at) {
               return h("span", { key: "bit-" + at }, bit);
             }),
-     // "needs confirm" used to live in StepColumn's meta row; the unit keeps it (and the badge order
-     // the self-test asserts) so the flag is not lost with that file.
-     // "needs confirm" is now the UNION of two sources, both derived:
-     // · the plan's own `requiresConfirmation` (the step was marked as a confirm point),
-     // · the step being WAITING on a human right now — the host folds an open approval
-     // or an unanswered question into `row.pendingConfirm`.
-     // The flag names WHY when the row carries a reason, so the user can tell "this step was
-     // marked" versus "this step is asking you something right now".
+            // "needs confirm" is the union of two derived sources: the plan's own
+            // `requiresConfirmation`, and the row currently waiting on a human — the host folds an open
+            // approval or an unanswered question into `row.pendingConfirm`. The flag's title names the
+            // reason when the row carries one.
             wfConfirmRows(row).length > 0 || row.requiresConfirmation
               ? h(
                   "span",
@@ -7085,10 +7083,8 @@ window.__ModuleLoader__.load({
                 )
               : null
           ),
-          // "● working ..." is the marker for an ADVANCE in progress. A waiting step is still running,
-          // but it is not advancing — printing the blinking marker there would be the same lie the
-          // number was: something is happening, when the session is in fact waiting for the user.
-          // (Waiting has its own static sentence, on the rail: 「等待下一回合」.)
+          // The blinking marker means the step is advancing. A waiting step is still running but not
+          // advancing, so it renders no marker; the rail carries its own static waiting line.
           status === "running" && !awaiting ? wfRenderLive(h, say, "step") : null
         )
       );
@@ -7126,8 +7122,8 @@ window.__ModuleLoader__.load({
             key: "center",
           },
           card,
-     // "Title only" still means ONE line under the card: the rail keeps its number and drops
-     // the second (timing) line, exactly as it did in the two-column layout.
+          // "Title only" keeps one line under the card: the rail keeps its number and drops the timing
+          // line.
           wfRenderProgressDock(h, context.compact ? Object.assign({}, row, { compact: true }) : row, say, context.asOf),
           droppedNote
         ),
@@ -7148,8 +7144,8 @@ window.__ModuleLoader__.load({
     }
 
     /**
-     * The page itself. `extras` carries {openStep, openType, asOf}; its scroller is the ONE scroll
-     * container of the main flow (the right page scrolls on its own).
+     * The page itself. `extras` carries {openStep, openType, compact, nodeLimit, asOf}; its scroller
+     * is the only scroll container of the main flow (the right page scrolls on its own).
      */
     function wfRenderMainFlow(h, model, say, actions, extras) {
       var ui = extras || {};
@@ -7172,13 +7168,13 @@ window.__ModuleLoader__.load({
       var header = h(
         "div",
         { className: "wf-page-head", key: "head", "data-dsh-workflow-map": "page-head" },
-        h("span", { key: "label" }, say("panel.page.main")),
+        h("span", { className: "wf-page-label", key: "label" }, say("panel.page.main")),
         // The cap is a fact about the page, so it is stated in the page head: at the end of a long
         // list the note would sit below the fold, where being capped looks like nothing happened.
         omitted > 0
           ? h(
               "span",
-              { className: "wf-unit-more", key: "limit", "data-dsh-workflow-map": "limit-note" },
+              { className: "wf-unit-more", key: "limit", "data-dsh-workflow-map": "limit-note", title: say("panel.page.limitNote", { limit: limit, count: omitted }) },
               say("panel.page.limitNote", { limit: limit, count: omitted })
             )
           : null,

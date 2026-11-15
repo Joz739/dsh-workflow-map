@@ -1018,7 +1018,7 @@ function foldAll(events) {
     equal("(h) the row it resolved to is marked revoked", revokedByLedger.injects[0].canceled, true);
     equal("(h) it is still not 'taken'", revokedByLedger.injects[0].pickedUp, false);
 
- // The same event naming index 0 resolves to the human's message: our rows must not move.
+ // The same event naming index 0 resolves to the human's message: the rows must not move.
     const foreignRevoked = buildView(
       foldAll([...insertedBoth, ev("agent/inbox/spliced", { target: "next-step", start: 0, removedCount: 1, inserted: [], outcome: "canceled" })]),
       T0 + 100000,

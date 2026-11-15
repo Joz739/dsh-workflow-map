@@ -1,4 +1,4 @@
-// dsh-workflow-map — src/fold.mjs . PURE FUNCTION. No clock, no fs, no net.
+// dsh-workflow-map — src/fold.mjs. Pure functions: no clock, no fs, no net.
 //
 // The single source of truth for the workflow view: "step list + each step's flow nodes +
 // currently running step/node + per-step percentage". Three consumers, one implementation:

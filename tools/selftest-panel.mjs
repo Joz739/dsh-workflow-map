@@ -1234,6 +1234,29 @@ check(
   limitNote === undefined ? 'no limit note' : 'note is inside the page head'
 );
 
+// The page-head label carries its own class: it is the CSS anchor that keeps the label from being
+// shrunk with the note. Asserted by class and text, never by position — "the first span" would be
+// the same order dependence the `>span:first-child` selector was rejected for.
+const labelNodes = findAll(cappedTree, (el) => typeof el.props.className === 'string' && el.props.className.split(/\s+/).includes('wf-page-label'));
+check(
+  'render.pageHead.labelClass',
+  labelNodes.length === 1 && findAll(byData(cappedTree, 'page-head')[0], (el) => el === labelNodes[0]).length === 1,
+  labelNodes.length + ' node(s) with the label class'
+);
+check(
+  'render.pageHead.labelText',
+  labelNodes.length === 1 && textOf(labelNodes[0]) === say('panel.page.main'),
+  labelNodes.length === 1 ? textOf(labelNodes[0]) : 'no label node'
+);
+
+// The note is truncated by CSS when the head runs out of room, so `title` is the only channel that
+// still shows the whole sentence. It must be the same string as the text, not a second rendering.
+check(
+  'render.pageHead.limitTitle',
+  limitNote !== undefined && typeof limitNote.props.title === 'string' && limitNote.props.title !== '' && limitNote.props.title === textOf(limitNote),
+  limitNote === undefined ? 'no limit note' : JSON.stringify(limitNote.props.title)
+);
+
 // Both facts at once: four right-side types (two fit the side, two are host-dropped) and a budget
 // of 3 that can pay for only the first bucket (alpha, 3 nodes). The unit note must say "2 types"
 // and the page note "2 nodes" — each fact stated once, by the layer that owns it.

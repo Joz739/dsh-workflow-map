@@ -45,7 +45,7 @@ in the hot-inject box is an example and was not sent.
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-1.1.0-success)
+![version](https://img.shields.io/badge/version-1.1.1-success)
 
 ---
 

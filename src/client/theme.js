@@ -135,7 +135,7 @@ var WF_LIVE_PERIOD = "1.2s";
 /**
  * single-page chain geometry. ONE vertical run of step units; each unit hangs a few
  * round satellites off its LEFT (read / query) and RIGHT (write / edit / tool) edges, joined by
- * STRAIGHT lines (straight connectors were requested, not the old bezier channel).
+ * Straight lines: straight connectors replaced the bezier channel.
  *
  * PAGE_PAD air between the scroller edge and a satellite circle
  * SATELLITE round icon diameter (30 px — a top-level click target, bigger than the 22 px
@@ -1091,6 +1091,8 @@ var WF_CSS_PAGE = [
   ".wf-unit[data-status='pending'] .wf-unit-title{color:var(--dsw-alias-label-secondary,#9aa3b2)}",
   ".wf-unit[data-status='skipped'] .wf-unit-title{color:var(--dsw-alias-label-tertiary,#7d8798);text-decoration:line-through}",
   ".wf-unit-more{font-size:9.5px;line-height:1.4;color:var(--dsw-alias-label-tertiary,#7d8798)}",
+  ".wf-page-label{flex:0 0 auto;white-space:nowrap}",
+  "[data-dsh-workflow-map='limit-note']{flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
 
  // The straight connector down the middle, in the gap the units leave: 2 px wide, WF_UNIT_GAP
  // tall, drawn ONLY between two units (never under the last one). Done steps get a solid line,

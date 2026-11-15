@@ -1,31 +1,25 @@
 /**
- * dsh-workflow-map — PAE plan reader .
+ * PAE plan reader.
  *
- * WHY THIS MODULE EXISTS. The fold in ../src/fold.mjs already recognises plan steps from PAE's
- * own context messages, but that is a reconstruction of the log. The AUTHORITATIVE plan — its
- * phase, PAE's canonical task text, the per-step files and the orchestrator's own status /
- * report / anchor bookkeeping — lives in `<cwd>/.pae/<sessionId>/orchestrator.json`. This module
- * reads exactly that file and nothing else.
+ * Reads `<cwd>/.pae/<sessionId>/orchestrator.json` — the authoritative plan (phase, task text,
+ * per-step files, status/report/anchor bookkeeping) — and nothing else. ../src/fold.mjs only
+ * reconstructs steps from the log.
  *
- * BOUNDARIES (each one is load-bearing):
- * * READ ONLY. Nothing here writes, creates or deletes anything under `.pae`; the self-test
- * asserts the file's mtime and size are unchanged after a full read.
- * * NEVER THROWS. A missing file, a half-written file (PAE rewrites it between steps), a
- * permission problem or a schema surprise must degrade the panel, never the session: every
- * failure returns null and appends ONE line to errors.
- * * ONE STAT PER VIEW. read stats the file and reuses the parsed value while `mtimeMs:size`
- * is unchanged, so a per-event wire build costs one statSync and no read. A FAILED read is
- * remembered by the same key: a half-written file is not parsed again on every event, and the
- * rewrite that fixes it changes mtimeMs:size, which is what makes the next attempt a fresh one.
- * The parsed value is deep-frozen, so the cache can be handed to every view without aliasing risk.
- * * NO CLOCK, NO AMBIENT STATE. `asOfMtime` is the file's own mtime — the only accurate "as of"
- * instant this source has.
- * * PATHS ARE REQUIRED. `<cwd>` and the session id must both be supplied. A session id
- * that is not a single path segment is refused, because it would escape `.pae`.
+ * READ ONLY: nothing under `.pae` is written, created or deleted; the self-test asserts mtime and
+ * size are unchanged after a full read.
+ * NEVER THROWS: a missing, half-written, unreadable or schema-surprising file returns null and
+ * appends one line to `errors`; it never fails the session.
+ * ONE STAT PER VIEW: `read()` stats the file and reuses the parsed value while `mtimeMs:size` is
+ * unchanged, so a per-event wire build costs one statSync and no read; the value is deep-frozen,
+ * so the cache can be shared across views. A failed read is remembered under the same key, so a
+ * half-written file is not re-parsed on every event.
+ * NO CLOCK: `asOfMtime` is the file's own mtime.
+ * PATHS REQUIRED: `<cwd>` and the session id must both be supplied; a session id that is not a
+ * single path segment would escape `.pae` and is refused.
  *
- * WHAT IT DOES NOT DO: it never invents a step. `steps` comes from `plan.steps` verbatim (with
- * the 1-based ordinal PAE prints), so a plan row the fold has no evidence for is still listed
- * with `index`/`title`/`file` and no fabricated timings or percentages.
+ * Never invents a step: `steps` comes from `plan.steps` verbatim (with the 1-based ordinal PAE
+ * prints), so a plan row the fold has no evidence for is still listed with `index`/`title`/`file`
+ * and no fabricated timings or percentages.
  */
 
 import { readFileSync, statSync } from "node:fs";

@@ -86,6 +86,7 @@ const header = [
   '// src/client/ProgressUnder.js, src/client/StepDetail.js, src/client/StepColumn.js,',
   '// src/client/NodeDetail.js, src/client/NodeCard.js, src/client/export.js,',
   '// src/client/FlowColumn.js, src/client/Branches.js, src/client/FlowEffects.js,',
+  '// src/client/MainFlow.js, src/client/RightPage.js, src/client/HotInject.js,',
   '// src/client/panel.js.',
   '// Rebuild: node tools/build-client.mjs',
 ].join('\n');
@@ -267,7 +268,7 @@ for (const [label, needle] of required) {
 
 // the overlay seat must be GONE from the shipped bundle. The `required` list
 // above only proves presence, so the removal needs its own guard: a stale string in
-// any chunk would re-register the old floating window beside the new panel.
+// any chunk would re-register the overlay seat beside the new panel.
 const forbidden = [
   ['overlay seat', 'shell.overlay'],
   ['dialog role', 'role: "dialog"'],

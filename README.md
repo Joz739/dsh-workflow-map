@@ -43,7 +43,7 @@ https://github.com/deepseek-ai/deepseek-harness/discussions/11660
 ![license](https://img.shields.io/badge/license-MIT-blue)
 ![platform](https://img.shields.io/badge/platform-DeepSeek%20Harness-brightgreen)
 ![node](https://img.shields.io/badge/node-%E2%89%A520-informational)
-![version](https://img.shields.io/badge/version-1.1.0-success)
+![version](https://img.shields.io/badge/version-1.1.1-success)
 
 ---
 
@@ -425,6 +425,22 @@ pwsh -File tools/measure-main.ps1
 | 2 | 类型页副标题显示未替换的 `{count}` 占位符 | 已修（`8bf6f2c`） |
 
 当前没有已知的功能性缺陷。宿主半的改动需要重启 DSH 进程，这属于生效机制，不算缺陷。
+
+### 已知取舍
+
+- **宿主晚注册 `tools` 时，进度工具不会补注册。** `apply` 只尝试注册一次；若宿主在 `apply`
+  之后才提供 `tools` 服务，自报工具不会出现，`capabilities` 保持 `unavailable`。11 套自测
+  全绿**不能**覆盖这一点——删掉注册那一行，测试仍然全绿。
+- **节点上限只报页级总数。** 整页跨步累计被上限砍掉的节点数只出现在页头一条提示里；单位
+  卡片不单独报"本步因上限少画几个"，以免同一单位出现两条计数。
+
+### 未做（及原因）
+
+- **侧边栏 `aria-label` 仍是硬编码中文**（`读取与查询` / `写入与工具`）。要新增两个词典键并
+  同步 zh/en，属词典改动，本轮未做；英文界面下读屏器会读中文。
+- **服务端错误文本仍是硬编码中文**（`会话未在运行，热注入不可用`、`该注入已被会话接下或不存在`）。
+  正确做法是服务端返回错误码、由客户端 `say()` 渲染，属行为改动；且客户端是否直接显示
+  `error` 文本尚未核实。
 
 ---
 

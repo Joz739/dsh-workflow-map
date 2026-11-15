@@ -1,6 +1,6 @@
 {
   "name": "dsh-workflow-map",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "DeepSeek Harness（DSH）插件：把会话折叠成分步工作流地图，显示每步状态、进度、工具与文件操作，并支持把提示词排入下一步队列。",
   "private": false,
   "type": "module",
@@ -28,11 +28,11 @@
   },
   "engines": {
     "node": ">=20",
-    "dsh": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0"
+    "dsh": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.3 <0.3.0-0"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-agent-loop": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0",
-    "@deepseek-ai/dsh-llm": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0"
+    "@deepseek-ai/dsh-agent-loop": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.3 <0.3.0-0",
+    "@deepseek-ai/dsh-llm": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.3 <0.3.0-0"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-agent-loop": {
